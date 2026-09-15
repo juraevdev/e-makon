@@ -1,0 +1,23 @@
+*.py[cod]
+__pycache__/
+*.sqlite3
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+media/
+staticfiles/
+.idea/
+.vscode/
+*.log
+.DS_Store
+
+# Alohida git repolar (root e-makon ga kirmaydi)
+mygarden/
+mobile/
+superadmin_panel/
+
+# Local/archive
+*.zip
