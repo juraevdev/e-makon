@@ -13,11 +13,42 @@ staticfiles/
 .vscode/
 *.log
 .DS_Store
-
-# Alohida git repolar (root e-makon ga kirmaydi)
-mygarden/
-mobile/
-superadmin_panel/
-
-# Local/archive
 *.zip
+
+# Faqat mygarden alohida repo — root e-makon ga kirmaydi
+mygarden/
+
+# Flutter (mobile/)
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/.idea/
+mobile/**/*.iml
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/coverage/
+mobile/ios/Flutter/.last_build_id
+
+# Next.js (superadmin_panel/)
+superadmin_panel/node_modules/
+superadmin_panel/.next/
+superadmin_panel/out/
+superadmin_panel/build/
+superadmin_panel/coverage/
+superadmin_panel/.vercel/
+superadmin_panel/.env*
+superadmin_panel/*.pem
+superadmin_panel/_stitch_source/
+superadmin_panel/next-env.d.ts
+superadmin_panel/*.tsbuildinfo
+
+mobile/.git.bak/
+superadmin_panel/.git.bak/
+
+
+mobile/releases/*.apk
+mobile/releases/*.aab
+
