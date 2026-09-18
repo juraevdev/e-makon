@@ -1,126 +1,122 @@
 "use client";
 
-import { useState } from "react";
-import { FilterChip, PrimaryButton, SecondaryButton, StatusPill } from "@/components/ui";
-
-const banners = [
-  {
-    title: "Bahorgi ekish mavsumi",
-    desc: "Bizning yangi mavsumiy ekish xizmatlarimizni targ'ib qiling. Chegirmalar va ommaviy ko'chat ekish kampaniyasi.",
-    status: "Faol" as const,
-    tone: "success" as const,
-    footer: "Bosh sahifada faol",
-    img: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=640&h=360&fit=crop",
-  },
-  {
-    title: "Premium gazon yotqizish aksiyasi",
-    desc: "Gollandiya urug'idan tabiiy yashil gazonlar 15% chegirma bilan. Yetkazish va mutaxassis ekish xizmati.",
-    status: "Faol" as const,
-    tone: "success" as const,
-    footer: "Bosh sahifada faol",
-    img: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=640&h=360&fit=crop",
-  },
-  {
-    title: "Aqlli avtomat sug'orish tizimi",
-    desc: "IoT datchiklar bilan suv tejovchi sug'orish. Birinchi o'rnatishda bepul diagnostika.",
-    status: "Faol" as const,
-    tone: "success" as const,
-    footer: "Ilova bannerida",
-    img: "https://images.unsplash.com/photo-1466692476866-aef1dfb1e735?w=640&h=360&fit=crop",
-  },
-  {
-    title: "Yashil landshaft dizayni 3D loyiha",
-    desc: "Professional 3D vizualizatsiya paketi. Premium mijozlar uchun maxsus taklif.",
-    status: "Faol" as const,
-    tone: "success" as const,
-    footer: "Promo bo'limida",
-    img: "https://images.unsplash.com/photo-1585320806297-779435439e82?w=640&h=360&fit=crop",
-  },
-  {
-    title: "Kuzgi daraxt parvarishi va o'g'itlash",
-    desc: "Mavsumiy daraxt himoyasi kampaniyasi. 20-oktabrdan boshlanadi.",
-    status: "Rejalashtirilgan" as const,
-    tone: "warning" as const,
-    footer: "20 Okt — boshlanish",
-    img: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=640&h=360&fit=crop",
-  },
-  {
-    title: "Tijoriy obyektlar uchun yashil hudud",
-    desc: "Korporativ mijozlar uchun kompleks ko'kalamzorlashtirish paketlari.",
-    status: "Rejalashtirilgan" as const,
-    tone: "warning" as const,
-    footer: "Qoralama",
-    img: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=640&h=360&fit=crop",
-  },
-];
+import { useMemo, useState } from "react";
+import {
+  EmptyState,
+  Field,
+  FilterChip,
+  inputClass,
+  LoadingBlock,
+  Modal,
+  PrimaryButton,
+  StatusPill,
+} from "@/components/ui";
+import { api, asPage } from "@/lib/api/client";
+import type { Banner, BannerStatus, Service } from "@/lib/api/types";
+import { BANNER_STATUS_LABEL } from "@/lib/domain";
+import { useAsync } from "@/hooks/useAsync";
 
 export default function BannerlarPage() {
-  const [filter, setFilter] = useState("Barchasi");
+  const [filter, setFilter] = useState<"all" | BannerStatus>("all");
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Banner | null>(null);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    image_url: "",
+    status: "active" as BannerStatus,
+    placement: "home",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const { data, loading, error, reload } = useAsync(async () => {
+    const [banners, services] = await Promise.all([
+      api("/admin/banners/", { query: { page_size: 50 } }),
+      api("/admin/services/", { query: { page_size: 50 } }),
+    ]);
+    return { banners: asPage<Banner>(banners).results, services: asPage<Service>(services).results };
+  }, []);
+
+  const list = useMemo(() => {
+    const all = data?.banners ?? [];
+    if (filter === "all") return all;
+    return all.filter((b) => b.status === filter);
+  }, [data, filter]);
+
+  function startCreate() {
+    setEditing(null);
+    setForm({ title: "", description: "", image_url: "", status: "active", placement: "home" });
+    setOpen(true);
+  }
+
+  function startEdit(b: Banner) {
+    setEditing(b);
+    setForm({
+      title: b.title,
+      description: b.description,
+      image_url: b.image_url || b.image_src,
+      status: b.status,
+      placement: b.placement,
+    });
+    setOpen(true);
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      if (editing) await api(`/admin/banners/${editing.id}/`, { method: "PATCH", body: form });
+      else await api("/admin/banners/", { method: "POST", body: form });
+      setOpen(false);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(b: Banner) {
+    if (!confirm("Banner o'chirilsinmi?")) return;
+    await api(`/admin/banners/${b.id}/`, { method: "DELETE" });
+    await reload();
+  }
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h2 className="text-xl font-semibold text-on-surface md:hidden">Bannerlar va aksiyalar</h2>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <FilterChip label="Barchasi" count={6} active={filter === "Barchasi"} onClick={() => setFilter("Barchasi")} />
-          <FilterChip label="Faol" count={4} dot="bg-primary" active={filter === "Faol"} onClick={() => setFilter("Faol")} />
-          <FilterChip
-            label="Rejalashtirilgan"
-            count={2}
-            icon="schedule"
-            active={filter === "Rejalashtirilgan"}
-            onClick={() => setFilter("Rejalashtirilgan")}
-          />
-          <div className="ml-auto flex items-center gap-2">
-            <SecondaryButton icon="filter_list">Filtr</SecondaryButton>
-            <PrimaryButton icon="add">Banner qo&apos;shish</PrimaryButton>
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterChip label="Barchasi" active={filter === "all"} onClick={() => setFilter("all")} count={data?.banners.length} />
+        <FilterChip label="Faol" active={filter === "active"} onClick={() => setFilter("active")} />
+        <FilterChip label="Rejalashtirilgan" active={filter === "scheduled"} onClick={() => setFilter("scheduled")} />
+        <div className="ml-auto">
+          <PrimaryButton icon="add" onClick={startCreate}>Banner qo&apos;shish</PrimaryButton>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {banners
-          .filter((b) => {
-            if (filter === "Faol") return b.status === "Faol";
-            if (filter === "Rejalashtirilgan") return b.status === "Rejalashtirilgan";
-            return true;
-          })
-          .map((b) => (
-            <article
-              key={b.title}
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917] transition-all duration-300 hover:border-primary-container/70 hover:shadow-xl hover:shadow-primary/5"
-            >
-              <div className="relative h-48 w-full overflow-hidden bg-surface-container-high">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={b.img}
-                  alt={b.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#151917]/90 via-transparent to-black/30" />
+      {loading ? (
+        <LoadingBlock />
+      ) : error ? (
+        <p className="text-error">{error}</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {list.map((b) => (
+            <article key={b.id} className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
+              <div className="relative h-48 bg-surface-container-high">
+                {b.image_src || b.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={b.image_src || b.image_url} alt={b.title} className="h-full w-full object-cover" />
+                ) : null}
                 <div className="absolute top-3 right-3">
-                  <StatusPill variant={b.tone} pulse={b.tone === "success"}>
-                    {b.status}
-                  </StatusPill>
+                  <StatusPill variant={b.status === "active" ? "success" : "warning"}>{BANNER_STATUS_LABEL[b.status]}</StatusPill>
                 </div>
               </div>
               <div className="flex flex-1 flex-col p-5">
-                <h3 className="mb-2 text-xl font-semibold text-on-surface transition-colors group-hover:text-primary">
-                  {b.title}
-                </h3>
-                <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">{b.desc}</p>
-                <div className="mt-auto flex items-center justify-between border-t border-[#26352c]/60 pt-3 text-on-surface-variant">
-                  <div className="flex items-center gap-1.5 text-xs text-tertiary">
-                    <span className="material-symbols-outlined text-[14px]">
-                      {b.status === "Faol" ? "visibility" : "schedule"}
-                    </span>
-                    {b.footer}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button type="button" title="Tahrirlash" className="rounded-lg p-1.5 transition-colors hover:bg-[#1d2020] hover:text-primary">
+                <h3 className="mb-2 text-xl font-semibold">{b.title}</h3>
+                <p className="mb-4 line-clamp-2 text-sm text-on-surface-variant">{b.description}</p>
+                <div className="mt-auto flex items-center justify-between border-t border-[#26352c]/60 pt-3">
+                  <span className="text-xs text-tertiary">{b.placement === "home" ? "Bosh sahifa" : "Promo"}</span>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => startEdit(b)} className="rounded-lg p-1.5 hover:text-primary">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
-                    <button type="button" title="O'chirish" className="rounded-lg p-1.5 transition-colors hover:bg-[#1d2020] hover:text-error">
+                    <button type="button" onClick={() => void remove(b)} className="rounded-lg p-1.5 hover:text-error">
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
@@ -128,20 +124,39 @@ export default function BannerlarPage() {
               </div>
             </article>
           ))}
-
-        <button
-          type="button"
-          className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-8 text-primary transition-all hover:border-primary hover:bg-primary/10"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
+          <button
+            type="button"
+            onClick={startCreate}
+            className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-8 text-primary"
+          >
             <span className="material-symbols-outlined text-[28px]">add</span>
-          </span>
-          <h3 className="text-lg font-semibold">Yangi banner qo&apos;shish</h3>
-          <p className="max-w-xs text-center text-sm text-on-surface-variant">
-            Aksiya yoki kampaniya uchun yangi banner yarating
-          </p>
-        </button>
-      </div>
+            <h3 className="text-lg font-semibold">Yangi banner qo&apos;shish</h3>
+          </button>
+          {!list.length ? <EmptyState icon="ad_units" title="Bannerlar yo'q" /> : null}
+        </div>
+      )}
+
+      <Modal open={open} title={editing ? "Bannerni tahrirlash" : "Yangi banner"} onClose={() => setOpen(false)}>
+        <div className="space-y-3">
+          <Field label="Sarlavha">
+            <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </Field>
+          <Field label="Tavsif">
+            <textarea className={inputClass} rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+          <Field label="Rasm URL">
+            <input className={inputClass} value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+          </Field>
+          <Field label="Holat">
+            <select className={inputClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as BannerStatus })}>
+              {Object.entries(BANNER_STATUS_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </Field>
+          <PrimaryButton disabled={busy || !form.title} onClick={() => void save()}>Saqlash</PrimaryButton>
+        </div>
+      </Modal>
     </div>
   );
 }

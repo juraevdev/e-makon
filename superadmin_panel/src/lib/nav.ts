@@ -19,16 +19,28 @@ export const navItems: NavItem[] = [
     title: "Hisobotlar",
   },
   {
+    href: "/firmalar",
+    label: "Firmalar",
+    icon: "storefront",
+    title: "Xizmat firmalari",
+  },
+  {
     href: "/foydalanuvchilar",
     label: "Foydalanuvchilar",
     icon: "group",
     title: "Foydalanuvchilar",
   },
   {
-    href: "/hamkorlar",
-    label: "Hamkorlar",
+    href: "/investorlar",
+    label: "Investorlar",
     icon: "handshake",
-    title: "Hamkorlar boshqaruvi",
+    title: "Investor hamkorlar",
+  },
+  {
+    href: "/hamkorlar",
+    label: "Xodimlar",
+    icon: "badge",
+    title: "Firma xodimlari",
   },
   {
     href: "/xizmatlar",

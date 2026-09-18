@@ -2,6 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { getNavTitle } from "@/lib/nav";
+import { initials } from "@/lib/format";
+import { ROLE_LABEL } from "@/lib/domain";
+import { useAuth } from "@/providers/AuthProvider";
+import { useSearch } from "@/providers/SearchProvider";
 
 type HeaderProps = {
   onMenuClick?: () => void;
@@ -10,6 +14,9 @@ type HeaderProps = {
 export function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname();
   const title = getNavTitle(pathname);
+  const { user, logout } = useAuth();
+  const { query, setQuery } = useSearch();
+  const name = user?.full_name || user?.phone || "Admin";
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background/80 px-4 py-2 backdrop-blur-md md:px-8">
@@ -33,34 +40,31 @@ export function Header({ onMenuClick }: HeaderProps) {
           </span>
           <input
             type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Qidirish..."
             className="w-64 rounded-full border border-surface-variant bg-surface-container-low py-2 pr-4 pl-10 text-sm text-on-surface placeholder:text-on-surface-variant transition-all focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high"
-            aria-label="Bildirishnomalar"
-          >
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-error" />
-          </button>
-          <div className="flex cursor-pointer items-center gap-3 rounded-full border border-surface-variant bg-surface-container-low py-1 pr-3 pl-2 transition-colors hover:bg-surface-container-high">
+          <div className="flex items-center gap-3 rounded-full border border-surface-variant bg-surface-container-low py-1 pr-2 pl-2">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary">
-              AU
+              {initials(name)}
             </div>
             <div className="hidden text-left sm:block">
-              <p className="text-xs leading-tight font-medium text-on-surface">
-                Admin User
-              </p>
+              <p className="text-xs leading-tight font-medium text-on-surface">{name}</p>
               <p className="text-xs leading-tight text-on-surface-variant">
-                SuperAdmin
+                {ROLE_LABEL[user?.role || "admin"]}
               </p>
             </div>
-            <span className="material-symbols-outlined hidden text-sm text-on-surface-variant sm:block">
-              expand_more
-            </span>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container-high hover:text-error"
+              title="Chiqish"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+            </button>
           </div>
         </div>
       </div>
