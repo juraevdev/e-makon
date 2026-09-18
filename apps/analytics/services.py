@@ -9,25 +9,37 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.orders.models import Order
+from apps.organizations.services import organization_id_for_queryset
 
 
 class DashboardService:
-    """Superadmin dashboard KPI — Stitch dashboard ekraniga mos."""
+    """Admin / superadmin dashboard KPI — Stitch dashboard ekraniga mos."""
 
     @staticmethod
-    def summary(days: int = 30) -> dict:
+    def summary(days: int = 30, user=None) -> dict:
         since = timezone.now() - timedelta(days=days)
         orders_qs = Order.objects.filter(created_at__gte=since)
-        users_total = User.objects.filter(role=User.Role.CUSTOMER).count()
-        active_orders = Order.objects.exclude(
+        customers_qs = User.objects.filter(role=User.Role.CUSTOMER)
+        active_qs = Order.objects.exclude(
             status__in=[Order.Status.COMPLETED, Order.Status.CANCELLED]
-        ).count()
-        revenue = (
-            Order.objects.filter(
-                status=Order.Status.COMPLETED, quoted_price__isnull=False
-            ).aggregate(total=Sum("quoted_price"))["total"]
-            or Decimal("0")
         )
+        revenue_qs = Order.objects.filter(
+            status=Order.Status.COMPLETED, quoted_price__isnull=False
+        )
+        recent_qs = Order.objects.select_related("customer", "service").order_by("-created_at")
+
+        if user is not None:
+            org_id = organization_id_for_queryset(user)
+            if org_id is not None:
+                orders_qs = orders_qs.filter(organization_id=org_id)
+                customers_qs = customers_qs.filter(organization_id=org_id)
+                active_qs = active_qs.filter(organization_id=org_id)
+                revenue_qs = revenue_qs.filter(organization_id=org_id)
+                recent_qs = recent_qs.filter(organization_id=org_id)
+
+        users_total = customers_qs.count()
+        active_orders = active_qs.count()
+        revenue = revenue_qs.aggregate(total=Sum("quoted_price"))["total"] or Decimal("0")
         by_status = (
             orders_qs.values("status").annotate(count=Count("id")).order_by("status")
         )
@@ -37,10 +49,7 @@ class DashboardService:
             .annotate(count=Count("id"))
             .order_by("day")
         )
-        recent = (
-            Order.objects.select_related("customer", "service")
-            .order_by("-created_at")[:10]
-        )
+        recent = recent_qs[:10]
         return {
             "period_days": days,
             "total_customers": users_total,

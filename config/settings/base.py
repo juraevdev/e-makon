@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "apps.care",
     "apps.support",
     "apps.analytics",
+    "apps.notifications",
+    "apps.organizations",
 ]
 
 MIDDLEWARE = [
@@ -146,10 +148,10 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "E-Makon / My Garden API",
+    "TITLE": "E-Makon API",
     "DESCRIPTION": (
-        "Professional REST API for the customer mobile app and superadmin panel. "
-        "Domain aligned with the My Garden Telegram bot."
+        "REST API for E-Makon customers (mobile + Telegram bot) and admin/superadmin. "
+        "Telegram bot is an HTTP client of this API — not a separate database."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -158,11 +160,31 @@ SPECTACULAR_SETTINGS = {
 REDIS_HOST = env("REDIS_HOST", default="localhost")
 REDIS_PORT = env.int("REDIS_PORT", default=6379)
 REDIS_DB = env.int("REDIS_DB", default=0)
+REDIS_URL = env(
+    "REDIS_URL",
+    default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+)
+
+# Trusted Telegram bot → API credential (required for /auth/telegram/link/)
+EMAKON_BOT_SERVICE_KEY = env("EMAKON_BOT_SERVICE_KEY", default="")
+
+# Notification queue (Redis list key)
+NOTIFICATION_QUEUE_KEY = env("NOTIFICATION_QUEUE_KEY", default="emakon:notifications")
 
 OTP_DEBUG_RETURN_CODE = env.bool("OTP_DEBUG_RETURN_CODE", default=DEBUG)
 OTP_CODE_TTL_SECONDS = env.int("OTP_CODE_TTL_SECONDS", default=300)
 OTP_CODE_LENGTH = env.int("OTP_CODE_LENGTH", default=6)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+OTP_REQUEST_RATE_LIMIT = env.int("OTP_REQUEST_RATE_LIMIT", default=5)
+OTP_REQUEST_RATE_WINDOW_SECONDS = env.int("OTP_REQUEST_RATE_WINDOW_SECONDS", default=600)
+
+# Default tenant for single-org deploys / OTP customer signup
+DEFAULT_ORGANIZATION_NAME = env("DEFAULT_ORGANIZATION_NAME", default="E-Makon")
+
+# Optional SMS provider hook (Eskiz / Playmobile). Empty = stub / debug only.
+SMS_PROVIDER = env("SMS_PROVIDER", default="")
+SMS_API_URL = env("SMS_API_URL", default="")
+SMS_API_TOKEN = env("SMS_API_TOKEN", default="")
 
 # File uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

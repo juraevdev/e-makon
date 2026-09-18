@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from apps.orders.models import Order, OrderMedia, OrderStatusHistory
+from apps.orders.models import Order, OrderIdempotency, OrderMedia, OrderStatusHistory
 
 
 class OrderMediaInline(admin.TabularInline):
@@ -23,3 +23,10 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ("customer__phone", "customer__full_name", "phone_number", "address")
     inlines = [OrderMediaInline, OrderStatusHistoryInline]
     raw_id_fields = ("customer", "assigned_worker", "service")
+
+
+@admin.register(OrderIdempotency)
+class OrderIdempotencyAdmin(admin.ModelAdmin):
+    list_display = ("key", "customer", "order", "created_at")
+    search_fields = ("key", "customer__phone")
+    raw_id_fields = ("customer", "order")

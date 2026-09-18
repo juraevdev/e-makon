@@ -22,6 +22,13 @@ class EmployeeProfile(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="employee_profile",
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="employees",
+        null=True,
+        blank=True,
+    )
     specialty = models.CharField(
         max_length=32,
         choices=Specialty.choices,
@@ -47,6 +54,13 @@ class AdminProfile(TimeStampedModel):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="admin_profile",
+    )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="admins",
+        null=True,
+        blank=True,
     )
     title = models.CharField(max_length=128, blank=True, default="Admin")
     can_manage_staff = models.BooleanField(default=True)

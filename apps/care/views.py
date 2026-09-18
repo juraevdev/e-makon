@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from apps.care.models import CareContract
 from apps.care.serializers import CareContractSerializer
 from apps.core.permissions import IsAdmin, IsCustomer
+from apps.organizations.mixins import OrganizationQuerysetMixin
+from apps.organizations.permissions import RequiresAdminCapability
 
 
 class CustomerCareContractViewSet(viewsets.ReadOnlyModelViewSet):
@@ -16,8 +18,9 @@ class CustomerCareContractViewSet(viewsets.ReadOnlyModelViewSet):
         return CareContract.objects.filter(customer=self.request.user).prefetch_related("visits")
 
 
-class AdminCareContractViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminCareContractViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = CareContract.objects.select_related("customer", "order").prefetch_related("visits")
     serializer_class = CareContractSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
+    required_capability = "can_manage_orders"
     filterset_fields = ("status",)

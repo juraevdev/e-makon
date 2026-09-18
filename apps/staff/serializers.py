@@ -4,6 +4,8 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
+from apps.organizations.models import Organization
+from apps.organizations.services import get_or_create_default_organization
 from apps.staff.models import AdminProfile, EmployeeProfile
 
 
@@ -35,14 +37,16 @@ class EmployeeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"phone": "Telefon raqam majburiy."})
         full_name = validated_data.pop("full_name", "")
         password = validated_data.pop("password", "") or None
+        org = self.context.get("organization") or get_or_create_default_organization()
         user = User.objects.create_user(
             phone=phone,
             password=password,
             full_name=full_name,
             role=User.Role.WORKER,
             is_staff=False,
+            organization=org,
         )
-        return EmployeeProfile.objects.create(user=user, **validated_data)
+        return EmployeeProfile.objects.create(user=user, organization=org, **validated_data)
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
@@ -50,12 +54,19 @@ class AdminUserSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(write_only=True, required=False)
     full_name = serializers.CharField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False)
+    organization_id = serializers.PrimaryKeyRelatedField(
+        source="organization",
+        queryset=Organization.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = AdminProfile
         fields = (
             "id",
             "user",
+            "organization_id",
             "title",
             "can_manage_staff",
             "can_manage_orders",
@@ -76,11 +87,15 @@ class AdminUserSerializer(serializers.ModelSerializer):
         if not password:
             raise serializers.ValidationError({"password": "Parol majburiy."})
         full_name = validated_data.pop("full_name", "")
+        org = validated_data.pop("organization", None) or self.context.get(
+            "default_organization"
+        ) or get_or_create_default_organization()
         user = User.objects.create_user(
             phone=phone,
             password=password,
             full_name=full_name,
             role=User.Role.ADMIN,
             is_staff=True,
+            organization=org,
         )
-        return AdminProfile.objects.create(user=user, **validated_data)
+        return AdminProfile.objects.create(user=user, organization=org, **validated_data)

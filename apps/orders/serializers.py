@@ -115,6 +115,7 @@ class OrderCreateSerializer(serializers.Serializer):
             customer_first_name=first_name,
             customer_last_name=last_name,
             media_files=validated_data.get("media") or [],
+            idempotency_key=self.context.get("idempotency_key"),
         )
 
 

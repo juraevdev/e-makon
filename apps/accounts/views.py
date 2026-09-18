@@ -11,9 +11,13 @@ from apps.accounts.serializers import (
     OTPRequestSerializer,
     OTPVerifySerializer,
     ProfileUpdateSerializer,
+    TelegramLinkSerializer,
     UserSerializer,
 )
 from apps.accounts.services.otp import OTPService
+from apps.accounts.services.telegram_link import TelegramLinkService
+from apps.core.bot_auth import IsBotService
+from apps.core.permissions import IsCustomer
 from apps.core.responses import success_response
 
 
@@ -101,3 +105,35 @@ class MeView(generics.RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return success_response(UserSerializer(request.user, context={"request": request}).data)
+
+
+class TelegramLinkView(APIView):
+    """Trusted Telegram identity bind — requires JWT + bot service key."""
+
+    permission_classes = [permissions.IsAuthenticated, IsCustomer, IsBotService]
+
+    def post(self, request):
+        serializer = TelegramLinkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = TelegramLinkService.link(
+            user=request.user,
+            telegram_id=serializer.validated_data["telegram_id"],
+            telegram_username=serializer.validated_data.get("telegram_username") or "",
+        )
+        return success_response(
+            UserSerializer(user, context={"request": request}).data,
+            message="Telegram bog'landi",
+        )
+
+
+class TelegramUnlinkView(APIView):
+    """Unlink Telegram identity for the authenticated customer (JWT + bot key)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsCustomer, IsBotService]
+
+    def post(self, request):
+        user = TelegramLinkService.unlink(user=request.user)
+        return success_response(
+            UserSerializer(user, context={"request": request}).data,
+            message="Telegram uzildi",
+        )

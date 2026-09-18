@@ -6,6 +6,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from apps.catalog.models import Service
 from apps.catalog.serializers import ServiceSerializer
 from apps.core.permissions import IsAdmin
+from apps.organizations.mixins import OrganizationQuerysetMixin
+from apps.organizations.permissions import RequiresAdminCapability
+from apps.organizations.services import get_or_create_default_organization, resolve_organization_for_user
 
 
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -17,10 +20,17 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ("sort_order", "name")
 
 
-class AdminServiceViewSet(viewsets.ModelViewSet):
+class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
+    required_capability = "can_manage_orders"
     lookup_field = "slug"
     search_fields = ("name", "slug")
     filterset_fields = ("is_active",)
+
+    def perform_create(self, serializer):
+        org = resolve_organization_for_user(self.request.user)
+        if org is None:
+            org = get_or_create_default_organization()
+        serializer.save(organization=org)

@@ -57,9 +57,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     location_lng = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     additional_phones = models.JSONField(default=list, blank=True)
 
-    # Optional Telegram bridge (mygarden bot sync)
+    # Optional Telegram bridge (E-Makon bot link)
     telegram_id = models.BigIntegerField(unique=True, blank=True, null=True)
     telegram_username = models.CharField(max_length=255, blank=True)
+
+    # Tenant: NULL only for platform superadmins (and legacy until backfilled)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

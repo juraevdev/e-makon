@@ -24,6 +24,13 @@ class SupportTicket(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="support_tickets",
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="support_tickets",
+        null=True,
+        blank=True,
+    )
     order = models.ForeignKey(
         Order,
         on_delete=models.SET_NULL,

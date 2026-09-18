@@ -23,6 +23,13 @@ class Order(TimeStampedModel):
         related_name="orders",
         limit_choices_to={"role": "customer"},
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="orders",
+        null=True,
+        blank=True,
+    )
     service = models.ForeignKey(Service, on_delete=models.PROTECT, related_name="orders")
     status = models.CharField(
         max_length=16,
@@ -51,7 +58,7 @@ class Order(TimeStampedModel):
     )
     assigned_worker_name = models.CharField(max_length=255, blank=True)
 
-    # Telegram bridge fields (optional sync with mygarden bot)
+    # Optional Telegram ops bridge fields
     telegram_group_message_id = models.BigIntegerField(null=True, blank=True)
     external_bot_order_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
@@ -106,3 +113,33 @@ class OrderStatusHistory(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class OrderIdempotency(TimeStampedModel):
+    """Persist order-create idempotency keys (Telegram / client retries)."""
+
+    key = models.CharField(max_length=64, db_index=True)
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="order_idempotency_keys",
+        limit_choices_to={"role": "customer"},
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="idempotency_records",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["customer", "key"],
+                name="uniq_order_idempotency_customer_key",
+            ),
+        ]
+        verbose_name = "Order idempotency"
+        verbose_name_plural = "Order idempotency keys"
+
+    def __str__(self) -> str:
+        return f"{self.key} → Order #{self.order_id}"

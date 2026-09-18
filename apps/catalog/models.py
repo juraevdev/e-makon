@@ -22,8 +22,15 @@ class Service(TimeStampedModel):
         FOREST = "forest", "forest"
         PHONE = "phone_in_talk", "phone_in_talk"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="services",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=64, unique=True)
+    slug = models.SlugField(max_length=64)
     emoji = models.CharField(max_length=8, blank=True)
     icon = models.CharField(max_length=32, blank=True, help_text="Material icon name")
     category = models.CharField(max_length=64, blank=True)
@@ -50,6 +57,12 @@ class Service(TimeStampedModel):
         ordering = ["sort_order", "id"]
         verbose_name = "Xizmat"
         verbose_name_plural = "Xizmatlar"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "slug"],
+                name="catalog_service_org_slug_uniq",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.emoji} {self.name}".strip()

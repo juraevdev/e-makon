@@ -1,18 +1,17 @@
-# E-Makon / My Garden
+# E-Makon
 
-Monorepo: mobile/superadmin **REST API** + Telegram **bot** (My Garden).
+Monorepo: **REST API** (source of truth) + Telegram **bot** (HTTP client) + mobile / admin clients.
 
-Domain is shared conceptually (`Service`, `Order` statuses, `Worker`, care contracts).
-API and bot are **separate Django projects** (own `manage.py`, settings, DB) until an
-explicit shared-DB sync is wired.
+The bot does **not** own business data — it calls this API with JWT + `X-Bot-Service-Key`.
 
 ## Layout
 
 ```
 e-makon/
   config/ + apps/             REST API (DRF, JWT, OTP)
-  mobile/                     Flutter mijoz ilovasi (Stitch UI)
-  mygarden/                   Telegram bot
+  bot/                        Telegram bot (HTTP adapter, Redis notifications)
+  mobile/                     Flutter mijoz ilovasi
+  superadmin_panel/           Admin panel (Next.js)
 ```
 
 ### API architecture (`apps/`)
@@ -22,19 +21,34 @@ config/                 Django project (settings split: local / production)
 apps/
   core/                 TimeStampedModel, pagination, permissions, errors
   accounts/             Custom User (phone), OTP, JWT, admin password login
-  catalog/              Services (Stitch home grid)
+  organizations/        Multi-tenant Organization (tenant scope)
+  catalog/              Services
   orders/               Orders, media, status machine
-  staff/                Employees + admin profiles
+  staff/                Employees + AdminProfile capabilities
   care/                 Yearly-care contracts and visits
   support/              Tickets + messages
-  analytics/            Superadmin dashboard KPIs
+  analytics/            Admin dashboard KPIs (org-scoped)
+  notifications/        Redis enqueue + NotificationDelivery log
 ```
 
 Layering: **View → Serializer → Service → Model**. Business rules live in `services.py`, not in views.
 
 Roles: `customer` | `worker` | `admin` | `superadmin`
 
+Tenancy: non-superadmin users and domain rows belong to an `Organization`. Superadmin is platform-scoped (`organization=NULL`). Admins see only their org via queryset scoping + `AdminProfile` capability flags.
+
 ## Setup
+
+Quick start (Windows):
+
+```powershell
+.\run.ps1 -Setup          # venv + pip + .env + migrate + seed
+.\run.ps1                 # API (fon) + Telegram bot (shu terminal)
+.\run.ps1 -ApiOnly        # faqat API
+.\run.ps1 -Redis          # Redis (Docker) + API + bot
+```
+
+Manual:
 
 ```powershell
 python -m venv .venv
@@ -53,19 +67,33 @@ python manage.py runserver
 
 Dev OTP: `OTP_DEBUG_RETURN_CODE=True` returns `debug_code` in the request-OTP response (no SMS yet).
 
+OTP is **customer-only** (rate-limited). Admin/worker accounts must use password login.
+
 ## Customer API (`/api/v1/`)
 
 | Method | Path | Auth |
 |---|---|---|
 | POST | `/auth/otp/request/` | public |
 | POST | `/auth/otp/verify/` | public |
-| GET/PATCH | `/auth/me/` | JWT — profil (ism, manzil, geo, telefonlar) |
+| POST | `/auth/telegram/link/` | JWT customer + `X-Bot-Service-Key` |
+| POST | `/auth/telegram/unlink/` | JWT customer + `X-Bot-Service-Key` |
+| GET/PATCH | `/auth/me/` | JWT — profil (telegram_id yozib bo‘lmaydi) |
 | GET | `/services/` | public — category, duration, gallery, features |
 | GET | `/services/{slug}/` | public |
-| GET/POST | `/orders/` | customer — `first_name`/`last_name` ham qabul qilinadi |
+| GET/POST | `/orders/` | customer — `Idempotency-Key` qo‘llab-quvvatlanadi |
 | POST | `/orders/{id}/cancel/` | customer |
 | GET | `/care-contracts/` | customer |
-| GET/POST | `/support/` | customer |
+| GET/POST | `/support/` | customer (ichki xabarlar yashiriladi) |
+
+## Telegram Bot
+
+See [`bot/README.md`](bot/README.md). Run separately:
+
+```powershell
+python -m bot.main
+```
+
+Requires Redis, `BOT_TOKEN`, and matching `EMAKON_BOT_SERVICE_KEY`.
 
 OTP example:
 
@@ -85,7 +113,7 @@ Profile PATCH: `first_name`, `last_name`, `birth_date`, `home_address`, `country
 `region`, `district`, `street`, `location_lat`, `location_lng`, `additional_phones`,
 `avatar`, `email`.
 
-## Superadmin API (`/api/v1/admin/`)
+## Superadmin / Admin API (`/api/v1/admin/`)
 
 | Method | Path |
 |---|---|
@@ -93,25 +121,11 @@ Profile PATCH: `first_name`, `last_name`, `birth_date`, `home_address`, `country
 | GET | `/admin/dashboard/?days=30` |
 | CRUD | `/admin/services/` `/admin/orders/` `/admin/employees/` `/admin/admins/` `/admin/support/` |
 
+Admin endpoints require role `admin`/`superadmin`. Org admins need an active `AdminProfile` with the relevant capability (`can_manage_orders`, `can_manage_staff`, `can_view_analytics`). Lists are scoped to the admin's organization; superadmin sees all.
+
 Order status (same as mobile): `new` → `in_review` → `contacted` → `completed` | `cancelled`
 
 ```json
 POST /api/v1/admin/orders/{id}/transition/
 { "status": "contacted", "assigned_worker_id": 3, "quoted_price": 1500000 }
 ```
-
-## Telegram bot (`mygarden/`)
-
-Copied **without** secrets or local runtime junk (no `.env`, `.venv`, `db.sqlite3`, `__pycache__`).
-
-```powershell
-cd mygarden
-copy .env.example .env   # fill BOT_TOKEN, Postgres, Redis, ...
-.\run.ps1                # or: .\run.ps1 bot
-```
-
-Details: [mygarden/README.md](mygarden/README.md), [mygarden/DEPLOY.md](mygarden/DEPLOY.md).
-
-API models keep optional Telegram bridge fields (`telegram_id`, `telegram_file_id`, `external_bot_order_id`) for a future shared DB / sync worker.
-
-Production API DB: set `USE_SQLITE=False` and Postgres env vars (same pattern as the bot).
