@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from apps.accounts.models import OTPChallenge, User
+from apps.accounts.models import LoyaltyReward, LoyaltySettings, OTPChallenge, PointTransaction, User
 
 
 class UserCreationFormPhone(UserCreationForm):
@@ -30,6 +30,7 @@ class UserAdmin(DjangoUserAdmin):
         "last_name",
         "full_name",
         "role",
+        "loyalty_points",
         "is_active",
         "is_staff",
         "date_joined",
@@ -99,3 +100,21 @@ class OTPChallengeAdmin(admin.ModelAdmin):
     list_filter = ("purpose", "is_used")
     search_fields = ("phone",)
     readonly_fields = ("code_hash",)
+
+
+@admin.register(LoyaltySettings)
+class LoyaltySettingsAdmin(admin.ModelAdmin):
+    list_display = ("uzs_per_point", "min_redeem_points", "expire_months")
+
+
+@admin.register(LoyaltyReward)
+class LoyaltyRewardAdmin(admin.ModelAdmin):
+    list_display = ("name", "points_cost", "is_active", "sort_order")
+    list_editable = ("is_active", "sort_order")
+
+
+@admin.register(PointTransaction)
+class PointTransactionAdmin(admin.ModelAdmin):
+    list_display = ("user", "kind", "points", "order", "created_at")
+    list_filter = ("kind",)
+    search_fields = ("user__phone", "user__full_name", "note")

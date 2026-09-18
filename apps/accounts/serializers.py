@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.accounts.models import User
+from apps.accounts.models import LoyaltyReward, LoyaltySettings, PointTransaction, User
 from apps.core.phone import normalize_phone
 
 
@@ -31,9 +31,47 @@ class UserSerializer(serializers.ModelSerializer):
             "location_lng",
             "additional_phones",
             "telegram_username",
+            "loyalty_points",
+            "is_active",
             "date_joined",
         )
         read_only_fields = fields
+
+
+class AdminCustomerSerializer(UserSerializer):
+    phone = serializers.CharField()
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    full_name = serializers.CharField(required=False, allow_blank=True)
+    is_active = serializers.BooleanField(required=False)
+    orders_count = serializers.IntegerField(read_only=True)
+    last_order_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ("orders_count", "last_order_at")
+        read_only_fields = (
+            "id",
+            "role",
+            "avatar",
+            "loyalty_points",
+            "formatted_address",
+            "telegram_username",
+            "date_joined",
+            "orders_count",
+            "last_order_at",
+        )
+
+    def validate_phone(self, value: str) -> str:
+        return normalize_phone(value)
+
+    def create(self, validated_data):
+        phone = validated_data.pop("phone")
+        validated_data.pop("role", None)
+        return User.objects.create_user(
+            phone=phone,
+            role=User.Role.CUSTOMER,
+            **validated_data,
+        )
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -118,3 +156,41 @@ class AdminPasswordLoginSerializer(serializers.Serializer):
 
     def validate_phone(self, value: str) -> str:
         return normalize_phone(value)
+
+
+class LoyaltySettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoyaltySettings
+        fields = ("uzs_per_point", "min_redeem_points", "expire_months")
+
+
+class LoyaltyRewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoyaltyReward
+        fields = ("id", "name", "icon", "points_cost", "is_active", "sort_order", "created_at")
+        read_only_fields = ("id", "created_at")
+
+
+class PointTransactionSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    user_phone = serializers.CharField(source="user.phone", read_only=True)
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+
+    class Meta:
+        model = PointTransaction
+        fields = (
+            "id",
+            "user",
+            "user_name",
+            "user_phone",
+            "kind",
+            "points",
+            "order",
+            "order_id",
+            "note",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_user_name(self, obj: PointTransaction) -> str:
+        return obj.user.display_name or obj.user.phone

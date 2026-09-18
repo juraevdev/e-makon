@@ -83,4 +83,29 @@ class OrderService:
             changed_by=actor,
             note=note,
         )
+        if to_status == Order.Status.COMPLETED:
+            from apps.accounts.loyalty import award_points_for_order
+            from apps.finance.services import EscrowService
+            from apps.staff.commission import calc_platform_share, suggest_commission_rate
+
+            award_points_for_order(order, actor=actor)
+            if order.quoted_price is not None:
+                firm = order.firm
+                if firm is not None:
+                    rate = firm.commission_rate
+                else:
+                    rate = suggest_commission_rate(order.quoted_price)
+                order.commission_rate_applied = rate
+                order.platform_share = calc_platform_share(order.quoted_price, rate)
+                order.save(update_fields=["commission_rate_applied", "platform_share", "updated_at"])
+                # Escrow ochilgan bo'lsa va pul ushlab turilgan bo'lsa — avtomatik firmaga
+                try:
+                    EscrowService.ensure_escrow(order, actor=actor)
+                except Exception:  # noqa: BLE001
+                    pass
+                EscrowService.on_order_completed(order, actor=actor)
+        elif to_status == Order.Status.CANCELLED:
+            from apps.finance.services import EscrowService
+
+            EscrowService.on_order_cancelled(order, actor=actor)
         return order

@@ -1,223 +1,237 @@
-import { Pagination, StatusPill } from "@/components/ui";
+"use client";
 
-const kpis = [
-  {
-    label: "Jami faol xizmatlar",
-    value: "24",
-    suffix: "ta xizmat",
-    hint: "bu oy +3 ta qo'shildi",
-    icon: "eco",
-    hintIcon: "trending_up",
-    hintTone: "text-primary",
-  },
-  {
-    label: "O'rtacha narx",
-    value: "450,000",
-    badge: "UZS",
-    hint: "Barcha toifalar bo'yicha",
-    icon: "payments",
-    hintIcon: "category",
-    hintTone: "text-on-surface-variant",
-  },
-  {
-    label: "Eng yaxshi natija",
-    value: "Landshaft dizayni",
-    valueClass: "text-xl",
-    hint: "42 Hamkor tayinlangan",
-    icon: "workspace_premium",
-    hintIcon: null,
-    hintTone: "text-on-surface-variant",
-  },
-];
+import { useState } from "react";
+import {
+  EmptyState,
+  Field,
+  inputClass,
+  LoadingBlock,
+  Modal,
+  Pagination,
+  PrimaryButton,
+  StatusPill,
+} from "@/components/ui";
+import { api, asPage } from "@/lib/api/client";
+import type { Service } from "@/lib/api/types";
+import { formatMoney, pageNumbers, slugify } from "@/lib/format";
+import { useAsync } from "@/hooks/useAsync";
+import { useSearch } from "@/providers/SearchProvider";
 
-const services = [
-  {
-    name: "Landshaft dizayni",
-    desc: "Mulkning estetik rejalashtirilishi, ko'kalamzorlashtirish va ekilish tizimi.",
-    price: "800,000 - 2,500,000",
-    duration: "2-5 Kun",
-    status: "Faol" as const,
-    icon: "local_florist",
-    partners: "+40",
-  },
-  {
-    name: "Sug'orish tizimlari",
-    desc: "Suv sepuvchilar va tomchilatib sug'orish liniyalarini o'rnatish.",
-    price: "300,000 - 1,200,000",
-    duration: "1-2 Kun",
-    status: "Faol" as const,
-    icon: "water_drop",
-    partners: "+12",
-  },
-  {
-    name: "Zararkunandalarga qarshi kurash",
-    desc: "Bog'dagi zararkunandalarni ekologik toza yo'q qilish xizmati.",
-    price: "150,000 - 500,000",
-    duration: "2-4 Soat",
-    status: "To'xtatilgan" as const,
-    icon: "pest_control",
-    partners: "8",
-  },
-  {
-    name: "Gazon o'rish",
-    desc: "Professional maysazor parvarishi va muntazam o'rish xizmati.",
-    price: "120,000 - 450,000",
-    duration: "1 Kun",
-    status: "Faol" as const,
-    icon: "grass",
-    partners: "+22",
-  },
-  {
-    name: "Daraxt kesish",
-    desc: "Xavfsiz daraxt butash, shakllantirish va sanitariya kesimi.",
-    price: "200,000 - 900,000",
-    duration: "1-3 Kun",
-    status: "Faol" as const,
-    icon: "park",
-    partners: "+15",
-  },
-  {
-    name: "3D landshaft loyiha",
-    desc: "Vizualizatsiya va texnik chizmalar bilan to'liq dizayn paketi.",
-    price: "1,500,000 - 5,000,000",
-    duration: "5-10 Kun",
-    status: "Faol" as const,
-    icon: "architecture",
-    partners: "+8",
-  },
-];
-
-function ServiceCard({
-  s,
-}: {
-  s: (typeof services)[number];
-}) {
-  const active = s.status === "Faol";
-  return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#26352c] bg-[#111414] p-5 shadow-lg transition-all duration-300 hover:border-primary/60">
-      <div className="pointer-events-none absolute -right-6 -bottom-6 h-28 w-28 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/15" />
-      <div>
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary-container/30 bg-primary-container/20 text-primary shadow-sm transition-colors group-hover:bg-primary-container/30">
-            <span className="material-symbols-outlined text-[24px]">{s.icon}</span>
-          </div>
-          <StatusPill variant={active ? "success" : "neutral"} pulse={active}>
-            {s.status}
-          </StatusPill>
-        </div>
-        <h4 className="mb-1 text-base font-bold text-on-surface transition-colors group-hover:text-primary">
-          {s.name}
-        </h4>
-        <p className="mb-4 line-clamp-2 text-xs leading-relaxed text-on-surface-variant">{s.desc}</p>
-        <div className="mb-4 rounded-xl border border-white/5 bg-[#191c1c] p-3">
-          <span className="mb-0.5 block text-[11px] tracking-wider text-on-surface-variant uppercase">
-            Narx oralig&apos;i
-          </span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-bold text-on-surface">{s.price}</span>
-            <span className="text-xs font-bold text-primary">UZS</span>
-          </div>
-        </div>
-        <div className="mb-4 flex items-center justify-between text-xs text-on-surface-variant">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px] text-primary">schedule</span>
-            {s.duration}
-          </span>
-          <div className="flex items-center -space-x-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#151917] bg-[#222a25] text-[10px] font-bold text-primary ring-1 ring-primary-container/40">
-              {s.partners}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 border-t border-[#26352c]/50 pt-3">
-        <button
-          type="button"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary-container/40 bg-primary-container/20 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-container/30"
-        >
-          <span className="material-symbols-outlined text-[16px]">edit</span>
-          Tahrirlash
-        </button>
-        <button
-          type="button"
-          className="rounded-lg border border-white/5 bg-surface-container-low p-2 text-on-surface-variant transition-colors hover:bg-error-container/20 hover:text-error"
-        >
-          <span className="material-symbols-outlined text-[16px]">delete</span>
-        </button>
-      </div>
-    </div>
-  );
-}
+const emptyForm = {
+  name: "",
+  slug: "",
+  emoji: "🌿",
+  icon: "eco",
+  category: "Parvarish",
+  short_description: "",
+  description: "",
+  duration: "O'rtacha vaqt: 1.5 - 2 soat",
+  price_label: "Kelishilgan narxda",
+  price_from: "",
+  hero_image_url: "",
+  is_active: true,
+};
 
 export default function XizmatlarPage() {
+  const { query } = useSearch();
+  const [page, setPage] = useState(1);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Service | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [busy, setBusy] = useState(false);
+
+  const { data, loading, error, reload } = useAsync(async () => {
+    const raw = await api("/admin/services/", {
+      query: { page, page_size: 9, search: query || undefined },
+    });
+    return asPage<Service>(raw);
+  }, [page, query]);
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyForm);
+    setOpen(true);
+  }
+
+  function openEdit(s: Service) {
+    setEditing(s);
+    setForm({
+      name: s.name,
+      slug: s.slug,
+      emoji: s.emoji || "🌿",
+      icon: s.icon || "eco",
+      category: s.category,
+      short_description: s.short_description,
+      description: s.description,
+      duration: s.duration,
+      price_label: s.price_label,
+      price_from: s.price_from || "",
+      hero_image_url: s.hero_image_url,
+      is_active: s.is_active,
+    });
+    setOpen(true);
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      const payload = {
+        ...form,
+        slug: form.slug || slugify(form.name),
+        price_from: form.price_from ? Number(form.price_from) : null,
+      };
+      if (editing) {
+        await api(`/admin/services/${editing.slug}/`, { method: "PATCH", body: payload });
+      } else {
+        await api("/admin/services/", { method: "POST", body: payload });
+      }
+      setOpen(false);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(s: Service) {
+    if (!confirm(`${s.name} o'chirilsinmi?`)) return;
+    await api(`/admin/services/${s.slug}/`, { method: "DELETE" });
+    await reload();
+  }
+
+  const activeCount = data?.results.filter((s) => s.is_active).length ?? 0;
+  const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / 9));
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="mb-10">
-        <p className="max-w-3xl text-sm leading-relaxed text-on-surface-variant sm:text-base">
-          Platformadagi barcha xizmat takliflarini, narxlash tuzilmalarini va hamkor tayinlashlarni boshqaring va tashkil qiling.
+      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <p className="max-w-3xl text-sm text-on-surface-variant">
+          Mobil ilova katalogi bilan bir xil xizmatlar. Qo&apos;shilgan yoki o&apos;zgartirilgan yozuvlar darhol mijoz ilovasida ko&apos;rinadi.
         </p>
+        <PrimaryButton icon="add" onClick={openCreate}>
+          Xizmat qo&apos;shish
+        </PrimaryButton>
       </div>
 
-      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-primary-container/30 bg-[#111414] p-6 shadow-lg transition-all duration-300 hover:border-primary/60"
-          >
-            <div className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/15" />
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-xs font-semibold tracking-wider text-on-surface-variant uppercase">
-                  {k.label}
-                </span>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-container/40 bg-primary-container/20 text-primary shadow-sm transition-transform group-hover:scale-105">
-                  <span className="material-symbols-outlined text-[20px]">{k.icon}</span>
-                </div>
-              </div>
-              <div className="mb-2 flex items-baseline gap-2">
-                <h3 className={`font-bold tracking-tight text-on-surface ${k.valueClass ?? "text-3xl"}`}>
-                  {k.value}
-                </h3>
-                {k.suffix ? (
-                  <span className="text-xs font-medium text-on-surface-variant">{k.suffix}</span>
-                ) : null}
-                {k.badge ? (
-                  <span className="rounded-md border border-primary-container/30 bg-primary-container/20 px-2 py-0.5 text-xs font-bold text-primary">
-                    {k.badge}
-                  </span>
-                ) : null}
-              </div>
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+        {[
+          { label: "Jami xizmatlar", value: String(data?.count ?? 0), icon: "eco" },
+          { label: "Faol", value: String(activeCount), icon: "check_circle" },
+          { label: "Mobil katalog", value: "9 tur", icon: "phone_iphone" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-2xl border border-primary-container/30 bg-[#111414] p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-semibold tracking-wider text-on-surface-variant uppercase">{k.label}</span>
+              <span className="material-symbols-outlined text-primary">{k.icon}</span>
             </div>
-            <div className={`flex items-center gap-1.5 pt-2 text-xs font-medium ${k.hintTone}`}>
-              {k.hintIcon ? (
-                <span className="material-symbols-outlined text-[16px]">{k.hintIcon}</span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#26352c] bg-[#1e2722] px-2.5 py-0.5 text-primary">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  42 Hamkor
-                </span>
-              )}
-              <span>{k.hintIcon ? k.hint : "tayinlangan"}</span>
-            </div>
+            <p className="text-3xl font-bold text-on-surface">{k.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917] shadow-xl backdrop-blur-md">
-        <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-3">
-          {services.map((s) => (
-            <ServiceCard key={s.name} s={s} />
-          ))}
-        </div>
-        <Pagination
-          info={
-            <>
-              Jami <span className="font-bold text-on-surface">24</span> ta xizmatdan 1 - 6
-              ko&apos;rsatilmoqda
-            </>
-          }
-        />
+      <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
+        {loading ? (
+          <LoadingBlock />
+        ) : error ? (
+          <p className="p-8 text-error">{error}</p>
+        ) : !data?.results.length ? (
+          <EmptyState icon="nature_people" title="Xizmatlar yo'q" action={<PrimaryButton onClick={openCreate}>Qo'shish</PrimaryButton>} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-3">
+              {data.results.map((s) => (
+                <div key={s.id} className="group relative flex flex-col justify-between rounded-2xl border border-[#26352c] bg-[#111414] p-5">
+                  <div>
+                    <div className="mb-4 flex items-start justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary-container/30 bg-primary-container/20 text-primary">
+                        <span className="material-symbols-outlined">{s.icon || "eco"}</span>
+                      </div>
+                      <StatusPill variant={s.is_active ? "success" : "neutral"} pulse={s.is_active}>
+                        {s.is_active ? "Faol" : "To'xtatilgan"}
+                      </StatusPill>
+                    </div>
+                    <h4 className="mb-1 text-base font-bold text-on-surface">
+                      {s.emoji} {s.name}
+                    </h4>
+                    <p className="mb-4 line-clamp-2 text-xs text-on-surface-variant">{s.short_description || s.description}</p>
+                    <div className="mb-4 rounded-xl border border-white/5 bg-[#191c1c] p-3">
+                      <span className="text-[11px] tracking-wider text-on-surface-variant uppercase">Narx</span>
+                      <p className="text-sm font-bold">{s.price_from ? formatMoney(s.price_from, s.currency) : s.price_label}</p>
+                    </div>
+                    <p className="mb-4 text-xs text-on-surface-variant">
+                      <span className="material-symbols-outlined mr-1 align-middle text-[16px] text-primary">schedule</span>
+                      {s.duration}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 border-t border-[#26352c]/50 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(s)}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary-container/40 bg-primary-container/20 px-3 py-2 text-xs font-semibold text-primary"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                      Tahrirlash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void remove(s)}
+                      className="rounded-lg border border-white/5 bg-surface-container-low p-2 text-on-surface-variant hover:text-error"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Pagination
+              current={page}
+              pages={pageNumbers(page, totalPages)}
+              onPageChange={setPage}
+              info={
+                <>
+                  Jami <span className="font-bold text-on-surface">{data.count}</span> ta xizmat
+                </>
+              }
+            />
+          </>
+        )}
       </div>
+
+      <Modal open={open} title={editing ? "Xizmatni tahrirlash" : "Yangi xizmat"} onClose={() => setOpen(false)} wide>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Nomi">
+            <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="Slug">
+            <input className={inputClass} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto" />
+          </Field>
+          <Field label="Ikonka">
+            <input className={inputClass} value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} />
+          </Field>
+          <Field label="Toifa">
+            <input className={inputClass} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          </Field>
+          <Field label="Davomiylik">
+            <input className={inputClass} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
+          </Field>
+          <Field label="Narxdan (UZS)">
+            <input className={inputClass} value={form.price_from} onChange={(e) => setForm({ ...form, price_from: e.target.value })} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Qisqa tavsif">
+              <textarea className={inputClass} rows={3} value={form.short_description} onChange={(e) => setForm({ ...form, short_description: e.target.value })} />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-on-surface">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+            Faol (mobil katalogda ko&apos;rinsin)
+          </label>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <PrimaryButton disabled={busy || !form.name} onClick={() => void save()}>
+            Saqlash
+          </PrimaryButton>
+        </div>
+      </Modal>
     </div>
   );
 }

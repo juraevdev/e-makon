@@ -1,6 +1,7 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -10,7 +11,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "E-MAKON SuperAdmin",
-  description: "E-MAKON SuperAdmin paneli",
+  description: "E-MAKON SuperAdmin paneli — mijoz va hamkor oqimlarini boshqarish",
 };
 
 export default function RootLayout({
@@ -26,7 +27,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

@@ -16,6 +16,7 @@ from apps.orders.serializers import (
     OrderStatusUpdateSerializer,
 )
 from apps.orders.services import OrderService
+from apps.staff.models import FirmReview, PartnerFirm
 
 
 class CustomerOrderViewSet(
@@ -63,17 +64,53 @@ class CustomerOrderViewSet(
         )
         return success_response(OrderSerializer(order, context={"request": request}).data)
 
+    @action(detail=True, methods=["post"])
+    def rate(self, request, pk=None):
+        """Bajarilgan buyurtma firmasini baholash — firma reytingi yangilanadi."""
+        order = self.get_object()
+        if order.status != Order.Status.COMPLETED:
+            raise AppError("Faqat bajarilgan buyurtmani baholash mumkin.")
+        if not order.firm_id:
+            raise AppError("Buyurtmaga firma biriktirilmagan.")
+        try:
+            score = int(request.data.get("score") or 0)
+        except (TypeError, ValueError) as exc:
+            raise AppError("Baho 1–5 oralig'ida bo'lishi kerak.") from exc
+        if score < 1 or score > 5:
+            raise AppError("Baho 1–5 oralig'ida bo'lishi kerak.")
+        comment = (request.data.get("comment") or "").strip()
+        review, created = FirmReview.objects.update_or_create(
+            firm_id=order.firm_id,
+            customer=request.user,
+            order=order,
+            defaults={"score": score, "comment": comment},
+        )
+        order.firm.recalculate_rating()
+        from apps.staff.serializers import FirmReviewSerializer
+
+        return success_response(
+            FirmReviewSerializer(review).data,
+            message="Baho saqlandi" if not created else "Rahmat! Baho qabul qilindi",
+        )
+
 
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
     queryset = (
-        Order.objects.select_related("service", "customer", "assigned_worker")
+        Order.objects.select_related("service", "customer", "assigned_worker", "firm", "escrow")
         .prefetch_related("media", "status_history")
         .all()
     )
-    filterset_fields = ("status", "service")
-    search_fields = ("customer__phone", "customer__full_name", "phone_number", "address")
+    filterset_fields = ("status", "service", "firm")
+    search_fields = (
+        "customer__phone",
+        "customer__full_name",
+        "phone_number",
+        "address",
+        "firm_name",
+        "firm__name",
+    )
     ordering_fields = ("created_at", "quoted_price")
 
     @action(detail=True, methods=["post"])
@@ -90,6 +127,17 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 raise AppError("Xodim topilmadi.")
             order.assigned_worker = worker
             order.assigned_worker_name = worker.full_name
+        if "firm_id" in data:
+            firm_id = data["firm_id"]
+            if firm_id:
+                firm = PartnerFirm.objects.filter(pk=firm_id).first()
+                if firm is None:
+                    raise AppError("Firma topilmadi.")
+                order.firm = firm
+                order.firm_name = firm.name
+            else:
+                order.firm = None
+                order.firm_name = ""
         if data.get("quoted_price") is not None:
             order.quoted_price = data["quoted_price"]
         if data.get("agreed_duration"):

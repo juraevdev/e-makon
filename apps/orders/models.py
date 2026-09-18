@@ -50,6 +50,19 @@ class Order(TimeStampedModel):
         limit_choices_to={"role": "worker"},
     )
     assigned_worker_name = models.CharField(max_length=255, blank=True)
+    firm = models.ForeignKey(
+        "staff.PartnerFirm",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
+    firm_name = models.CharField(max_length=255, blank=True)
+    # Buyurtma bajarilganda kampaniya ulushi (quoted_price * firm.commission_rate / 100)
+    platform_share = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    commission_rate_applied = models.DecimalField(
+        max_digits=3, decimal_places=1, null=True, blank=True
+    )
 
     # Telegram bridge fields (optional sync with mygarden bot)
     telegram_group_message_id = models.BigIntegerField(null=True, blank=True)

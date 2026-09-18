@@ -91,7 +91,13 @@ Profile PATCH: `first_name`, `last_name`, `birth_date`, `home_address`, `country
 |---|---|
 | POST | `/auth/admin/login/` `{ phone, password }` |
 | GET | `/admin/dashboard/?days=30` |
-| CRUD | `/admin/services/` `/admin/orders/` `/admin/employees/` `/admin/admins/` `/admin/support/` |
+| GET | `/admin/map/` |
+| CRUD | `/admin/services/` `/admin/orders/` `/admin/employees/` `/admin/admins/` `/admin/customers/` `/admin/support/` `/admin/banners/` |
+| GET/PATCH | `/admin/loyalty/settings/` |
+| CRUD | `/admin/loyalty-rewards/` |
+| GET | `/admin/loyalty-transactions/` |
+
+Order status (same as mobile): `new` → `in_review` → `contacted` → `completed` | `cancelled`
 
 Order status (same as mobile): `new` → `in_review` → `contacted` → `completed` | `cancelled`
 

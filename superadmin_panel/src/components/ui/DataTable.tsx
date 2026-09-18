@@ -38,10 +38,12 @@ export function DataTable({
 
 type ActionButtonsProps = {
   actions?: Array<"visibility" | "edit" | "block" | "delete" | "more_vert" | "lock_open">;
+  onAction?: (action: string) => void;
 };
 
 export function RowActions({
   actions = ["visibility", "edit", "block", "more_vert"],
+  onAction,
 }: ActionButtonsProps) {
   return (
     <div className="flex items-center justify-end gap-1.5">
@@ -49,6 +51,7 @@ export function RowActions({
         <button
           key={icon}
           type="button"
+          onClick={() => onAction?.(icon)}
           className={`flex h-8 w-8 items-center justify-center border border-[#26352c] bg-[#1a221e] text-on-surface-variant shadow-sm transition-all hover:border-primary/60 hover:text-primary ${
             icon === "more_vert" ? "rounded-full" : "rounded-lg"
           } ${icon === "block" || icon === "delete" ? "hover:border-error/60 hover:text-error" : ""}`}
