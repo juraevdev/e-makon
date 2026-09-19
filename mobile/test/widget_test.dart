@@ -1,20 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
-<<<<<<< HEAD
-import 'package:mygarden_app/main.dart';
-
-void main() {
-  testWidgets('App launches splash screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyGardenApp());
-    expect(find.text('My Garden'), findsOneWidget);
-=======
-
 import 'package:emakon_app/app.dart';
+import 'package:emakon_app/core/widgets/emakon_logo.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('App boots', (tester) async {
+  testWidgets('App boots with e-makon branding', (tester) async {
     await tester.pumpWidget(const EmakonApp());
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('My Garden'), findsWidgets);
->>>>>>> 63cd8e2c5ad351605a7b5f99b986ce243e9059a8
+    expect(find.byType(EmakonLogo), findsWidgets);
   });
 }

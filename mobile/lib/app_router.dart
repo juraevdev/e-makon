@@ -3,8 +3,11 @@ import 'package:go_router/go_router.dart';
 import '../core/network/models.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/otp_screen.dart';
+import '../features/auth/register_screen.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/home/service_detail_screen.dart';
+import '../features/messages/messages_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/splash_screen.dart';
 import '../features/orders/order_detail_screen.dart';
@@ -20,6 +23,7 @@ GoRouter createRouter() {
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/otp',
@@ -41,7 +45,7 @@ GoRouter createRouter() {
             GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/messages', builder: (context, state) => const MessagesPlaceholder()),
+            GoRoute(path: '/messages', builder: (context, state) => const MessagesScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
@@ -66,6 +70,10 @@ GoRouter createRouter() {
       GoRoute(
         path: '/order-detail',
         builder: (context, state) => OrderDetailScreen(order: state.extra as OrderModel),
+      ),
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) => ChatScreen(partner: state.extra as PartnerModel),
       ),
     ],
   );

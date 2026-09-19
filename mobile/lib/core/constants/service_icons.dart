@@ -4,15 +4,18 @@ import '../../core/theme/app_colors.dart';
 
 IconData serviceIcon(String name) {
   return switch (name) {
-    'call' || 'phone_in_talk' => Icons.call,
+    'call' => Icons.call,
     'architecture' => Icons.architecture,
     'eco' => Icons.eco,
     'content_cut' => Icons.content_cut,
-    'park' || 'forest' => Icons.park,
+    'park' => Icons.park,
     'science' => Icons.science,
-    'database' || 'grain' => Icons.spa,
+    'database' => Icons.spa,
     'verified_user' => Icons.verified_user,
     'water_drop' => Icons.water_drop,
+    'local_florist' => Icons.local_florist,
+    'info' => Icons.info_outline,
+    'photo_library' => Icons.photo_library_outlined,
     _ => Icons.eco,
   };
 }
@@ -34,9 +37,11 @@ Color serviceTint(int index) {
 
 String statusEmoji(String status) => switch (status) {
       'new' => '🆕',
-      'in_review' || 'in_progress' => '⏳',
-      'contacted' || 'accepted' => '✅',
-      'completed' || 'done' => '✔️',
+      'accepted' => '✅',
+      'on_way' => '🚗',
+      'arrived' => '📍',
+      'in_progress' => '⏳',
+      'done' => '✔️',
       'cancelled' => '✕',
       _ => '•',
     };

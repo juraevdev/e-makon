@@ -24,6 +24,21 @@ class GlassCard extends StatelessWidget {
         color: AppColors.glass,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: AppColors.glassBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.07),
+            Colors.white.withValues(alpha: 0.02),
+          ],
+        ),
       ),
       child: child,
     );
@@ -81,10 +96,26 @@ class PrimaryButton extends StatelessWidget {
           );
 
     if (filled) {
-      return ElevatedButton(
-        onPressed: loading ? null : onPressed,
-        style: ElevatedButton.styleFrom(shape: shape, minimumSize: const Size.fromHeight(56)),
-        child: child,
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(roundedFull ? 999 : 14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: loading ? null : onPressed,
+          style: ElevatedButton.styleFrom(
+            shape: shape,
+            minimumSize: const Size.fromHeight(56),
+            elevation: 0,
+          ),
+          child: child,
+        ),
       );
     }
     return FilledButton(

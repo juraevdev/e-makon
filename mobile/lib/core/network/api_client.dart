@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -57,9 +59,25 @@ class ApiClient {
     return Uri.parse('$base$p').replace(queryParameters: query);
   }
 
+  Future<dynamic> _guard(Future<http.Response> Function() send) async {
+    try {
+      final res = await send().timeout(ApiConfig.requestTimeout);
+      return _decode(res);
+    } on SocketException {
+      throw ApiException('Serverga ulanib bo‘lmadi. Internet yoki API manzilini tekshiring');
+    } on HttpException {
+      throw ApiException('Server javob bermadi');
+    } on FormatException {
+      throw ApiException('Server javobi noto‘g‘ri');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tarmoq xatosi: $e');
+    }
+  }
+
   Future<dynamic> get(String path, {bool auth = true, Map<String, String>? query}) async {
-    final res = await _client.get(_uri(path, query), headers: await _headers(auth: auth));
-    return _decode(res);
+    return _guard(() async => _client.get(_uri(path, query), headers: await _headers(auth: auth)));
   }
 
   Future<dynamic> post(
@@ -67,21 +85,19 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool auth = true,
   }) async {
-    final res = await _client.post(
-      _uri(path),
-      headers: await _headers(auth: auth),
-      body: body == null ? null : jsonEncode(body),
-    );
-    return _decode(res);
+    return _guard(() async => _client.post(
+          _uri(path),
+          headers: await _headers(auth: auth),
+          body: body == null ? null : jsonEncode(body),
+        ));
   }
 
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
-    final res = await _client.patch(
-      _uri(path),
-      headers: await _headers(),
-      body: body == null ? null : jsonEncode(body),
-    );
-    return _decode(res);
+    return _guard(() async => _client.patch(
+          _uri(path),
+          headers: await _headers(),
+          body: body == null ? null : jsonEncode(body),
+        ));
   }
 
   Future<dynamic> postMultipart(
@@ -89,18 +105,24 @@ class ApiClient {
     required Map<String, String> fields,
     List<http.MultipartFile> files = const [],
   }) async {
-    final req = http.MultipartRequest('POST', _uri(path));
-    final token = await accessToken;
-    if (token != null) req.headers['Authorization'] = 'Bearer $token';
-    req.fields.addAll(fields);
-    req.files.addAll(files);
-    final streamed = await req.send();
-    final res = await http.Response.fromStream(streamed);
-    return _decode(res);
+    return _guard(() async {
+      final req = http.MultipartRequest('POST', _uri(path));
+      final token = await accessToken;
+      if (token != null) req.headers['Authorization'] = 'Bearer $token';
+      req.fields.addAll(fields);
+      req.files.addAll(files);
+      final streamed = await req.send();
+      return http.Response.fromStream(streamed);
+    });
   }
 
   dynamic _decode(http.Response res) {
-    final raw = res.body.isEmpty ? null : jsonDecode(res.body);
+    dynamic raw;
+    try {
+      raw = res.body.isEmpty ? null : jsonDecode(res.body);
+    } catch (_) {
+      raw = null;
+    }
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (raw is Map && raw.containsKey('data')) return raw['data'];
       return raw;
