@@ -12,8 +12,10 @@ staticfiles/
 .idea/
 .vscode/
 *.log
+.run/
 .DS_Store
 *.zip
+bot_data/
 
 # Faqat mygarden alohida repo — root e-makon ga kirmaydi
 mygarden/

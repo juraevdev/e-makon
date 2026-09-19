@@ -28,28 +28,9 @@ class OrderSerializer(serializers.ModelSerializer):
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     customer_name = serializers.CharField(read_only=True)
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
-    customer_id = serializers.IntegerField(source="customer.id", read_only=True)
     service_id = serializers.IntegerField(source="service.id", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
-    service_icon = serializers.CharField(source="service.icon", read_only=True)
-    assigned_worker_id = serializers.IntegerField(read_only=True, allow_null=True)
-    firm_id = serializers.IntegerField(read_only=True, allow_null=True)
-    location_lat = serializers.DecimalField(
-        source="customer.location_lat",
-        max_digits=10,
-        decimal_places=7,
-        read_only=True,
-        allow_null=True,
-    )
-    location_lng = serializers.DecimalField(
-        source="customer.location_lng",
-        max_digits=10,
-        decimal_places=7,
-        read_only=True,
-        allow_null=True,
-    )
     progress = serializers.SerializerMethodField()
-    escrow = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -58,7 +39,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "service",
             "service_id",
             "service_name",
-            "service_icon",
             "status",
             "progress",
             "area_size",
@@ -66,7 +46,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "address",
             "notes",
             "phone_number",
-            "customer_id",
             "customer_first_name",
             "customer_last_name",
             "customer_name",
@@ -74,15 +53,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "agreed_duration",
             "quoted_price",
             "currency",
-            "assigned_worker_id",
             "assigned_worker_name",
-            "firm_id",
-            "firm_name",
-            "platform_share",
-            "commission_rate_applied",
-            "escrow",
-            "location_lat",
-            "location_lng",
             "media",
             "status_history",
             "created_at",
@@ -98,14 +69,6 @@ class OrderSerializer(serializers.ModelSerializer):
             Order.Status.COMPLETED: 1.0,
             Order.Status.CANCELLED: 1.0,
         }.get(obj.status, 0.1)
-
-    def get_escrow(self, obj: Order):
-        escrow = getattr(obj, "escrow", None)
-        if escrow is None:
-            return None
-        from apps.finance.serializers import OrderEscrowSerializer
-
-        return OrderEscrowSerializer(escrow).data
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -152,6 +115,7 @@ class OrderCreateSerializer(serializers.Serializer):
             customer_first_name=first_name,
             customer_last_name=last_name,
             media_files=validated_data.get("media") or [],
+            idempotency_key=self.context.get("idempotency_key"),
         )
 
 
@@ -159,7 +123,6 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.Status.choices)
     note = serializers.CharField(required=False, allow_blank=True)
     assigned_worker_id = serializers.IntegerField(required=False, allow_null=True)
-    firm_id = serializers.IntegerField(required=False, allow_null=True)
     quoted_price = serializers.DecimalField(
         max_digits=14, decimal_places=2, required=False, allow_null=True
     )

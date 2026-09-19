@@ -22,8 +22,15 @@ class Service(TimeStampedModel):
         FOREST = "forest", "forest"
         PHONE = "phone_in_talk", "phone_in_talk"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="services",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=64, unique=True)
+    slug = models.SlugField(max_length=64)
     emoji = models.CharField(max_length=8, blank=True)
     icon = models.CharField(max_length=32, blank=True, help_text="Material icon name")
     category = models.CharField(max_length=64, blank=True)
@@ -50,6 +57,12 @@ class Service(TimeStampedModel):
         ordering = ["sort_order", "id"]
         verbose_name = "Xizmat"
         verbose_name_plural = "Xizmatlar"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "slug"],
+                name="catalog_service_org_slug_uniq",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.emoji} {self.name}".strip()
@@ -57,48 +70,3 @@ class Service(TimeStampedModel):
     @property
     def detail_description(self) -> str:
         return self.long_description or self.description
-
-
-class Banner(TimeStampedModel):
-    """Mobil bosh sahifa / promo bannerlari."""
-
-    class Status(models.TextChoices):
-        DRAFT = "draft", "Qoralama"
-        SCHEDULED = "scheduled", "Rejalashtirilgan"
-        ACTIVE = "active", "Faol"
-        ARCHIVED = "archived", "Arxiv"
-
-    class Placement(models.TextChoices):
-        HOME = "home", "Bosh sahifa"
-        PROMO = "promo", "Promo"
-
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    image_url = models.URLField(max_length=512, blank=True)
-    image = models.ImageField(upload_to="banners/", blank=True, null=True)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
-    placement = models.CharField(max_length=16, choices=Placement.choices, default=Placement.HOME)
-    link_service = models.ForeignKey(
-        Service,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="banners",
-    )
-    sort_order = models.PositiveIntegerField(default=0)
-    starts_at = models.DateTimeField(null=True, blank=True)
-    ends_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        ordering = ["sort_order", "-id"]
-        verbose_name = "Banner"
-        verbose_name_plural = "Bannerlar"
-
-    def __str__(self) -> str:
-        return self.title
-
-    @property
-    def image_src(self) -> str:
-        if self.image:
-            return self.image.url
-        return self.image_url

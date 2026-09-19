@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.accounts.models import LoyaltyReward, LoyaltySettings, PointTransaction, User
+from apps.accounts.models import User
 from apps.core.phone import normalize_phone
 
 
@@ -19,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "email",
             "role",
+            "organization_id",
             "avatar",
             "birth_date",
             "home_address",
@@ -30,48 +31,15 @@ class UserSerializer(serializers.ModelSerializer):
             "location_lat",
             "location_lng",
             "additional_phones",
+            "telegram_id",
             "telegram_username",
-            "loyalty_points",
-            "is_active",
             "date_joined",
         )
         read_only_fields = fields
 
 
-class AdminCustomerSerializer(UserSerializer):
-    phone = serializers.CharField()
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
-    full_name = serializers.CharField(required=False, allow_blank=True)
-    is_active = serializers.BooleanField(required=False)
-    orders_count = serializers.IntegerField(read_only=True)
-    last_order_at = serializers.DateTimeField(read_only=True, allow_null=True)
-
-    class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ("orders_count", "last_order_at")
-        read_only_fields = (
-            "id",
-            "role",
-            "avatar",
-            "loyalty_points",
-            "formatted_address",
-            "telegram_username",
-            "date_joined",
-            "orders_count",
-            "last_order_at",
-        )
-
-    def validate_phone(self, value: str) -> str:
-        return normalize_phone(value)
-
-    def create(self, validated_data):
-        phone = validated_data.pop("phone")
-        validated_data.pop("role", None)
-        return User.objects.create_user(
-            phone=phone,
-            role=User.Role.CUSTOMER,
-            **validated_data,
-        )
+# Telegram identity is only writable via trusted bot link — never via profile PATCH.
+_TELEGRAM_WRITE_BLOCKED = frozenset({"telegram_id", "telegram_username"})
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -94,6 +62,15 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "additional_phones",
         )
 
+    def to_internal_value(self, data):
+        # Silently ignore spoof attempts; do not allow telegram_* writes.
+        if hasattr(data, "keys"):
+            mutable = dict(data)
+            for key in _TELEGRAM_WRITE_BLOCKED:
+                mutable.pop(key, None)
+            data = mutable
+        return super().to_internal_value(data)
+
     def validate_additional_phones(self, value):
         if value is None:
             return []
@@ -107,6 +84,9 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         return cleaned
 
     def update(self, instance, validated_data):
+        for key in _TELEGRAM_WRITE_BLOCKED:
+            validated_data.pop(key, None)
+
         full_name = validated_data.get("full_name")
         first_name = validated_data.get("first_name")
         last_name = validated_data.get("last_name")
@@ -158,39 +138,15 @@ class AdminPasswordLoginSerializer(serializers.Serializer):
         return normalize_phone(value)
 
 
-class LoyaltySettingsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LoyaltySettings
-        fields = ("uzs_per_point", "min_redeem_points", "expire_months")
+class TelegramLinkSerializer(serializers.Serializer):
+    telegram_id = serializers.IntegerField(min_value=1)
+    telegram_username = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
 
 
-class LoyaltyRewardSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LoyaltyReward
-        fields = ("id", "name", "icon", "points_cost", "is_active", "sort_order", "created_at")
-        read_only_fields = ("id", "created_at")
+class TelegramUnlinkSerializer(serializers.Serializer):
+    """Empty body — unlinks the authenticated user's telegram identity."""
 
+    pass
 
-class PointTransactionSerializer(serializers.ModelSerializer):
-    user_name = serializers.SerializerMethodField()
-    user_phone = serializers.CharField(source="user.phone", read_only=True)
-    order_id = serializers.IntegerField(source="order.id", read_only=True)
-
-    class Meta:
-        model = PointTransaction
-        fields = (
-            "id",
-            "user",
-            "user_name",
-            "user_phone",
-            "kind",
-            "points",
-            "order",
-            "order_id",
-            "note",
-            "created_at",
-        )
-        read_only_fields = fields
-
-    def get_user_name(self, obj: PointTransaction) -> str:
-        return obj.user.display_name or obj.user.phone

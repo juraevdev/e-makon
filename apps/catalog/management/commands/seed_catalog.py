@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 
 from apps.catalog.models import Service
+from apps.organizations.services import get_or_create_default_organization
 
 _DEFAULT_FEATURES = [
     {"icon": "verified_outlined", "label": "Kafolat"},
@@ -151,21 +152,25 @@ class Command(BaseCommand):
     help = "Seed catalog services (mobile kServices + Stitch home grid)."
 
     def handle(self, *args, **options):
+        org = get_or_create_default_organization()
+
         for old_slug, new_slug in SLUG_ALIASES.items():
-            Service.objects.filter(slug=old_slug).exclude(
-                pk__in=Service.objects.filter(slug=new_slug).values("pk")
+            Service.objects.filter(organization=org, slug=old_slug).exclude(
+                pk__in=Service.objects.filter(organization=org, slug=new_slug).values("pk")
             ).update(slug=new_slug)
 
         created = 0
         for item in SERVICES:
             payload = {
                 **item,
+                "organization": org,
                 "long_description": item.get("long_description", ""),
                 "hero_image_url": item.get("hero_image_url", ""),
                 "gallery_images": item.get("gallery_images", []),
                 "features": item.get("features", []),
             }
             _, was_created = Service.objects.update_or_create(
+                organization=org,
                 slug=item["slug"],
                 defaults=payload,
             )

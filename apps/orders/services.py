@@ -1,8 +1,23 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
-from apps.orders.models import Order, OrderMedia, OrderStatusHistory
+from apps.core.exceptions import AppError, ConflictError
+from apps.orders.models import Order, OrderIdempotency, OrderMedia, OrderStatusHistory
+
+
+# Canonical lifecycle (enforced for admin transitions).
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    Order.Status.NEW: {Order.Status.IN_REVIEW, Order.Status.CANCELLED},
+    Order.Status.IN_REVIEW: {Order.Status.CONTACTED, Order.Status.CANCELLED},
+    Order.Status.CONTACTED: {
+        Order.Status.COMPLETED,
+        Order.Status.CANCELLED,
+        Order.Status.IN_REVIEW,
+    },
+    Order.Status.COMPLETED: set(),
+    Order.Status.CANCELLED: set(),
+}
 
 
 class OrderService:
@@ -20,11 +35,28 @@ class OrderService:
         customer_first_name: str = "",
         customer_last_name: str = "",
         media_files: list | None = None,
-    ) -> Order:
+        idempotency_key: str | None = None,
+    ) -> tuple[Order, bool]:
+        """
+        Create an order. Returns (order, created).
+        If idempotency_key matches an existing record for this customer, returns that order.
+        """
+        if idempotency_key:
+            existing = (
+                OrderIdempotency.objects.select_related(
+                    "order",
+                    "order__service",
+                    "order__customer",
+                )
+                .filter(customer=customer, key=idempotency_key)
+                .first()
+            )
+            if existing:
+                return existing.order, False
+
         first_name = (customer_first_name or customer.first_name or "").strip()
         last_name = (customer_last_name or customer.last_name or "").strip()
 
-        # Keep profile in sync when order carries name/address
         profile_updates: list[str] = []
         if first_name and not customer.first_name:
             customer.first_name = first_name
@@ -40,6 +72,10 @@ class OrderService:
 
         order = Order.objects.create(
             customer=customer,
+            organization=(
+                getattr(customer, "organization", None)
+                or getattr(service, "organization", None)
+            ),
             service=service,
             phone_number=phone_number or customer.phone,
             area_size=area_size,
@@ -64,7 +100,47 @@ class OrderService:
                 else OrderMedia.Kind.PHOTO
             )
             OrderMedia.objects.create(order=order, file=uploaded, kind=kind, sort_order=index)
-        return order
+
+        if idempotency_key:
+            try:
+                with transaction.atomic():
+                    OrderIdempotency.objects.create(
+                        key=idempotency_key,
+                        customer=customer,
+                        order=order,
+                    )
+            except IntegrityError:
+                # Concurrent create with same key — return the winner.
+                existing = (
+                    OrderIdempotency.objects.select_related("order")
+                    .filter(customer=customer, key=idempotency_key)
+                    .first()
+                )
+                if existing:
+                    return existing.order, False
+                raise ConflictError("Idempotency conflict.") from None
+
+        from apps.notifications.services import NotificationService
+
+        NotificationService.enqueue_order_event(
+            event_type="order.created",
+            order=order,
+            extra={"from_status": "", "to_status": Order.Status.NEW},
+        )
+        return order, True
+
+    @staticmethod
+    def assert_transition_allowed(from_status: str, to_status: str) -> None:
+        if to_status not in Order.Status.values:
+            raise ValueError("Noto'g'ri status")
+        if from_status == to_status:
+            return
+        allowed = ALLOWED_TRANSITIONS.get(from_status, set())
+        if to_status not in allowed:
+            raise AppError(
+                f"Status o'tishi ruxsat etilmagan: {from_status} → {to_status}",
+                code="order_invalid_state",
+            )
 
     @staticmethod
     @transaction.atomic
@@ -74,38 +150,34 @@ class OrderService:
         from_status = order.status
         if from_status == to_status:
             return order
+
+        OrderService.assert_transition_allowed(from_status, to_status)
+
         order.status = to_status
         order.save(update_fields=["status", "updated_at"])
-        OrderStatusHistory.objects.create(
+        history = OrderStatusHistory.objects.create(
             order=order,
             from_status=from_status,
             to_status=to_status,
             changed_by=actor,
             note=note,
         )
-        if to_status == Order.Status.COMPLETED:
-            from apps.accounts.loyalty import award_points_for_order
-            from apps.finance.services import EscrowService
-            from apps.staff.commission import calc_platform_share, suggest_commission_rate
 
-            award_points_for_order(order, actor=actor)
-            if order.quoted_price is not None:
-                firm = order.firm
-                if firm is not None:
-                    rate = firm.commission_rate
-                else:
-                    rate = suggest_commission_rate(order.quoted_price)
-                order.commission_rate_applied = rate
-                order.platform_share = calc_platform_share(order.quoted_price, rate)
-                order.save(update_fields=["commission_rate_applied", "platform_share", "updated_at"])
-                # Escrow ochilgan bo'lsa va pul ushlab turilgan bo'lsa — avtomatik firmaga
-                try:
-                    EscrowService.ensure_escrow(order, actor=actor)
-                except Exception:  # noqa: BLE001
-                    pass
-                EscrowService.on_order_completed(order, actor=actor)
-        elif to_status == Order.Status.CANCELLED:
-            from apps.finance.services import EscrowService
+        from apps.notifications.services import NotificationService
 
-            EscrowService.on_order_cancelled(order, actor=actor)
+        event_type = (
+            "order.cancelled"
+            if to_status == Order.Status.CANCELLED
+            else "order.status_changed"
+        )
+        NotificationService.enqueue_order_event(
+            event_type=event_type,
+            order=order,
+            extra={
+                "from_status": from_status,
+                "to_status": to_status,
+                "history_id": history.pk,
+            },
+            delivery_key=f"order:{order.pk}:hist:{history.pk}",
+        )
         return order

@@ -1,0 +1,37 @@
+# Local/staging stack for E-Makon API + Redis + Telegram Bot
+# Does NOT include MyGarden.
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      USE_SQLITE: "False"
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      EMAKON_API_BASE_URL: http://api:8000/api/v1
+      REDIS_URL: redis://redis:6379/0
+      BOT_RUN_MODE: polling
+    depends_on:
+      - api
+      - redis
+    command: python -m bot.main

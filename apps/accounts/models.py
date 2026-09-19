@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -57,11 +56,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     location_lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     location_lng = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     additional_phones = models.JSONField(default=list, blank=True)
-    loyalty_points = models.PositiveIntegerField(default=0)
 
-    # Optional Telegram bridge (mygarden bot sync)
+    # Optional Telegram bridge (E-Makon bot link)
     telegram_id = models.BigIntegerField(unique=True, blank=True, null=True)
     telegram_username = models.CharField(max_length=255, blank=True)
+
+    # Tenant: NULL only for platform superadmins (and legacy until backfilled)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -140,71 +147,3 @@ class OTPChallenge(TimeStampedModel):
     @property
     def is_expired(self) -> bool:
         return timezone.now() >= self.expires_at
-
-
-class LoyaltySettings(models.Model):
-    """Ball tizimi — bajarilgan buyurtma uchun hisoblash qoidalari."""
-
-    uzs_per_point = models.PositiveIntegerField(default=100_000)
-    min_redeem_points = models.PositiveIntegerField(default=50)
-    expire_months = models.PositiveSmallIntegerField(default=12)
-
-    class Meta:
-        verbose_name = "Ball sozlamasi"
-        verbose_name_plural = "Ball sozlamalari"
-
-    def __str__(self) -> str:
-        return f"1 ball = {self.uzs_per_point} so'm"
-
-    @classmethod
-    def get(cls) -> "LoyaltySettings":
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
-
-
-class LoyaltyReward(TimeStampedModel):
-    name = models.CharField(max_length=255)
-    icon = models.CharField(max_length=64, default="redeem")
-    points_cost = models.PositiveIntegerField()
-    is_active = models.BooleanField(default=True)
-    sort_order = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        ordering = ["sort_order", "id"]
-        verbose_name = "Ball mukofoti"
-        verbose_name_plural = "Ball mukofotlari"
-
-    def __str__(self) -> str:
-        return f"{self.name} ({self.points_cost})"
-
-
-class PointTransaction(TimeStampedModel):
-    class Kind(models.TextChoices):
-        EARN = "earn", "Hisobga olindi"
-        REDEEM = "redeem", "Almashtirildi"
-        EXPIRE = "expire", "Muddati o'tdi"
-        ADJUST = "adjust", "Tuzatish"
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="point_transactions",
-    )
-    kind = models.CharField(max_length=16, choices=Kind.choices)
-    points = models.IntegerField()
-    order = models.ForeignKey(
-        "orders.Order",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="point_transactions",
-    )
-    note = models.CharField(max_length=255, blank=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        verbose_name = "Ball tranzaksiyasi"
-        verbose_name_plural = "Ball tranzaksiyalari"
-
-    def __str__(self) -> str:
-        return f"{self.user_id} {self.kind} {self.points}"

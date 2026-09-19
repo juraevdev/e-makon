@@ -20,6 +20,13 @@ class CareContract(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="care_contracts",
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="care_contracts",
+        null=True,
+        blank=True,
+    )
     order = models.OneToOneField(
         Order,
         on_delete=models.CASCADE,

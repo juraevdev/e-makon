@@ -1,25 +1,23 @@
 from __future__ import annotations
 
-from rest_framework import generics, permissions, viewsets
-from rest_framework.decorators import action
+from rest_framework import generics, permissions
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.accounts.models import LoyaltyReward, LoyaltySettings, PointTransaction, User
+from apps.accounts.models import User
 from apps.accounts.serializers import (
-    AdminCustomerSerializer,
     AdminPasswordLoginSerializer,
-    LoyaltyRewardSerializer,
-    LoyaltySettingsSerializer,
     OTPRequestSerializer,
     OTPVerifySerializer,
-    PointTransactionSerializer,
     ProfileUpdateSerializer,
+    TelegramLinkSerializer,
     UserSerializer,
 )
 from apps.accounts.services.otp import OTPService
-from apps.core.permissions import IsAdmin
+from apps.accounts.services.telegram_link import TelegramLinkService
+from apps.core.bot_auth import IsBotService
+from apps.core.permissions import IsCustomer
 from apps.core.responses import success_response
 
 
@@ -109,69 +107,33 @@ class MeView(generics.RetrieveUpdateAPIView):
         return success_response(UserSerializer(request.user, context={"request": request}).data)
 
 
-class AdminCustomerViewSet(viewsets.ModelViewSet):
-    """Mobil ilova mijozlari — admin boshqaruvi."""
+class TelegramLinkView(APIView):
+    """Trusted Telegram identity bind — requires JWT + bot service key."""
 
-    serializer_class = AdminCustomerSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
-    search_fields = ("phone", "full_name", "first_name", "last_name", "home_address", "region")
-    filterset_fields = ("is_active", "region")
-    ordering_fields = ("date_joined", "full_name", "loyalty_points")
+    permission_classes = [permissions.IsAuthenticated, IsCustomer, IsBotService]
 
-    def get_queryset(self):
-        from django.db.models import Count, Max
-
-        return User.objects.filter(role=User.Role.CUSTOMER).annotate(
-            orders_count=Count("orders"),
-            last_order_at=Max("orders__created_at"),
-        )
-
-    @action(detail=True, methods=["post"])
-    def block(self, request, pk=None):
-        user = self.get_object()
-        user.is_active = False
-        user.save(update_fields=["is_active"])
-        return success_response(
-            AdminCustomerSerializer(user, context={"request": request}).data,
-            message="Mijoz bloklandi",
-        )
-
-    @action(detail=True, methods=["post"])
-    def unblock(self, request, pk=None):
-        user = self.get_object()
-        user.is_active = True
-        user.save(update_fields=["is_active"])
-        return success_response(
-            AdminCustomerSerializer(user, context={"request": request}).data,
-            message="Blokdan ochildi",
-        )
-
-
-class LoyaltySettingsView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
-
-    def get(self, request):
-        return success_response(LoyaltySettingsSerializer(LoyaltySettings.get()).data)
-
-    def patch(self, request):
-        settings = LoyaltySettings.get()
-        serializer = LoyaltySettingsSerializer(settings, data=request.data, partial=True)
+    def post(self, request):
+        serializer = TelegramLinkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return success_response(serializer.data, message="Ball qoidalari saqlandi")
+        user = TelegramLinkService.link(
+            user=request.user,
+            telegram_id=serializer.validated_data["telegram_id"],
+            telegram_username=serializer.validated_data.get("telegram_username") or "",
+        )
+        return success_response(
+            UserSerializer(user, context={"request": request}).data,
+            message="Telegram bog'landi",
+        )
 
 
-class LoyaltyRewardViewSet(viewsets.ModelViewSet):
-    queryset = LoyaltyReward.objects.all()
-    serializer_class = LoyaltyRewardSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
-    filterset_fields = ("is_active",)
+class TelegramUnlinkView(APIView):
+    """Unlink Telegram identity for the authenticated customer (JWT + bot key)."""
 
+    permission_classes = [permissions.IsAuthenticated, IsCustomer, IsBotService]
 
-class PointTransactionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PointTransaction.objects.select_related("user", "order").all()
-    serializer_class = PointTransactionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
-    filterset_fields = ("kind", "user")
-    search_fields = ("user__full_name", "user__phone", "note")
-    ordering_fields = ("created_at", "points")
+    def post(self, request):
+        user = TelegramLinkService.unlink(user=request.user)
+        return success_response(
+            UserSerializer(user, context={"request": request}).data,
+            message="Telegram uzildi",
+        )

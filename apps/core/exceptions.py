@@ -10,9 +10,26 @@ class AppError(APIException):
     default_code = "error"
     default_detail = "Request failed."
 
+    def __init__(self, detail=None, code=None, status_code=None):
+        if status_code is not None:
+            self.status_code = status_code
+        if code is not None:
+            self.default_code = code
+        super().__init__(detail=detail, code=code)
+
 
 class OTPError(AppError):
     default_code = "otp_error"
+
+
+class ConflictError(AppError):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "conflict"
+
+
+class ForbiddenError(AppError):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_code = "forbidden"
 
 
 def custom_exception_handler(exc, context):
