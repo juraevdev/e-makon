@@ -8,6 +8,17 @@ export type TicketPriority = "low" | "normal" | "high";
 export type BannerStatus = "draft" | "scheduled" | "active" | "archived";
 export type PointKind = "earn" | "redeem" | "expire" | "adjust";
 
+export type CareStatus = "active" | "completed" | "cancelled";
+export type CareVisitStatus =
+  | "scheduled"
+  | "reminded"
+  | "approved"
+  | "postponed"
+  | "done"
+  | "not_done"
+  | "rejected"
+  | "awaiting_report";
+
 export type User = {
   id: number;
   phone: string;
@@ -516,6 +527,30 @@ export type MapPayload = {
   }[];
   workers_active: number;
   orders_active: number;
+};
+
+export type CareVisit = {
+  id: number;
+  visit_date: string;
+  status: CareVisitStatus;
+  assigned_worker_name: string;
+  report_notes: string;
+  created_at: string;
+};
+
+export type CareContract = {
+  id: number;
+  order: number;
+  status: CareStatus;
+  preferred_weekdays: number[];
+  area_size: string;
+  start_date: string;
+  end_date: string;
+  customer_name: string;
+  customer_phone: string;
+  service_name: string;
+  visits: CareVisit[];
+  created_at: string;
 };
 
 export type Paginated<T> = {

@@ -3,8 +3,25 @@ import { StatCard } from "./StatCard";
 import { StatusPill } from "./StatusPill";
 import { PageHeader } from "./PageHeader";
 import { DataTable, RowActions, Avatar } from "./DataTable";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { Skeleton, StatRowSkeleton, TableSkeleton } from "./Skeleton";
+import { ShelvedModule } from "./ShelvedModule";
 
-export { StatCard, StatusPill, PageHeader, DataTable, RowActions, Avatar };
+export {
+  StatCard,
+  StatusPill,
+  PageHeader,
+  DataTable,
+  RowActions,
+  Avatar,
+  Breadcrumbs,
+  ConfirmDialog,
+  Skeleton,
+  StatRowSkeleton,
+  TableSkeleton,
+  ShelvedModule,
+};
 
 export function FilterChip({
   label,

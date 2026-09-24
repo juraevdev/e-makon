@@ -27,6 +27,10 @@ class CustomerSupportMessageSerializer(serializers.ModelSerializer):
 
 class SupportTicketSerializer(serializers.ModelSerializer):
     messages = SupportMessageSerializer(many=True, read_only=True)
+    customer_id = serializers.IntegerField(source="customer.id", read_only=True)
+    customer_name = serializers.SerializerMethodField()
+    customer_phone = serializers.CharField(source="customer.phone", read_only=True)
+    assigned_to_name = serializers.SerializerMethodField()
 
     class Meta:
         model = SupportTicket
@@ -36,12 +40,34 @@ class SupportTicketSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "order",
+            "customer_id",
+            "customer_name",
+            "customer_phone",
             "assigned_to",
+            "assigned_to_name",
             "messages",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "status", "assigned_to", "messages", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "customer_id",
+            "customer_name",
+            "customer_phone",
+            "assigned_to",
+            "assigned_to_name",
+            "messages",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_customer_name(self, obj: SupportTicket) -> str:
+        return obj.customer.display_name if obj.customer_id else ""
+
+    def get_assigned_to_name(self, obj: SupportTicket) -> str:
+        if obj.assigned_to_id:
+            return obj.assigned_to.display_name or obj.assigned_to.phone
+        return ""
 
 
 class CustomerSupportTicketSerializer(serializers.ModelSerializer):

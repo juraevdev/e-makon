@@ -48,6 +48,13 @@ class Order(TimeStampedModel):
     quoted_price = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=8, default="UZS")
 
+    platform_share = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    commission_rate_applied = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True
+    )
+    location_lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    location_lng = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+
     assigned_worker = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -143,3 +150,96 @@ class OrderIdempotency(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.key} → Order #{self.order_id}"
+
+
+class OrderEscrow(TimeStampedModel):
+    class Status(models.TextChoices):
+        AWAITING_PAYMENT = "awaiting_payment", "To'lov kutilmoqda"
+        HELD = "held", "Ushlab turilgan"
+        RELEASED = "released", "Firmaga o'tkazilgan"
+        REFUNDED = "refunded", "Qaytarilgan"
+        DISPUTED = "disputed", "Nizoli"
+        FROZEN = "frozen", "Muzlatilgan"
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="escrow")
+    status = models.CharField(
+        max_length=32,
+        choices=Status.choices,
+        default=Status.AWAITING_PAYMENT,
+        db_index=True,
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    currency = models.CharField(max_length=8, default="UZS")
+    commission_rate = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    platform_fee = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    firm_payout = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+    refunded_at = models.DateTimeField(null=True, blank=True)
+    disputed_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    dispute_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Buyurtma escrow"
+        verbose_name_plural = "Buyurtma escrowlar"
+
+    def __str__(self) -> str:
+        return f"Escrow #{self.pk} order={self.order_id} ({self.status})"
+
+
+class LedgerEntry(TimeStampedModel):
+    class EntryType(models.TextChoices):
+        ESCROW_HOLD = "escrow_hold", "Escrow ushlash"
+        ESCROW_RELEASE = "escrow_release", "Escrow chiqarish"
+        PLATFORM_FEE = "platform_fee", "Platforma ulushi"
+        REFUND = "refund", "Qaytarish"
+        FINE = "fine", "Jarima"
+        DEBT_ADJUST = "debt_adjust", "Qarz tuzatish"
+        PUNISHMENT = "punishment", "Jazo"
+        OTHER = "other", "Boshqa"
+
+    entry_type = models.CharField(max_length=32, choices=EntryType.choices, default=EntryType.OTHER)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    currency = models.CharField(max_length=8, default="UZS")
+    debit_account = models.CharField(max_length=64, blank=True)
+    credit_account = models.CharField(max_length=64, blank=True)
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ledger_entries",
+    )
+    firm = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ledger_entries",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ledger_entries",
+    )
+    escrow = models.ForeignKey(
+        OrderEscrow,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ledger_entries",
+    )
+    note = models.TextField(blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Ledger yozuvi"
+        verbose_name_plural = "Ledger yozuvlari"
+
+    def __str__(self) -> str:
+        return f"{self.entry_type} {self.amount} {self.currency}"

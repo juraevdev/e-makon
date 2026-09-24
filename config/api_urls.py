@@ -3,10 +3,13 @@ from __future__ import annotations
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from apps.analytics.views import DashboardView
+from apps.accounts.admin_customers import AdminCustomerViewSet
+from apps.analytics.views import DashboardView, MapPayloadView, ReportsBundleView
 from apps.care.views import AdminCareContractViewSet, CustomerCareContractViewSet
-from apps.catalog.views import AdminServiceViewSet, ServiceViewSet
+from apps.catalog.views import AdminBannerViewSet, AdminServiceViewSet, ServiceViewSet
+from apps.loyalty.views import LoyaltyRewardViewSet, LoyaltySettingsView, PointTransactionViewSet
 from apps.orders.views import AdminOrderViewSet, CustomerOrderViewSet
+from apps.organizations.views import FirmViewSet, InvestorViewSet
 from apps.staff.views import AdminUserViewSet, EmployeeViewSet
 from apps.support.views import AdminSupportTicketViewSet, CustomerSupportTicketViewSet
 
@@ -23,10 +26,21 @@ admin_router.register("employees", EmployeeViewSet, basename="admin-employee")
 admin_router.register("admins", AdminUserViewSet, basename="admin-user")
 admin_router.register("care-contracts", AdminCareContractViewSet, basename="admin-care")
 admin_router.register("support", AdminSupportTicketViewSet, basename="admin-support")
+admin_router.register("firms", FirmViewSet, basename="admin-firm")
+admin_router.register("investors", InvestorViewSet, basename="admin-investor")
+admin_router.register("customers", AdminCustomerViewSet, basename="admin-customer")
+admin_router.register("banners", AdminBannerViewSet, basename="admin-banner")
+admin_router.register("loyalty-rewards", LoyaltyRewardViewSet, basename="admin-loyalty-reward")
+admin_router.register(
+    "loyalty-transactions", PointTransactionViewSet, basename="admin-loyalty-transaction"
+)
 
 urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("", include(customer_router.urls)),
     path("admin/", include(admin_router.urls)),
     path("admin/dashboard/", DashboardView.as_view(), name="admin-dashboard"),
+    path("admin/reports/bundle/", ReportsBundleView.as_view(), name="admin-reports-bundle"),
+    path("admin/map/", MapPayloadView.as_view(), name="admin-map"),
+    path("admin/loyalty/settings/", LoyaltySettingsView.as_view(), name="admin-loyalty-settings"),
 ]

@@ -56,6 +56,7 @@ class UserAdmin(DjangoUserAdmin):
                     "email",
                     "avatar",
                     "role",
+                    "loyalty_points",
                 )
             },
         ),

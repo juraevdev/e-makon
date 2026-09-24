@@ -8,6 +8,8 @@ from apps.core.phone import normalize_phone
 
 class UserSerializer(serializers.ModelSerializer):
     formatted_address = serializers.CharField(read_only=True)
+    orders_count = serializers.SerializerMethodField()
+    last_order_at = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -33,9 +35,24 @@ class UserSerializer(serializers.ModelSerializer):
             "additional_phones",
             "telegram_id",
             "telegram_username",
+            "loyalty_points",
+            "is_active",
             "date_joined",
+            "orders_count",
+            "last_order_at",
         )
         read_only_fields = fields
+
+    def get_orders_count(self, obj: User) -> int | None:
+        if hasattr(obj, "orders_count_anno"):
+            return int(obj.orders_count_anno)
+        return None
+
+    def get_last_order_at(self, obj: User):
+        if hasattr(obj, "last_order_at_anno"):
+            value = obj.last_order_at_anno
+            return value.isoformat() if value else None
+        return None
 
 
 # Telegram identity is only writable via trusted bot link — never via profile PATCH.

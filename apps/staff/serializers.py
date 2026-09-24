@@ -48,6 +48,28 @@ class EmployeeSerializer(serializers.ModelSerializer):
         )
         return EmployeeProfile.objects.create(user=user, organization=org, **validated_data)
 
+    def update(self, instance, validated_data):
+        phone = validated_data.pop("phone", None)
+        full_name = validated_data.pop("full_name", None)
+        password = validated_data.pop("password", None)
+        user = instance.user
+        user_changed = False
+        if phone and phone != user.phone:
+            user.phone = phone
+            user_changed = True
+        if full_name is not None:
+            user.full_name = full_name
+            chunks = full_name.strip().split(None, 1)
+            user.first_name = chunks[0] if chunks else ""
+            user.last_name = chunks[1] if len(chunks) > 1 else ""
+            user_changed = True
+        if password:
+            user.set_password(password)
+            user_changed = True
+        if user_changed:
+            user.save()
+        return super().update(instance, validated_data)
+
 
 class AdminUserSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -99,3 +121,25 @@ class AdminUserSerializer(serializers.ModelSerializer):
             organization=org,
         )
         return AdminProfile.objects.create(user=user, organization=org, **validated_data)
+
+    def update(self, instance, validated_data):
+        phone = validated_data.pop("phone", None)
+        full_name = validated_data.pop("full_name", None)
+        password = validated_data.pop("password", None)
+        user = instance.user
+        user_changed = False
+        if phone and phone != user.phone:
+            user.phone = phone
+            user_changed = True
+        if full_name is not None:
+            user.full_name = full_name
+            chunks = full_name.strip().split(None, 1)
+            user.first_name = chunks[0] if chunks else ""
+            user.last_name = chunks[1] if len(chunks) > 1 else ""
+            user_changed = True
+        if password:
+            user.set_password(password)
+            user_changed = True
+        if user_changed:
+            user.save()
+        return super().update(instance, validated_data)

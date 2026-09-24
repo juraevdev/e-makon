@@ -37,7 +37,7 @@ export const navItems: NavItem[] = [
     title: "Investor hamkorlar",
   },
   {
-    href: "/hamkorlar",
+    href: "/xodimlar",
     label: "Xodimlar",
     icon: "badge",
     title: "Firma xodimlari",
@@ -53,6 +53,12 @@ export const navItems: NavItem[] = [
     label: "Buyurtmalar",
     icon: "shopping_cart",
     title: "Buyurtmalar",
+  },
+  {
+    href: "/parvarish",
+    label: "Parvarish",
+    icon: "verified",
+    title: "Parvarish shartnomalari",
   },
   {
     href: "/bannerlar",
@@ -77,6 +83,12 @@ export const navItems: NavItem[] = [
     label: "Xarita",
     icon: "map",
     title: "Jonli xarita",
+  },
+  {
+    href: "/administratorlar",
+    label: "Administratorlar",
+    icon: "admin_panel_settings",
+    title: "Administratorlar",
   },
   {
     href: "/sozlamalar",

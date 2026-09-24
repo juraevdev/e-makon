@@ -118,10 +118,20 @@ Profile PATCH: `first_name`, `last_name`, `birth_date`, `home_address`, `country
 | Method | Path |
 |---|---|
 | POST | `/auth/admin/login/` `{ phone, password }` |
-| GET | `/admin/dashboard/?days=30` |
-| CRUD | `/admin/services/` `/admin/orders/` `/admin/employees/` `/admin/admins/` `/admin/support/` |
+| GET | `/admin/dashboard/?period=month` (yoki `days` / `date_from`+`date_to`) |
+| GET | `/admin/reports/bundle/` — PDF/print uchun summary |
+| GET | `/admin/map/` — firmalar, xodimlar, faol buyurtmalar |
+| CRUD | `/admin/firms/` — + `stats`, `ledger`, `block`, `set_trial`, jarima, savdo taqiqi, … |
+| CRUD | `/admin/investors/` — + `end_agreement` |
+| CRUD | `/admin/customers/` — + `block` / `unblock` |
+| CRUD | `/admin/services/` `/admin/orders/` `/admin/employees/` `/admin/admins/` `/admin/support/` `/admin/banners/` |
+| GET | `/admin/care-contracts/` |
+| GET/PATCH | `/admin/loyalty/settings/` |
+| CRUD | `/admin/loyalty-rewards/` |
+| GET | `/admin/loyalty-transactions/` |
+| POST | `/admin/orders/{id}/finance/{action}/` — `ensure`, `mark_paid`, `release`, `refund`, `dispute`, `punish_firm`, `punish_user` |
 
-Admin endpoints require role `admin`/`superadmin`. Org admins need an active `AdminProfile` with the relevant capability (`can_manage_orders`, `can_manage_staff`, `can_view_analytics`). Lists are scoped to the admin's organization; superadmin sees all.
+Admin endpoints require role `admin`/`superadmin`. Org admins need an active `AdminProfile` with the relevant capability (`can_manage_orders`, `can_manage_staff`, `can_view_analytics`). Lists are scoped to the admin's organization; superadmin sees all. `/admin/admins/` is **superadmin-only**.
 
 Order status (same as mobile): `new` → `in_review` → `contacted` → `completed` | `cancelled`
 

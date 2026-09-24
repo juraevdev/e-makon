@@ -5,7 +5,7 @@ from rest_framework import serializers
 from apps.catalog.models import Service
 from apps.catalog.serializers import ServiceSerializer
 from apps.core.exceptions import AppError
-from apps.orders.models import Order, OrderMedia, OrderStatusHistory
+from apps.orders.models import LedgerEntry, Order, OrderEscrow, OrderMedia, OrderStatusHistory
 from apps.orders.services import OrderService
 
 
@@ -22,14 +22,86 @@ class OrderStatusHistorySerializer(serializers.ModelSerializer):
         fields = ("id", "from_status", "to_status", "note", "created_at")
 
 
+class OrderEscrowSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = OrderEscrow
+        fields = (
+            "id",
+            "order_id",
+            "status",
+            "status_label",
+            "amount",
+            "currency",
+            "commission_rate",
+            "platform_fee",
+            "firm_payout",
+            "paid_at",
+            "released_at",
+            "refunded_at",
+            "disputed_at",
+            "note",
+            "dispute_reason",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class LedgerEntrySerializer(serializers.ModelSerializer):
+    entry_type_label = serializers.CharField(source="get_entry_type_display", read_only=True)
+    debit_label = serializers.SerializerMethodField()
+    credit_label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LedgerEntry
+        fields = (
+            "id",
+            "entry_type",
+            "entry_type_label",
+            "amount",
+            "currency",
+            "debit_account",
+            "debit_label",
+            "credit_account",
+            "credit_label",
+            "order",
+            "firm",
+            "user",
+            "escrow",
+            "note",
+            "meta",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_debit_label(self, obj: LedgerEntry) -> str:
+        from apps.orders.finance import ACCOUNT_LABELS
+
+        return ACCOUNT_LABELS.get(obj.debit_account, obj.debit_account)
+
+    def get_credit_label(self, obj: LedgerEntry) -> str:
+        from apps.orders.finance import ACCOUNT_LABELS
+
+        return ACCOUNT_LABELS.get(obj.credit_account, obj.credit_account)
+
+
 class OrderSerializer(serializers.ModelSerializer):
     service = ServiceSerializer(read_only=True)
     media = OrderMediaSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
+    escrow = OrderEscrowSerializer(read_only=True)
     customer_name = serializers.CharField(read_only=True)
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
+    customer_id = serializers.IntegerField(source="customer.id", read_only=True)
     service_id = serializers.IntegerField(source="service.id", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
+    service_icon = serializers.CharField(source="service.icon", read_only=True)
+    assigned_worker_id = serializers.IntegerField(read_only=True, allow_null=True)
+    firm_id = serializers.IntegerField(source="organization_id", read_only=True, allow_null=True)
+    firm_name = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
 
     class Meta:
@@ -39,6 +111,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "service",
             "service_id",
             "service_name",
+            "service_icon",
             "status",
             "progress",
             "area_size",
@@ -46,6 +119,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "address",
             "notes",
             "phone_number",
+            "customer_id",
             "customer_first_name",
             "customer_last_name",
             "customer_name",
@@ -53,13 +127,24 @@ class OrderSerializer(serializers.ModelSerializer):
             "agreed_duration",
             "quoted_price",
             "currency",
+            "assigned_worker_id",
             "assigned_worker_name",
+            "firm_id",
+            "firm_name",
+            "platform_share",
+            "commission_rate_applied",
+            "escrow",
+            "location_lat",
+            "location_lng",
             "media",
             "status_history",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_firm_name(self, obj: Order) -> str:
+        return obj.organization.name if obj.organization_id else ""
 
     def get_progress(self, obj: Order) -> float:
         return {

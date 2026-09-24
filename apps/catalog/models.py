@@ -70,3 +70,58 @@ class Service(TimeStampedModel):
     @property
     def detail_description(self) -> str:
         return self.long_description or self.description
+
+
+class Banner(TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Qoralama"
+        SCHEDULED = "scheduled", "Rejalashtirilgan"
+        ACTIVE = "active", "Faol"
+        ARCHIVED = "archived", "Arxiv"
+
+    class Placement(models.TextChoices):
+        HOME = "home", "Home"
+        PROMO = "promo", "Promo"
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    image_url = models.URLField(max_length=512, blank=True)
+    image = models.ImageField(upload_to="banners/", blank=True, null=True)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        db_index=True,
+    )
+    placement = models.CharField(
+        max_length=16,
+        choices=Placement.choices,
+        default=Placement.HOME,
+    )
+    link_service = models.ForeignKey(
+        Service,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="banners",
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["sort_order", "-created_at"]
+        verbose_name = "Banner"
+        verbose_name_plural = "Bannerlar"
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def image_src(self) -> str:
+        if self.image:
+            try:
+                return self.image.url
+            except ValueError:
+                pass
+        return self.image_url or ""

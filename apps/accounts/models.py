@@ -61,6 +61,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     telegram_id = models.BigIntegerField(unique=True, blank=True, null=True)
     telegram_username = models.CharField(max_length=255, blank=True)
 
+    loyalty_points = models.PositiveIntegerField(default=0)
+
     # Tenant: NULL only for platform superadmins (and legacy until backfilled)
     organization = models.ForeignKey(
         "organizations.Organization",

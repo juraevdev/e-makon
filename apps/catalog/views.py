@@ -3,8 +3,8 @@ from __future__ import annotations
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from apps.catalog.models import Service
-from apps.catalog.serializers import ServiceSerializer
+from apps.catalog.models import Banner, Service
+from apps.catalog.serializers import BannerSerializer, ServiceSerializer
 from apps.core.permissions import IsAdmin
 from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.permissions import RequiresAdminCapability
@@ -34,3 +34,12 @@ class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
         if org is None:
             org = get_or_create_default_organization()
         serializer.save(organization=org)
+
+
+class AdminBannerViewSet(viewsets.ModelViewSet):
+    queryset = Banner.objects.select_related("link_service").all()
+    serializer_class = BannerSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    search_fields = ("title", "description")
+    filterset_fields = ("status", "placement")
+    ordering_fields = ("sort_order", "created_at")

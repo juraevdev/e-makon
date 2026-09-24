@@ -26,11 +26,12 @@ class EmployeeViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
 
 
 class AdminUserViewSet(viewsets.ModelViewSet):
-    queryset = AdminProfile.objects.select_related("user", "organization").all()
+    queryset = AdminProfile.objects.select_related("user", "organization").order_by("-created_at")
     serializer_class = AdminUserSerializer
     permission_classes = [IsAuthenticated, IsSuperAdmin]
     search_fields = ("user__full_name", "user__phone")
     filterset_fields = ("is_active",)
+    ordering = ("-created_at",)
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()

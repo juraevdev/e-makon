@@ -15,11 +15,17 @@ class CustomerCareContractViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsCustomer]
 
     def get_queryset(self):
-        return CareContract.objects.filter(customer=self.request.user).prefetch_related("visits")
+        return (
+            CareContract.objects.filter(customer=self.request.user)
+            .select_related("customer", "order", "order__service")
+            .prefetch_related("visits")
+        )
 
 
 class AdminCareContractViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = CareContract.objects.select_related("customer", "order").prefetch_related("visits")
+    queryset = CareContract.objects.select_related(
+        "customer", "order", "order__service"
+    ).prefetch_related("visits")
     serializer_class = CareContractSerializer
     permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
     required_capability = "can_manage_orders"

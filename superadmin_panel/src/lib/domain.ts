@@ -1,4 +1,11 @@
-import type { OrderStatus, TicketStatus, BannerStatus, PointKind } from "./api/types";
+import type {
+  OrderStatus,
+  TicketStatus,
+  BannerStatus,
+  PointKind,
+  CareStatus,
+  CareVisitStatus,
+} from "./api/types";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   new: "Yangi",
@@ -64,4 +71,21 @@ export const ROLE_LABEL: Record<string, string> = {
   worker: "Hamkor",
   admin: "Admin",
   superadmin: "Superadmin",
+};
+
+export const CARE_STATUS_LABEL: Record<CareStatus, string> = {
+  active: "Faol",
+  completed: "Tugagan",
+  cancelled: "Bekor qilingan",
+};
+
+export const CARE_VISIT_STATUS_LABEL: Record<CareVisitStatus, string> = {
+  scheduled: "Rejalashtirilgan",
+  reminded: "Eslatma yuborildi",
+  approved: "Tasdiqlangan",
+  postponed: "Kechiktirilgan",
+  done: "Bajarildi",
+  not_done: "Bajarilmadi",
+  rejected: "Rad etilgan",
+  awaiting_report: "Hisobot kutilmoqda",
 };
