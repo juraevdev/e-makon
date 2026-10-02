@@ -72,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   void _openCarousel(CarouselItem item) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surfaceContainer,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -79,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       ),
       builder: (ctx) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 28 + MediaQuery.paddingOf(ctx).bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -775,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     childCount: offers.length,
                   ),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
             ],
           ),
         ),
@@ -787,13 +788,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final auth = context.read<AuthProvider>();
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surfaceContainer,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) {
         final pointsNow = ctx.watch<AuthProvider>().user?.points ?? 0;
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 28 + MediaQuery.paddingOf(ctx).bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

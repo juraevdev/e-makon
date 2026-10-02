@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import models
 
 from apps.core.models import TimeStampedModel
@@ -21,6 +22,35 @@ class Service(TimeStampedModel):
         WATER = "water_drop", "water_drop"
         FOREST = "forest", "forest"
         PHONE = "phone_in_talk", "phone_in_talk"
+
+    class Moderation(models.TextChoices):
+        PENDING = "pending", "Tekshiruvda"
+        APPROVED = "approved", "Tasdiqlangan"
+        REJECTED = "rejected", "Rad etilgan"
+
+    base_service = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="offers",
+        help_text="Katalogdagi xizmat turi; firma taklifi shu turga bog'lanadi",
+    )
+    moderation_status = models.CharField(
+        max_length=16,
+        choices=Moderation.choices,
+        default=Moderation.APPROVED,
+        db_index=True,
+    )
+    moderation_note = models.TextField(blank=True)
+    moderated_at = models.DateTimeField(null=True, blank=True)
+    moderated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="moderated_services",
+    )
 
     organization = models.ForeignKey(
         "organizations.Organization",
@@ -51,6 +81,7 @@ class Service(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     # Pricing hint for UI (actual quote may be after consultation)
     price_from = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    price_to = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=8, default="UZS")
 
     class Meta:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -119,7 +119,12 @@ class DashboardService:
             if org_id is not None:
                 orders_qs = orders_qs.filter(organization_id=org_id)
                 all_orders = all_orders.filter(organization_id=org_id)
-                customers_qs = customers_qs.filter(organization_id=org_id)
+                customers_qs = customers_qs.filter(
+                    pk__in=User.objects.filter(
+                        Q(organization_id=org_id) | Q(orders__organization_id=org_id)
+                    ).values("id")
+                )
+                investors_qs = investors_qs.none()
                 active_qs = active_qs.filter(organization_id=org_id)
                 revenue_all_qs = revenue_all_qs.filter(organization_id=org_id)
                 revenue_period_qs = revenue_period_qs.filter(organization_id=org_id)

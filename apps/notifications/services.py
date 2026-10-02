@@ -7,9 +7,30 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 
-from apps.notifications.models import NotificationDelivery
+from apps.notifications.models import NotificationDelivery, UserNotification
 
 logger = logging.getLogger(__name__)
+
+
+def notify_user(
+    user,
+    *,
+    title: str,
+    body: str = "",
+    kind: str = UserNotification.Kind.SYSTEM,
+    entity_type: str = "",
+    entity_id: int | None = None,
+) -> UserNotification | None:
+    if user is None:
+        return None
+    return UserNotification.objects.create(
+        user=user,
+        kind=kind,
+        title=title[:255],
+        body=body,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
 
 
 def _redis_client():

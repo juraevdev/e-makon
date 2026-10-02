@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.accounts.models import User
 from apps.core.exceptions import AppError
-from apps.core.permissions import IsAdmin
+from apps.core.permissions import IsAdmin, IsSuperAdmin
 from apps.core.responses import success_response
 from apps.orders.models import Order
 from apps.organizations.models import Organization, Investor
@@ -18,6 +18,7 @@ from apps.organizations.serializers import (
     FirmMessageSerializer,
     FirmModerationLogSerializer,
     FirmReviewSerializer,
+    FirmSelfSerializer,
     InvestorSerializer,
     PartnerFirmSerializer,
 )
@@ -32,6 +33,36 @@ class FirmViewSet(viewsets.ModelViewSet):
     filterset_fields = ("status", "specialty", "subscription_plan")
     ordering_fields = ("name", "created_at", "rating", "commission_rate")
     ordering = ("name", "id")
+
+    # Firm admins may only read their own firm and edit its contact profile via `me`.
+    FIRM_ADMIN_ACTIONS = {"list", "retrieve", "stats", "ledger", "me", "read_messages"}
+
+    def get_permissions(self):
+        if self.action in self.FIRM_ADMIN_ACTIONS:
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated(), IsSuperAdmin()]
+
+    def _own_firm(self, request) -> Organization:
+        org_id = getattr(request.user, "organization_id", None)
+        firm = self.get_queryset().filter(pk=org_id).first() if org_id else None
+        if firm is None:
+            raise AppError("Sizga firma biriktirilmagan.", status_code=404)
+        return firm
+
+    @action(detail=False, methods=["get", "patch"])
+    def me(self, request):
+        firm = self._own_firm(request)
+        if request.method == "PATCH":
+            serializer = FirmSelfSerializer(firm, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        return success_response(self._firm_payload(firm))
+
+    @action(detail=False, methods=["post"], url_path="me/read-messages")
+    def read_messages(self, request):
+        firm = self._own_firm(request)
+        firm.messages.filter(is_read=False).update(is_read=True)
+        return success_response({"ok": True})
 
     def get_queryset(self):
         qs = Organization.objects.select_related("owner").annotate(
@@ -252,7 +283,7 @@ class InvestorViewSet(
 ):
     queryset = Investor.objects.all()
     serializer_class = InvestorSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
     search_fields = ("full_name", "company_name", "phone", "email")
     filterset_fields = ("status", "is_active")
 

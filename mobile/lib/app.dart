@@ -28,8 +28,18 @@ class _EmakonAppState extends State<EmakonApp> {
   late final HomeFeedProvider _feed = HomeFeedProvider();
   late final FavoritesProvider _favorites = FavoritesProvider()..load();
   late final ReviewsProvider _reviews = ReviewsProvider()..load();
-  late final ChatProvider _chat = ChatProvider();
+  late final ChatProvider _chat = ChatProvider(_api);
   late final GoRouter _router = createRouter();
+
+  @override
+  void initState() {
+    super.initState();
+    _api.onSessionExpired = () {
+      if (!_auth.isLoggedIn) return;
+      _auth.sessionExpired();
+      _router.go('/login');
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +60,10 @@ class _EmakonAppState extends State<EmakonApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         routerConfig: _router,
-        builder: (context, child) {
-          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-          return child ?? const SizedBox.shrink();
-        },
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: AppTheme.systemOverlay,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }

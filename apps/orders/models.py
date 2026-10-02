@@ -17,6 +17,13 @@ class Order(TimeStampedModel):
         COMPLETED = "completed", "Bajarildi"
         CANCELLED = "cancelled", "Bekor qilindi"
 
+    class WorkStage(models.TextChoices):
+        ACCEPTED = "accepted", "Ishchi guruh qabul qildi"
+        ON_THE_WAY = "on_the_way", "Yo'lga chiqdi"
+        ARRIVED = "arrived", "Yetib keldi"
+        WORKING = "working", "Ishlayapti"
+        FINISHED = "finished", "Ishni tugatdi"
+
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -65,6 +72,16 @@ class Order(TimeStampedModel):
     )
     assigned_worker_name = models.CharField(max_length=255, blank=True)
 
+    work_stage = models.CharField(
+        max_length=16, choices=WorkStage.choices, blank=True, default="", db_index=True
+    )
+    work_stage_at = models.DateTimeField(null=True, blank=True)
+    distance_km = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    eta_minutes = models.PositiveIntegerField(null=True, blank=True)
+    eta_at = models.DateTimeField(null=True, blank=True)
+    scheduled_date = models.DateField(null=True, blank=True)
+    time_slot = models.CharField(max_length=64, blank=True)
+
     # Optional Telegram ops bridge fields
     telegram_group_message_id = models.BigIntegerField(null=True, blank=True)
     external_bot_order_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
@@ -74,6 +91,7 @@ class Order(TimeStampedModel):
         indexes = [
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["customer", "status"]),
+            models.Index(fields=["organization", "status", "created_at"]),
         ]
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar"
@@ -109,6 +127,7 @@ class OrderStatusHistory(TimeStampedModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_history")
     from_status = models.CharField(max_length=16, blank=True)
     to_status = models.CharField(max_length=16)
+    stage = models.CharField(max_length=16, blank=True)
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -187,6 +206,49 @@ class OrderEscrow(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Escrow #{self.pk} order={self.order_id} ({self.status})"
+
+
+class OrderPayment(TimeStampedModel):
+    """Mijozning Click/Payme orqali to'lov urinishi; admin tasdiqlagach escrow HELD bo'ladi."""
+
+    class Provider(models.TextChoices):
+        CLICK = "click", "Click"
+        PAYME = "payme", "Payme"
+        TEST = "test", "Sinov to'lovi"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "To'lov kutilmoqda"
+        SUBMITTED = "submitted", "Tekshirilmoqda"
+        CONFIRMED = "confirmed", "Tasdiqlandi"
+        REJECTED = "rejected", "Rad etildi"
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    currency = models.CharField(max_length=8, default="UZS")
+    checkout_url = models.URLField(max_length=1024, blank=True)
+    provider_transaction_id = models.CharField(max_length=128, blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_payments",
+    )
+    note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Buyurtma to'lovi"
+        verbose_name_plural = "Buyurtma to'lovlari"
+
+    def __str__(self) -> str:
+        return f"Payment #{self.pk} order={self.order_id} {self.provider} ({self.status})"
 
 
 class LedgerEntry(TimeStampedModel):

@@ -124,7 +124,7 @@ export default function InvestorlarPage() {
       ) : error ? (
         <p className="text-error">{error}</p>
       ) : !list.length ? (
-        <EmptyState icon="handshake" title="Investorlar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo'shish</PrimaryButton>} />
+        <EmptyState icon="handshake" title="Investorlar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo&apos;shish</PrimaryButton>} />
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {list.map((i) => (

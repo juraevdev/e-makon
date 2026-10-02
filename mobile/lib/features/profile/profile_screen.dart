@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAvatar() async {
     final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75);
-    if (file == null) return;
+    if (file == null || !mounted) return;
     await context.read<AuthProvider>().updateProfile(avatarPath: file.path);
   }
 
@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final favPartners = feed.partners.where((p) => favs.isPartnerFav(p.id)).toList();
     final season = SeasonTheme.of();
     final accent = season.accent;
-    final activeOrders = orders.where((o) => {'new', 'accepted', 'on_way', 'arrived', 'in_progress'}.contains(o.status)).length;
+    final activeOrders = orders.where((o) => o.isActive).length;
 
     return Scaffold(
       body: AmbientBackdrop(
@@ -123,7 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.paddingOf(context).bottom + 16),
             children: [
               Row(
                 children: [
@@ -133,12 +133,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              season.subtitle,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: accent,
-                                    letterSpacing: 0.2,
-                                  ),
+                            Flexible(
+                              child: Text(
+                                season.subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      color: accent,
+                                      letterSpacing: 0.2,
+                                    ),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             SeasonChip(theme: season),

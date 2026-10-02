@@ -158,6 +158,25 @@ export default function FirmaProfilPage() {
             <p><span className="text-on-surface-variant">Manzil: </span>{f.address || "—"}</p>
             <p><span className="text-on-surface-variant">Hudud: </span>{[f.region, f.district].filter(Boolean).join(", ") || "—"}</p>
             <p><span className="text-on-surface-variant">Tavsif: </span>{f.description || "—"}</p>
+            <p><span className="text-on-surface-variant">Ish vaqti: </span>{f.work_hours || "—"}</p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["Telegram kanal", f.telegram_channel],
+                  ["Telegram guruh", f.telegram_group],
+                  ["Instagram", f.instagram],
+                  ["YouTube", f.youtube],
+                  ["Facebook", f.facebook],
+                  ["Sayt", f.website],
+                ] as [string, string | undefined][]
+              )
+                .filter(([, v]) => v)
+                .map(([label, v]) => (
+                  <span key={label} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+                    {label}: {v}
+                  </span>
+                ))}
+            </div>
             <p>
               <span className="text-on-surface-variant">Obuna: </span>
               {f.subscription_plan === "none"

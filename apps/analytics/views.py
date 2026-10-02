@@ -137,8 +137,32 @@ class MapPayloadView(APIView):
                     "lng": lng,
                     "assigned_worker": o.assigned_worker_name
                     or (o.assigned_worker.display_name if o.assigned_worker_id else ""),
+                    "work_stage": o.work_stage,
+                    "work_stage_label": o.get_work_stage_display() if o.work_stage else "",
+                    "distance_km": float(o.distance_km) if o.distance_km is not None else None,
+                    "eta_minutes": o.eta_minutes,
+                    "scheduled_date": o.scheduled_date.isoformat() if o.scheduled_date else None,
                 }
             )
+
+        from apps.care.models import CareContract
+
+        care_qs = CareContract.objects.filter(
+            status=CareContract.Status.ACTIVE, location_lat__isnull=False, location_lng__isnull=False
+        )
+        if org_id is not None:
+            care_qs = care_qs.filter(organization_id=org_id)
+        care = [
+            {
+                "id": c.id,
+                "title": c.title or c.client_name,
+                "client_type": c.client_type,
+                "address": c.address,
+                "lat": float(c.location_lat),
+                "lng": float(c.location_lng),
+            }
+            for c in care_qs[:200]
+        ]
 
         workers_active = sum(1 for w in workers if w["is_active"] and w["lat"] is not None)
         orders_active = len(orders)
@@ -148,6 +172,7 @@ class MapPayloadView(APIView):
                 "firms": firms,
                 "workers": workers,
                 "orders": orders,
+                "care": care,
                 "workers_active": workers_active,
                 "orders_active": orders_active,
             }

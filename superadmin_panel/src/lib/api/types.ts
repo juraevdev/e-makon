@@ -8,7 +8,11 @@ export type TicketPriority = "low" | "normal" | "high";
 export type BannerStatus = "draft" | "scheduled" | "active" | "archived";
 export type PointKind = "earn" | "redeem" | "expire" | "adjust";
 
-export type CareStatus = "active" | "completed" | "cancelled";
+export type CareStatus = "draft" | "pending" | "active" | "paused" | "completed" | "cancelled" | "rejected";
+export type WorkStage = "accepted" | "on_the_way" | "arrived" | "working" | "finished";
+export type ModerationStatus = "pending" | "approved" | "rejected";
+export type CareClientType = "household" | "organization";
+export type CareFrequency = "weekly" | "biweekly" | "monthly";
 export type CareVisitStatus =
   | "scheduled"
   | "reminded"
@@ -68,7 +72,22 @@ export type Service = {
   sort_order: number;
   is_active: boolean;
   price_from: string | null;
+  price_to?: string | null;
+  price_min?: number;
+  price_max?: number;
+  price?: number;
+  organization_id?: number | null;
+  organization_name?: string;
+  base_service?: number | null;
+  base_service_name?: string;
+  moderation_status?: ModerationStatus;
+  moderation_label?: string;
+  moderation_note?: string;
+  moderated_at?: string | null;
+  offers_count?: number;
   currency: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type OrderMedia = {
@@ -83,6 +102,9 @@ export type OrderHistory = {
   id: number;
   from_status: string;
   to_status: string;
+  stage?: WorkStage | "";
+  stage_label?: string;
+  changed_by_name?: string;
   note: string;
   created_at: string;
 };
@@ -136,6 +158,30 @@ export type FirmLedgerSummary = {
   escrows: OrderEscrow[];
 };
 
+export type PaymentStatus =
+  | "not_required"
+  | "unpaid"
+  | "checking"
+  | "rejected"
+  | "paid"
+  | "released"
+  | "refunded";
+
+export type OrderPayment = {
+  id: number;
+  provider: "click" | "payme";
+  provider_label: string;
+  status: "pending" | "submitted" | "confirmed" | "rejected";
+  status_label: string;
+  amount: string;
+  currency: string;
+  checkout_url: string;
+  submitted_at: string | null;
+  resolved_at: string | null;
+  note: string;
+  created_at: string;
+};
+
 export type Order = {
   id: number;
   service: Service;
@@ -161,9 +207,20 @@ export type Order = {
   assigned_worker_name: string;
   firm_id: number | null;
   firm_name: string;
+  work_stage?: WorkStage | "";
+  work_stage_label?: string;
+  work_stage_at?: string | null;
+  distance_km?: string | null;
+  eta_minutes?: number | null;
+  eta_at?: string | null;
+  scheduled_date?: string | null;
+  time_slot?: string;
   platform_share: string | null;
   commission_rate_applied: string | null;
   escrow: OrderEscrow | null;
+  amount: number;
+  payment_status: PaymentStatus;
+  payment: OrderPayment | null;
   location_lat: string | number | null;
   location_lng: string | number | null;
   media: OrderMedia[];
@@ -373,6 +430,13 @@ export type PartnerFirm = {
   specialty: string;
   specialty_label: string;
   description: string;
+  work_hours?: string;
+  website?: string;
+  telegram_channel?: string;
+  telegram_group?: string;
+  instagram?: string;
+  youtube?: string;
+  facebook?: string;
   rating: string;
   ratings_count: number;
   commission_rate: string;
@@ -524,7 +588,13 @@ export type MapPayload = {
     lat: number | null;
     lng: number | null;
     assigned_worker: string;
+    work_stage?: WorkStage | "";
+    work_stage_label?: string;
+    distance_km?: number | null;
+    eta_minutes?: number | null;
+    scheduled_date?: string | null;
   }[];
+  care?: { id: number; title: string; client_type: CareClientType; address: string; lat: number; lng: number }[];
   workers_active: number;
   orders_active: number;
 };
@@ -533,23 +603,100 @@ export type CareVisit = {
   id: number;
   visit_date: string;
   status: CareVisitStatus;
+  status_label?: string;
+  planned_worker: number | null;
   assigned_worker_name: string;
   report_notes: string;
+  report_sent_at: string | null;
+  created_at: string;
+};
+
+export type CareEvent = {
+  id: number;
+  action: string;
+  note: string;
+  actor_name: string;
+  actor_role: string;
   created_at: string;
 };
 
 export type CareContract = {
   id: number;
-  order: number;
-  status: CareStatus;
-  preferred_weekdays: number[];
+  order: number | null;
+  service: number | null;
+  service_name: string;
+  firm_name: string;
+  title: string;
+  client_type: CareClientType;
+  client_type_label: string;
+  client_name: string;
+  contact_person: string;
+  phone_number: string;
+  address: string;
+  location_lat: string | null;
+  location_lng: string | null;
   area_size: string;
+  frequency: CareFrequency;
+  frequency_label: string;
+  preferred_weekdays: number[];
   start_date: string;
   end_date: string;
+  price_per_visit: string;
+  total_amount: string;
+  currency: string;
+  payment_terms: "monthly" | "quarterly" | "upfront";
+  terms: string;
+  status: CareStatus;
+  status_label: string;
+  platform_note: string;
+  rejection_reason: string;
+  approved_at: string | null;
+  customer: number | null;
   customer_name: string;
   customer_phone: string;
-  service_name: string;
+  assigned_worker_ids: number[];
+  planned_visits: number;
+  visits_done: number;
   visits: CareVisit[];
+  events: CareEvent[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type CareSummary = {
+  total: number;
+  pending: number;
+  active: number;
+  households: number;
+  organizations: number;
+  visits_today: number;
+  visits_week: number;
+};
+
+export type ChatRoom = {
+  id: number;
+  firm_id: number;
+  firm_name: string;
+  firm_phone: string;
+  customer_id: number;
+  customer_name: string;
+  customer_phone: string;
+  last_message_at: string | null;
+  last_message_preview: string;
+  customer_unread: number;
+  firm_unread: number;
+  unread: number;
+  created_at: string;
+};
+
+export type ChatMessage = {
+  id: number;
+  room: number;
+  sender_role: "customer" | "firm" | "platform";
+  sender_name: string;
+  body: string;
+  order: number | null;
+  mine: boolean;
   created_at: string;
 };
 

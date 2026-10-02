@@ -14,14 +14,20 @@ import {
   StatusPill,
 } from "@/components/ui";
 import { api, ApiError, asPage } from "@/lib/api/client";
-import type { Order, OrderEscrow, OrderStatus } from "@/lib/api/types";
-import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
+import type { Order, OrderEscrow, OrderStatus, PaymentStatus } from "@/lib/api/types";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, WORK_STAGES } from "@/lib/domain";
 import { formatDate, formatDateTime, formatMoney, formatPhone, initials } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
 
-const FILTERS: { id: "all" | "active" | "completed" | "cancelled"; label: string; status?: OrderStatus[] }[] = [
+const FILTERS: {
+  id: "all" | "payment" | "active" | "completed" | "cancelled";
+  label: string;
+  status?: OrderStatus[];
+  payment?: PaymentStatus[];
+}[] = [
   { id: "all", label: "Barchasi" },
+  { id: "payment", label: "To'lov tekshiruvi", payment: ["checking"] },
   { id: "active", label: "Faol", status: ["new", "in_review", "contacted"] },
   { id: "completed", label: "Tugallangan", status: ["completed"] },
   { id: "cancelled", label: "Bekor qilingan", status: ["cancelled"] },
@@ -34,6 +40,26 @@ const ESCROW_LABEL: Record<OrderEscrow["status"], string> = {
   refunded: "Userga qaytarilgan",
   disputed: "Nizoli",
   frozen: "Muzlatilgan",
+};
+
+const PAYMENT_LABEL: Record<PaymentStatus, string> = {
+  not_required: "Talab qilinmaydi",
+  unpaid: "To'lanmagan",
+  checking: "Tekshirilmoqda",
+  rejected: "Rad etilgan",
+  paid: "Tizim hisobida",
+  released: "Firmaga o'tkazilgan",
+  refunded: "Qaytarilgan",
+};
+
+const PAYMENT_TONE: Record<PaymentStatus, "success" | "warning" | "error" | "neutral" | "info"> = {
+  not_required: "neutral",
+  unpaid: "warning",
+  checking: "info",
+  rejected: "error",
+  paid: "success",
+  released: "success",
+  refunded: "neutral",
 };
 
 export default function BuyurtmalarPage() {
@@ -54,6 +80,7 @@ export default function BuyurtmalarPage() {
   const orders = useMemo(() => {
     const list = data?.results ?? [];
     const conf = FILTERS.find((f) => f.id === filter);
+    if (conf?.payment) return list.filter((o) => conf.payment!.includes(o.payment_status));
     if (!conf?.status) return list;
     return list.filter((o) => conf.status!.includes(o.status));
   }, [data, filter]);
@@ -136,7 +163,7 @@ export default function BuyurtmalarPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-[#263b2a] text-xs uppercase text-on-surface-variant">
-                  {["#", "Mijoz", "Firma", "Sana", "Manzil", "Narx", "Ulush", "Escrow", "Holat"].map((h) => (
+                  {["#", "Mijoz", "Firma", "Sana", "Manzil", "Narx", "Ulush", "To'lov", "Holat"].map((h) => (
                     <th key={h} className="px-5 py-3">{h}</th>
                   ))}
                 </tr>
@@ -182,16 +209,19 @@ export default function BuyurtmalarPage() {
                     <td className="px-5 py-4 font-semibold">{formatMoney(o.quoted_price, o.currency)}</td>
                     <td className="px-5 py-4 text-primary">{formatMoney(o.platform_share)}</td>
                     <td className="px-5 py-4 text-xs">
-                      {o.escrow ? (
-                        <span className="rounded-md bg-primary-container/20 px-2 py-1 text-primary">
-                          {ESCROW_LABEL[o.escrow.status]}
-                        </span>
-                      ) : (
-                        <span className="text-on-surface-variant">—</span>
-                      )}
+                      <StatusPill variant={PAYMENT_TONE[o.payment_status] ?? "neutral"}>
+                        {PAYMENT_LABEL[o.payment_status] ?? o.payment_status}
+                        {o.payment && o.payment_status !== "not_required" ? ` · ${o.payment.provider_label}` : ""}
+                      </StatusPill>
                     </td>
                     <td className="px-5 py-4">
                       <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{ORDER_STATUS_LABEL[o.status]}</StatusPill>
+                      {o.work_stage_label ? (
+                        <p className="mt-1 whitespace-nowrap text-[11px] text-on-surface-variant">
+                          {o.work_stage_label}
+                          {o.eta_minutes && o.work_stage === "on_the_way" ? ` · ~${o.eta_minutes} daq` : ""}
+                        </p>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -210,6 +240,38 @@ export default function BuyurtmalarPage() {
               </StatusPill>
               <span className="text-xs text-on-surface-variant">{formatDateTime(selected.created_at)}</span>
             </div>
+
+            {selected.status !== "cancelled" ? (
+              <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
+                <div className="flex items-center justify-between gap-1">
+                  {WORK_STAGES.map((s, i) => {
+                    const current = WORK_STAGES.findIndex((x) => x.key === selected.work_stage);
+                    const done = current >= i;
+                    const at = selected.status_history?.find((h) => h.stage === s.key)?.created_at;
+                    return (
+                      <div key={s.key} className="flex flex-1 flex-col items-center text-center">
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-full border ${
+                            done ? "border-primary bg-primary/20 text-primary" : "border-[#263b2a] text-on-surface-variant"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">{s.icon}</span>
+                        </span>
+                        <span className={`mt-1 text-[11px] ${done ? "font-semibold" : "text-on-surface-variant"}`}>{s.label}</span>
+                        {at ? <span className="text-[10px] text-on-surface-variant">{formatDateTime(at)}</span> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-xs text-on-surface-variant">
+                  {selected.assigned_worker_name ? `Mas'ul: ${selected.assigned_worker_name} · ` : ""}
+                  {selected.distance_km ? `Masofa: ${Number(selected.distance_km).toFixed(1)} km · ` : ""}
+                  {selected.eta_minutes ? `Yetib borish: ~${selected.eta_minutes} daq` : ""}
+                  {selected.eta_at ? ` (${formatDateTime(selected.eta_at)})` : ""}
+                  {selected.scheduled_date ? ` · Reja: ${formatDate(selected.scheduled_date)} ${selected.time_slot || ""}` : ""}
+                </p>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <p><span className="text-on-surface-variant">Mijoz: </span>{selected.customer_name || "—"}</p>
@@ -232,6 +294,46 @@ export default function BuyurtmalarPage() {
               <p className="sm:col-span-2"><span className="text-on-surface-variant">Manzil: </span>{selected.address || "—"}</p>
               {selected.notes ? <p className="sm:col-span-2"><span className="text-on-surface-variant">Izoh: </span>{selected.notes}</p> : null}
             </div>
+
+            {selected.payment_status !== "not_required" ? (
+              <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold">Mijoz to&apos;lovi</h3>
+                  <StatusPill variant={PAYMENT_TONE[selected.payment_status]} pulse={selected.payment_status === "checking"}>
+                    {PAYMENT_LABEL[selected.payment_status]}
+                  </StatusPill>
+                </div>
+                {selected.payment ? (
+                  <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-on-surface-variant">Usul</p>
+                      <p className="font-semibold">{selected.payment.provider_label}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-variant">Summa</p>
+                      <p className="font-semibold">{formatMoney(selected.payment.amount, selected.payment.currency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-variant">Mijoz &quot;to&apos;ladim&quot; dedi</p>
+                      <p className="font-semibold">
+                        {selected.payment.submitted_at ? formatDateTime(selected.payment.submitted_at) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-variant">Urinish holati</p>
+                      <p className="font-semibold">{selected.payment.status_label}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-on-surface-variant">Mijoz hali to&apos;lov usulini tanlamagan.</p>
+                )}
+                {["unpaid", "checking", "rejected"].includes(selected.payment_status) ? (
+                  <p className="mt-3 text-xs text-on-surface-variant">
+                    Pul Click/Payme hisobiga tushganini tekshiring. Tasdiqlangach buyurtma ishga ruxsat oladi.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-primary/30 bg-primary-container/10 p-4">
               <h3 className="mb-2 text-sm font-bold text-primary">Escrow / hisob-kitob</h3>
@@ -261,6 +363,12 @@ export default function BuyurtmalarPage() {
               ) : (
                 <p className="mb-3 text-sm text-on-surface-variant">Escrow hali ochilmagan.</p>
               )}
+              {selected.status === "completed" && selected.escrow?.status === "held" ? (
+                <p className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                  Firma ishni yakunlandi deb belgiladi. Mijoz bilan tasdiqlang va &quot;Firmaga
+                  o&apos;tkazish&quot; tugmasini bosing — pul shundan keyin firma hisobiga o&apos;tadi.
+                </p>
+              ) : null}
               <Field label="Izoh / sabab">
                 <input className={inputClass} value={financeNote} onChange={(e) => setFinanceNote(e.target.value)} />
               </Field>
@@ -270,8 +378,18 @@ export default function BuyurtmalarPage() {
                   Escrow ochish
                 </SecondaryButton>
                 <PrimaryButton disabled={busy} onClick={() => void financeAction("mark_paid")}>
-                  User to&apos;ladi (E-Makonga)
+                  To&apos;lov hisobga tushdi — tasdiqlash
                 </PrimaryButton>
+                {selected.payment && ["pending", "submitted"].includes(selected.payment.status) ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="rounded-xl border border-error/40 px-3 py-2 text-sm text-error"
+                    onClick={() => void financeAction("reject_payment")}
+                  >
+                    To&apos;lov tushmadi — rad etish
+                  </button>
+                ) : null}
                 <SecondaryButton disabled={busy} onClick={() => void financeAction("release")}>
                   Firmaga o&apos;tkazish
                 </SecondaryButton>
@@ -318,12 +436,16 @@ export default function BuyurtmalarPage() {
                   {selected.status_history.map((h) => (
                     <div key={h.id} className="rounded-xl border border-[#263b2a] bg-[#0e1510] px-3 py-2 text-xs">
                       <p className="font-medium">
-                        {ORDER_STATUS_LABEL[h.from_status as OrderStatus] || h.from_status || "—"}
-                        {" → "}
-                        {ORDER_STATUS_LABEL[h.to_status as OrderStatus] || h.to_status}
+                        {h.stage_label ||
+                          `${ORDER_STATUS_LABEL[h.from_status as OrderStatus] || h.from_status || "—"} → ${
+                            ORDER_STATUS_LABEL[h.to_status as OrderStatus] || h.to_status
+                          }`}
                       </p>
                       {h.note ? <p className="mt-0.5 text-on-surface-variant">{h.note}</p> : null}
-                      <p className="mt-0.5 text-on-surface-variant">{formatDateTime(h.created_at)}</p>
+                      <p className="mt-0.5 text-on-surface-variant">
+                        {formatDateTime(h.created_at)}
+                        {h.changed_by_name ? ` · ${h.changed_by_name}` : ""}
+                      </p>
                     </div>
                   ))}
                 </div>

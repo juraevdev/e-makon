@@ -116,22 +116,16 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _verify([String? code]) async {
     final submit = code ?? _code;
     if (submit.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('6 xonali SMS kodni kiriting'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('6 xonali SMS kodni kiriting'), behavior: SnackBarBehavior.floating));
       return;
     }
     if (_submitting) return;
     setState(() => _submitting = true);
     FocusScope.of(context).unfocus();
     try {
-      await context.read<AuthProvider>().verifyOtp(
-            phoneDigits: widget.phoneDigits,
-            code: submit,
-          );
+      await context.read<AuthProvider>().verifyOtp(phoneDigits: widget.phoneDigits, code: submit);
       if (!mounted) return;
       context.go('/home');
     } catch (_) {
@@ -167,12 +161,9 @@ class _OtpScreenState extends State<OtpScreen> {
       setState(() => _seconds = 59);
       _startTimer();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Yangi SMS kod yuborildi'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Yangi SMS kod yuborildi'), behavior: SnackBarBehavior.floating));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,138 +182,135 @@ class _OtpScreenState extends State<OtpScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
         title: const Text('SMS tasdiqlash'),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                'Tasdiqlash kodi',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(height: 8),
-              Text.rich(
-                TextSpan(
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.85),
-                      ),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const TextSpan(text: 'SMS orqali '),
-                    TextSpan(
-                      text: _prettyPhone,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(height: 8),
+                    Text('Tasdiqlash kodi', style: Theme.of(context).textTheme.headlineLarge),
+                    const SizedBox(height: 8),
+                    Text.rich(
+                      TextSpan(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant.withValues(alpha: 0.85)),
+                        children: [
+                          const TextSpan(text: 'SMS orqali '),
+                          TextSpan(
+                            text: _prettyPhone,
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                          ),
+                          const TextSpan(text: ' raqamiga yuborilgan 6 xonali kodni kiriting'),
+                        ],
                       ),
                     ),
-                    const TextSpan(text: ' raqamiga yuborilgan 6 xonali kodni kiriting'),
+                    if (kDebugMode && _debugCode != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Dev OTP: $_debugCode',
+                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (i) {
+                        final filled = _controllers[i].text.isNotEmpty;
+                        return SizedBox(
+                          width: 48,
+                          height: 64,
+                          child: TextField(
+                            controller: _controllers[i],
+                            focusNode: _focus[i],
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            textInputAction: i == 5 ? TextInputAction.done : TextInputAction.next,
+                            autofillHints: i == 0 ? const [AutofillHints.oneTimeCode] : null,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(6),
+                            ],
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: AppColors.glass,
+                              contentPadding: EdgeInsets.zero,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: filled
+                                      ? AppColors.primary.withValues(alpha: 0.5)
+                                      : AppColors.outlineVariant.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: filled
+                                      ? AppColors.primary.withValues(alpha: 0.55)
+                                      : AppColors.outlineVariant.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
+                              ),
+                            ),
+                            onChanged: (v) => _onBoxChanged(i, v),
+                            onSubmitted: (_) {
+                              if (_code.length == 6) _verify(_code);
+                            },
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: _seconds > 0
+                          ? Text(
+                              'Qayta yuborish · 00:${_seconds.toString().padLeft(2, '0')}',
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                              ),
+                            )
+                          : TextButton(
+                              onPressed: loading ? null : _resend,
+                              child: const Text(
+                                'Kodni qayta yuborish',
+                                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                    ),
+                    const Spacer(),
+                    PrimaryButton(
+                      label: 'Tasdiqlash',
+                      loading: loading,
+                      onPressed: _code.length == 6 && !loading ? () => _verify() : null,
+                      roundedFull: true,
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-              if (kDebugMode && _debugCode != null) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'Dev OTP: $_debugCode',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (i) {
-                  final filled = _controllers[i].text.isNotEmpty;
-                  return SizedBox(
-                    width: 48,
-                    height: 64,
-                    child: TextField(
-                      controller: _controllers[i],
-                      focusNode: _focus[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      textInputAction: i == 5 ? TextInputAction.done : TextInputAction.next,
-                      autofillHints: i == 0 ? const [AutofillHints.oneTimeCode] : null,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(6),
-                      ],
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.glass,
-                        contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: filled
-                                ? AppColors.primary.withValues(alpha: 0.5)
-                                : AppColors.outlineVariant.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: filled
-                                ? AppColors.primary.withValues(alpha: 0.55)
-                                : AppColors.outlineVariant.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
-                        ),
-                      ),
-                      onChanged: (v) => _onBoxChanged(i, v),
-                      onSubmitted: (_) {
-                        if (_code.length == 6) _verify(_code);
-                      },
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: _seconds > 0
-                    ? Text(
-                        'Qayta yuborish · 00:${_seconds.toString().padLeft(2, '0')}',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                            ),
-                      )
-                    : TextButton(
-                        onPressed: loading ? null : _resend,
-                        child: const Text(
-                          'Kodni qayta yuborish',
-                          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-              ),
-              const Spacer(),
-              PrimaryButton(
-                label: 'Tasdiqlash',
-                loading: loading,
-                onPressed: _code.length == 6 && !loading ? () => _verify() : null,
-                roundedFull: true,
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

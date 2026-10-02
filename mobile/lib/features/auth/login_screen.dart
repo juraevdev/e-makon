@@ -58,10 +58,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final debugCode = data['debug_code']?.toString();
       final isDemo = data['demo'] == true;
 
-      context.push('/otp', extra: {
-        'phone': _digits,
-        if (debugCode != null && debugCode.isNotEmpty) 'debug_code': debugCode,
-      });
+      context.push(
+        '/otp',
+        extra: {'phone': _digits, if (debugCode != null && debugCode.isNotEmpty) 'debug_code': debugCode},
+      );
 
       if (isDemo && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,13 +74,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
     } catch (_) {
       if (!mounted) return;
-      context.push('/otp', extra: {
-        'phone': _digits,
-        'debug_code': AuthProvider.demoOtpCode,
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(auth.error ?? 'SMS yuborilmadi. Dev kod: ${AuthProvider.demoOtpCode}'),
+          content: Text(auth.error ?? 'SMS yuborilmadi. Internet va server manzilini tekshiring'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -95,137 +91,147 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         child: SafeArea(
           child: FadeSlideIn(
             animation: _intro,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const Spacer(flex: 2),
-                  const EmakonLogo(size: 108, animate: true),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Xush kelibsiz',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Telefon raqamingizni kiriting — SMS orqali kod yuboramiz',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.onSurfaceVariant.withValues(alpha: 0.9),
-                        ),
-                  ),
-                  const SizedBox(height: 28),
-                  GlassCard(
-                    borderRadius: 20,
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Spacer(flex: 2),
+                        const EmakonLogo(size: 108, animate: true),
+                        const SizedBox(height: 8),
                         Text(
-                          'Telefon raqami',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                          'Xush kelibsiz',
+                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: _controller,
-                          builder: (context, value, _) {
-                            final digits = value.text.replaceAll(RegExp(r'\D'), '');
-                            final valid = digits.length == 9;
-                            return TextField(
-                              controller: _controller,
-                              focusNode: _focus,
-                              keyboardType: TextInputType.phone,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.telephoneNumberNational],
-                              onSubmitted: (_) => _continue(),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(9),
-                                _PhoneMaskFormatter(),
-                              ],
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.6,
+                        const SizedBox(height: 8),
+                        Text(
+                          'Telefon raqamingizni kiriting — SMS orqali kod yuboramiz',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant.withValues(alpha: 0.9)),
+                        ),
+                        const SizedBox(height: 28),
+                        GlassCard(
+                          borderRadius: 20,
+                          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Telefon raqami',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge?.copyWith(color: AppColors.onSurfaceVariant),
                               ),
-                              decoration: InputDecoration(
-                                prefixIcon: const Padding(
-                                  padding: EdgeInsets.only(left: 12, right: 4),
-                                  child: Icon(Icons.smartphone_rounded, color: AppColors.primary),
-                                ),
-                                prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
-                                prefixText: '+998  ',
-                                prefixStyle: const TextStyle(
-                                  color: AppColors.onSurface,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18,
-                                ),
-                                hintText: '90 123 45 67',
-                                hintStyle: TextStyle(
-                                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 18,
-                                ),
-                                counterText: '',
-                                suffixIcon: digits.isEmpty
-                                    ? null
-                                    : IconButton(
-                                        tooltip: 'Tozalash',
-                                        onPressed: () {
-                                          _controller.clear();
-                                          _focus.requestFocus();
-                                        },
-                                        icon: const Icon(Icons.close_rounded, size: 20),
+                              const SizedBox(height: 10),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _controller,
+                                builder: (context, value, _) {
+                                  final digits = value.text.replaceAll(RegExp(r'\D'), '');
+                                  final valid = digits.length == 9;
+                                  return TextField(
+                                    controller: _controller,
+                                    focusNode: _focus,
+                                    keyboardType: TextInputType.phone,
+                                    textInputAction: TextInputAction.done,
+                                    autofillHints: const [AutofillHints.telephoneNumberNational],
+                                    onSubmitted: (_) => _continue(),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(9),
+                                      _PhoneMaskFormatter(),
+                                    ],
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.6,
+                                    ),
+                                    decoration: InputDecoration(
+                                      prefixIcon: const Padding(
+                                        padding: EdgeInsets.only(left: 12, right: 4),
+                                        child: Icon(Icons.smartphone_rounded, color: AppColors.primary),
                                       ),
-                                helperText: valid ? 'SMS kod shu raqamga yuboriladi' : 'O‘zbekiston raqami: 9 ta raqam',
-                                helperStyle: TextStyle(
-                                  color: valid ? AppColors.primary : AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-                                ),
-                                errorText: _localError,
+                                      prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
+                                      prefixText: '+998  ',
+                                      prefixStyle: const TextStyle(
+                                        color: AppColors.onSurface,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 18,
+                                      ),
+                                      hintText: '90 123 45 67',
+                                      hintStyle: TextStyle(
+                                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 18,
+                                      ),
+                                      counterText: '',
+                                      suffixIcon: digits.isEmpty
+                                          ? null
+                                          : IconButton(
+                                              tooltip: 'Tozalash',
+                                              onPressed: () {
+                                                _controller.clear();
+                                                _focus.requestFocus();
+                                              },
+                                              icon: const Icon(Icons.close_rounded, size: 20),
+                                            ),
+                                      helperText: valid
+                                          ? 'SMS kod shu raqamga yuboriladi'
+                                          : 'O‘zbekiston raqami: 9 ta raqam',
+                                      helperStyle: TextStyle(
+                                        color: valid
+                                            ? AppColors.primary
+                                            : AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                                      ),
+                                      errorText: _localError,
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
+                              const SizedBox(height: 16),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _controller,
+                                builder: (context, value, _) {
+                                  final valid = value.text.replaceAll(RegExp(r'\D'), '').length == 9;
+                                  return PrimaryButton(
+                                    label: 'SMS kod olish',
+                                    icon: Icons.sms_outlined,
+                                    loading: loading,
+                                    onPressed: valid && !loading ? _continue : null,
+                                    filled: false,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: _controller,
-                          builder: (context, value, _) {
-                            final valid = value.text.replaceAll(RegExp(r'\D'), '').length == 9;
-                            return PrimaryButton(
-                              label: 'SMS kod olish',
-                              icon: Icons.sms_outlined,
-                              loading: loading,
-                              onPressed: valid && !loading ? _continue : null,
-                              filled: false,
-                            );
-                          },
+                        TextButton(
+                          onPressed: () => context.push('/register'),
+                          child: const Text(
+                            "Hisobingiz yo‘qmi? Ro‘yxatdan o‘ting",
+                            style: TextStyle(color: AppColors.primary),
+                          ),
                         ),
+                        const Spacer(flex: 2),
+                        Text(
+                          '${ApiConfig.brandName} · Foydalanish shartlari',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.outlineVariant),
+                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.push('/register'),
-                    child: const Text(
-                      "Hisobingiz yo‘qmi? Ro‘yxatdan o‘ting",
-                      style: TextStyle(color: AppColors.primary),
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                  Text(
-                    '${ApiConfig.brandName} · Foydalanish shartlari',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.outlineVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                ),
               ),
             ),
           ),

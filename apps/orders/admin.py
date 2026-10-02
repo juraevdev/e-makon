@@ -8,6 +8,7 @@ from apps.orders.models import (
     OrderEscrow,
     OrderIdempotency,
     OrderMedia,
+    OrderPayment,
     OrderStatusHistory,
 )
 
@@ -50,6 +51,13 @@ class OrderEscrowAdmin(admin.ModelAdmin):
     list_display = ("id", "order", "status", "amount", "platform_fee", "firm_payout", "created_at")
     list_filter = ("status",)
     raw_id_fields = ("order",)
+
+
+@admin.register(OrderPayment)
+class OrderPaymentAdmin(admin.ModelAdmin):
+    list_display = ("id", "order", "provider", "status", "amount", "submitted_at", "created_at")
+    list_filter = ("provider", "status")
+    raw_id_fields = ("order", "resolved_by")
 
 
 @admin.register(LedgerEntry)

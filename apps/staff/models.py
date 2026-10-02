@@ -34,9 +34,28 @@ class EmployeeProfile(TimeStampedModel):
         choices=Specialty.choices,
         default=Specialty.GENERAL,
     )
+    class EmploymentStatus(models.TextChoices):
+        ACTIVE = "active", "Ishda"
+        ON_LEAVE = "on_leave", "Ta'tilda"
+        DISMISSED = "dismissed", "Ishdan bo'shagan"
+
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
+    employment_status = models.CharField(
+        max_length=16,
+        choices=EmploymentStatus.choices,
+        default=EmploymentStatus.ACTIVE,
+        db_index=True,
+    )
+    position = models.CharField(max_length=120, blank=True)
+    hired_at = models.DateField(null=True, blank=True)
+    dismissed_at = models.DateField(null=True, blank=True)
+    dismissal_reason = models.TextField(blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    address = models.CharField(max_length=512, blank=True)
+    emergency_phone = models.CharField(max_length=32, blank=True)
+    skills = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["user__full_name", "id"]

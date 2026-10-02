@@ -97,7 +97,7 @@ export default function HamkorlarPage() {
       ) : error ? (
         <p className="text-error">{error}</p>
       ) : !partners.length ? (
-        <EmptyState icon="handshake" title="Hamkorlar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo'shish</PrimaryButton>} />
+        <EmptyState icon="handshake" title="Hamkorlar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo&apos;shish</PrimaryButton>} />
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {partners.map((p) => (

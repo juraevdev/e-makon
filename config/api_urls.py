@@ -6,15 +6,25 @@ from rest_framework.routers import DefaultRouter
 from apps.accounts.admin_customers import AdminCustomerViewSet
 from apps.analytics.views import DashboardView, MapPayloadView, ReportsBundleView
 from apps.care.views import AdminCareContractViewSet, CustomerCareContractViewSet
-from apps.catalog.views import AdminBannerViewSet, AdminServiceViewSet, ServiceViewSet
+from apps.catalog.views import (
+    AdminBannerViewSet,
+    AdminServiceViewSet,
+    PublicFirmViewSet,
+    ServiceViewSet,
+)
 from apps.loyalty.views import LoyaltyRewardViewSet, LoyaltySettingsView, PointTransactionViewSet
+from apps.notifications.views import UserNotificationViewSet
 from apps.orders.views import AdminOrderViewSet, CustomerOrderViewSet
 from apps.organizations.views import FirmViewSet, InvestorViewSet
 from apps.staff.views import AdminUserViewSet, EmployeeViewSet
+from apps.support.chat import AdminChatViewSet, CustomerChatViewSet
 from apps.support.views import AdminSupportTicketViewSet, CustomerSupportTicketViewSet
 
 customer_router = DefaultRouter()
 customer_router.register("services", ServiceViewSet, basename="service")
+customer_router.register("partners", PublicFirmViewSet, basename="partner")
+customer_router.register("chats", CustomerChatViewSet, basename="chat")
+customer_router.register("notifications", UserNotificationViewSet, basename="notification")
 customer_router.register("orders", CustomerOrderViewSet, basename="order")
 customer_router.register("care-contracts", CustomerCareContractViewSet, basename="care-contract")
 customer_router.register("support", CustomerSupportTicketViewSet, basename="support")
@@ -26,6 +36,7 @@ admin_router.register("employees", EmployeeViewSet, basename="admin-employee")
 admin_router.register("admins", AdminUserViewSet, basename="admin-user")
 admin_router.register("care-contracts", AdminCareContractViewSet, basename="admin-care")
 admin_router.register("support", AdminSupportTicketViewSet, basename="admin-support")
+admin_router.register("chats", AdminChatViewSet, basename="admin-chat")
 admin_router.register("firms", FirmViewSet, basename="admin-firm")
 admin_router.register("investors", InvestorViewSet, basename="admin-investor")
 admin_router.register("customers", AdminCustomerViewSet, basename="admin-customer")

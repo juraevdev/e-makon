@@ -36,12 +36,10 @@ Color serviceTint(int index) {
 }
 
 String statusEmoji(String status) => switch (status) {
-      'new' => '🆕',
-      'accepted' => '✅',
-      'on_way' => '🚗',
-      'arrived' => '📍',
-      'in_progress' => '⏳',
-      'done' => '✔️',
+      'new' => '🟢',
+      'in_review' || 'accepted' || 'in_progress' => '🟡',
+      'contacted' || 'on_way' || 'arrived' => '🟢',
+      'completed' || 'done' => '✅',
       'cancelled' => '✕',
       _ => '•',
     };

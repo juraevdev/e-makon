@@ -30,10 +30,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _fade = CurvedAnimation(parent: _intro, curve: Curves.easeOutCubic);
     _slide = Tween(begin: const Offset(0, 0.1), end: Offset.zero).animate(_fade);
     _intro.forward();
-    _boot();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
   }
 
   Future<void> _boot() async {
+    if (!mounted) return;
     setState(() => _progress = 0.28);
     final auth = context.read<AuthProvider>();
     await Future.wait([

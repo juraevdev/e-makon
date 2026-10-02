@@ -117,7 +117,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000", "http://127.0.0.1:3000"],
+    default=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
+    ],
 )
 CORS_ALLOW_CREDENTIALS = True
 
@@ -186,6 +191,18 @@ DEFAULT_ORGANIZATION_NAME = env("DEFAULT_ORGANIZATION_NAME", default="E-Makon")
 SMS_PROVIDER = env("SMS_PROVIDER", default="")
 SMS_API_URL = env("SMS_API_URL", default="")
 SMS_API_TOKEN = env("SMS_API_TOKEN", default="")
+
+# Click / Payme checkout. Merchant ID bo'sh bo'lsa, to'lov havolasi yaratilmaydi.
+PAYME_MERCHANT_ID = env("PAYME_MERCHANT_ID", default="")
+PAYME_CHECKOUT_URL = env("PAYME_CHECKOUT_URL", default="https://checkout.paycom.uz")
+PAYME_ACCOUNT_FIELD = env("PAYME_ACCOUNT_FIELD", default="order_id")
+CLICK_SERVICE_ID = env("CLICK_SERVICE_ID", default="")
+CLICK_MERCHANT_ID = env("CLICK_MERCHANT_ID", default="")
+CLICK_CHECKOUT_URL = env("CLICK_CHECKOUT_URL", default="https://my.click.uz/services/pay")
+PAYMENT_RETURN_URL = env("PAYMENT_RETURN_URL", default="")
+# Click/Payme ulanmaguncha mijoz "sinov to'lovi" bilan buyurtmani firmaga yubora oladi.
+# Productionda haqiqiy to'lov tizimi ulangach False qiling.
+PAYMENTS_TEST_MODE = env.bool("PAYMENTS_TEST_MODE", default=True)
 
 # File uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

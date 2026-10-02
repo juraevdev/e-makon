@@ -10,10 +10,12 @@ import '../features/home/service_detail_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/splash_screen.dart';
+import '../features/orders/area_scanner_screen.dart';
 import '../features/orders/order_detail_screen.dart';
 import '../features/orders/order_flow_screen.dart';
 import '../features/orders/order_success_screen.dart';
 import '../features/orders/orders_screen.dart';
+import '../features/orders/payment_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/main_shell.dart';
 
@@ -59,9 +61,17 @@ GoRouter createRouter() {
       GoRoute(
         path: '/order',
         builder: (context, state) {
-          final service = state.extra as ServiceModel;
-          return OrderFlowScreen(service: service);
+          final extra = state.extra;
+          if (extra is OrderFlowArgs) {
+            return OrderFlowScreen(service: extra.service, initialPartner: extra.partner);
+          }
+          return OrderFlowScreen(service: extra as ServiceModel);
         },
+      ),
+      GoRoute(path: '/area-scan', builder: (context, state) => const AreaScannerScreen()),
+      GoRoute(
+        path: '/order-payment',
+        builder: (context, state) => PaymentScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/order-success',

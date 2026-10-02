@@ -152,6 +152,13 @@ class PartnerFirmSerializer(serializers.ModelSerializer):
             "specialty",
             "specialty_label",
             "description",
+            "work_hours",
+            "website",
+            "telegram_channel",
+            "telegram_group",
+            "instagram",
+            "youtube",
+            "facebook",
             "rating",
             "ratings_count",
             "commission_rate",
@@ -245,6 +252,161 @@ class PartnerFirmSerializer(serializers.ModelSerializer):
         name = validated_data.get("name") or "firm"
         validated_data["slug"] = unique_slug_from_name(name)
         return super().create(validated_data)
+
+
+SOCIAL_FIELDS = (
+    "website",
+    "telegram_channel",
+    "telegram_group",
+    "instagram",
+    "youtube",
+    "facebook",
+)
+
+
+def social_url(field: str, value: str) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith(("http://", "https://")):
+        return raw
+    handle = raw.lstrip("@")
+    if field in {"telegram_channel", "telegram_group"}:
+        return f"https://t.me/{handle}"
+    if field == "instagram":
+        return f"https://instagram.com/{handle}"
+    if field == "youtube":
+        return f"https://youtube.com/@{handle}"
+    if field == "facebook":
+        return f"https://facebook.com/{handle}"
+    return f"https://{raw}"
+
+
+class FirmSelfSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = (
+            "phone",
+            "email",
+            "address",
+            "region",
+            "district",
+            "description",
+            "location_lat",
+            "location_lng",
+            "work_hours",
+            *SOCIAL_FIELDS,
+        )
+
+    def validate(self, attrs):
+        for field in SOCIAL_FIELDS:
+            if field in attrs and field != "website":
+                attrs[field] = (attrs[field] or "").strip()
+        return attrs
+
+
+class PublicFirmSerializer(serializers.ModelSerializer):
+    """Mobil ilovadagi `PartnerModel` bilan mos ochiq firma kartasi."""
+
+    tagline = serializers.SerializerMethodField()
+    activity = serializers.SerializerMethodField()
+    emoji = serializers.SerializerMethodField()
+    lat = serializers.SerializerMethodField()
+    lng = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    telegram = serializers.SerializerMethodField()
+    socials = serializers.SerializerMethodField()
+    services_count = serializers.SerializerMethodField()
+    offer = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Organization
+        fields = (
+            "id",
+            "name",
+            "tagline",
+            "activity",
+            "emoji",
+            "description",
+            "address",
+            "region",
+            "district",
+            "lat",
+            "lng",
+            "rating",
+            "ratings_count",
+            "phone",
+            "work_hours",
+            "website",
+            "instagram",
+            "telegram",
+            "telegram_channel",
+            "telegram_group",
+            "youtube",
+            "facebook",
+            "socials",
+            "services_count",
+            "offer",
+        )
+        read_only_fields = fields
+
+    def get_tagline(self, obj: Organization) -> str:
+        return SPECIALTY_LABELS.get(obj.specialty, obj.specialty)
+
+    def get_activity(self, obj: Organization) -> str:
+        return " · ".join(p for p in (self.get_tagline(obj), obj.region) if p)
+
+    def get_emoji(self, obj: Organization) -> str:
+        return {
+            "landscape": "🏡",
+            "garden_care": "🌳",
+            "ornamental": "🌸",
+            "irrigation": "💧",
+            "pest_control": "🧪",
+        }.get(obj.specialty, "🌿")
+
+    def get_lat(self, obj: Organization) -> float | None:
+        return float(obj.location_lat) if obj.location_lat is not None else None
+
+    def get_lng(self, obj: Organization) -> float | None:
+        return float(obj.location_lng) if obj.location_lng is not None else None
+
+    def get_rating(self, obj: Organization) -> float:
+        return float(obj.rating or 0)
+
+    def get_telegram(self, obj: Organization) -> str:
+        return social_url("telegram_channel", obj.telegram_channel or obj.telegram_group)
+
+    def get_socials(self, obj: Organization) -> list[dict]:
+        labels = {
+            "telegram_channel": "Telegram kanal",
+            "telegram_group": "Telegram guruh",
+            "instagram": "Instagram",
+            "youtube": "YouTube",
+            "facebook": "Facebook",
+            "website": "Veb-sayt",
+        }
+        out = []
+        for field, label in labels.items():
+            url = social_url(field, getattr(obj, field, ""))
+            if url:
+                out.append({"kind": field, "label": label, "url": url})
+        return out
+
+    def get_services_count(self, obj: Organization) -> int:
+        return int(getattr(obj, "services_count_anno", 0) or 0)
+
+    def get_offer(self, obj: Organization) -> dict | None:
+        offers = self.context.get("offers_by_firm") or {}
+        offer = offers.get(obj.pk)
+        if offer is None:
+            return None
+        return {
+            "service_id": offer.pk,
+            "name": offer.name,
+            "price": int(offer.price_from or offer.price_to or 0),
+            "duration": offer.duration,
+        }
 
 
 class InvestorSerializer(serializers.ModelSerializer):

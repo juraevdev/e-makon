@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-from django.db.models import Count, Max
+from datetime import timedelta
+
+from django.db.models import Count, Max, Min, Q, Sum
+from django.utils import timezone
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
 from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
-from apps.core.permissions import IsAdmin
+from apps.core.permissions import IsAdmin, IsSuperAdmin
 from apps.core.phone import normalize_phone
 from apps.core.responses import success_response
 from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.permissions import RequiresAdminCapability
-from apps.organizations.services import get_or_create_default_organization, resolve_organization_for_user
+from apps.organizations.services import (
+    get_or_create_default_organization,
+    organization_id_for_queryset,
+    resolve_organization_for_user,
+)
 
 
 class AdminCustomerCreateSerializer(serializers.Serializer):
@@ -56,15 +63,77 @@ class AdminCustomerViewSet(
     queryset = User.objects.filter(role=User.Role.CUSTOMER).order_by("-date_joined")
     search_fields = ("phone", "full_name", "first_name", "last_name")
     filterset_fields = ("is_active",)
-    ordering_fields = ("date_joined", "full_name")
-    ordering = ("-date_joined",)
+    ordering_fields = (
+        "date_joined",
+        "full_name",
+        "orders_count_anno",
+        "last_order_at_anno",
+        "total_spent_anno",
+    )
+
+    def get_permissions(self):
+        if self.action in {"block", "unblock"}:
+            return [IsAuthenticated(), IsSuperAdmin()]
+        return super().get_permissions()
+
+    def _base_queryset(self):
+        user = self.request.user
+        if user.role == User.Role.SUPERADMIN:
+            return self._annotate(super().get_queryset(), Q())
+        org_id = organization_id_for_queryset(user)
+        if org_id is None:
+            return User.objects.none()
+        firm_orders = Q(orders__organization_id=org_id)
+        ids = User.objects.filter(
+            Q(organization_id=org_id) | firm_orders, role=User.Role.CUSTOMER
+        ).values("id")
+        return self._annotate(User.objects.filter(pk__in=ids), firm_orders)
 
     def get_queryset(self):
-        qs = super().get_queryset().annotate(
-            orders_count_anno=Count("orders"),
-            last_order_at_anno=Max("orders__created_at"),
+        segment = (self.request.query_params.get("segment") or "").strip()
+        return self._apply_segment(self._base_queryset(), segment)
+
+    @staticmethod
+    def _annotate(qs, order_filter: Q):
+        completed = order_filter & Q(orders__status="completed")
+        return qs.annotate(
+            orders_count_anno=Count("orders", filter=order_filter, distinct=True),
+            last_order_at_anno=Max("orders__created_at", filter=order_filter),
+            first_order_at_anno=Min("orders__created_at", filter=order_filter),
+            total_spent_anno=Sum("orders__quoted_price", filter=completed),
         )
+
+    @staticmethod
+    def _apply_segment(qs, segment: str):
+        now = timezone.now()
+        month_ago = now - timedelta(days=30)
+        if segment == "new":
+            qs = qs.filter(
+                Q(first_order_at_anno__gte=month_ago)
+                | Q(first_order_at_anno__isnull=True, date_joined__gte=month_ago)
+            ).order_by("-date_joined")
+        elif segment == "returning":
+            qs = qs.filter(orders_count_anno__gte=2).order_by("-last_order_at_anno")
+        elif segment == "active":
+            qs = qs.filter(orders_count_anno__gte=1).order_by(
+                "-orders_count_anno", "-total_spent_anno", "-last_order_at_anno"
+            )
+        elif segment == "inactive":
+            qs = qs.filter(
+                Q(last_order_at_anno__lt=now - timedelta(days=90)) | Q(orders_count_anno=0)
+            ).order_by("last_order_at_anno")
+        else:
+            qs = qs.order_by("-date_joined")
         return qs
+
+    @action(detail=False, methods=["get"])
+    def segments(self, request):
+        base = self._base_queryset()
+        counts = {
+            key or "all": self._apply_segment(base, key).count()
+            for key in ("", "new", "returning", "active", "inactive")
+        }
+        return success_response(counts)
 
     def get_serializer_class(self):
         if self.action == "create":

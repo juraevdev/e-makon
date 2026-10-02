@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/constants/api_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 
@@ -29,11 +30,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     onboardingDone = prefs.getBool('onboarding_done') ?? false;
+    // Avvalgi versiyalardagi soxta (demo) sessiya bilan buyurtmalar serverga yetmaydi — qayta kirish kerak.
+    if (!ApiConfig.useLocalData && await _api.accessToken == 'demo-access') {
+      await _api.clearTokens();
+    }
     if (await _api.hasToken) {
       try {
         final data = await _api.get('/auth/me/');
         user = UserModel.fromJson(Map<String, dynamic>.from(data as Map));
         demoSession = false;
+      } on ApiException catch (e) {
+        // Tarmoq vaqtincha yo'q — sessiyani saqlab qolamiz; 401 bo'lsa ApiClient tokenlarni tozalaydi.
+        if (e.statusCode == null && await _api.hasToken) {
+          user = await _loadLocalProfile() ??
+              UserModel(id: 0, phone: '', fullName: 'Foydalanuvchi', role: 'customer');
+        } else {
+          await _api.clearTokens();
+          user = null;
+        }
       } catch (_) {
         final token = await _api.accessToken;
         if (token == 'demo-access') {
@@ -115,6 +129,11 @@ class AuthProvider extends ChangeNotifier {
       if (data is Map) return Map<String, dynamic>.from(data);
       return <String, dynamic>{};
     } catch (e) {
+      if (!ApiConfig.useLocalData) {
+        // Demo sessiyada buyurtmalar firmaga bormaydi — xatoni ko'rsatamiz.
+        error = e is ApiException ? e.message : 'Serverga ulanib bo‘lmadi';
+        rethrow;
+      }
       demoSession = true;
       error = null;
       if (kDebugMode) debugPrint('OTP request failed, demo mode: $e');
@@ -235,11 +254,11 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final data = await _api.patch('/auth/me/', body: {
-        if (firstName != null) 'first_name': firstName,
-        if (lastName != null) 'last_name': lastName,
-        if (company != null) 'company': company,
-        if (email != null) 'email': email,
-        if (address != null) 'address': address,
+        'first_name': ?firstName,
+        'last_name': ?lastName,
+        'company': ?company,
+        'email': ?email,
+        'address': ?address,
         'full_name': next.fullName,
       });
       user = UserModel.fromJson(Map<String, dynamic>.from(data as Map));
@@ -274,6 +293,14 @@ class AuthProvider extends ChangeNotifier {
     user = null;
     demoSession = false;
     pendingRegistration = null;
+    notifyListeners();
+  }
+
+  /// ApiClient tokenni yangilay olmadi — foydalanuvchi qayta kirishi kerak.
+  void sessionExpired() {
+    user = null;
+    demoSession = false;
+    error = 'Sessiya muddati tugadi. Iltimos, qayta kiring';
     notifyListeners();
   }
 

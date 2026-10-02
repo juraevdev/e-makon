@@ -50,12 +50,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       phoneDigits: _digits,
     );
 
-    final data = await auth.requestOtp(_digits, purpose: 'register');
+    final Map<String, dynamic> data;
+    try {
+      data = await auth.requestOtp(_digits, purpose: 'register');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'SMS yuborilmadi. Internet va server manzilini tekshiring'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     final debugCode = data['debug_code']?.toString();
     context.push('/otp', extra: {
       'phone': _digits,
-      if (debugCode != null) 'debug_code': debugCode,
+      'debug_code': ?debugCode,
       'from_register': true,
     });
 

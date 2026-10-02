@@ -10,6 +10,8 @@ class UserSerializer(serializers.ModelSerializer):
     formatted_address = serializers.CharField(read_only=True)
     orders_count = serializers.SerializerMethodField()
     last_order_at = serializers.SerializerMethodField()
+    first_order_at = serializers.SerializerMethodField()
+    total_spent = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -40,8 +42,19 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
             "orders_count",
             "last_order_at",
+            "first_order_at",
+            "total_spent",
         )
         read_only_fields = fields
+
+    def get_first_order_at(self, obj: User):
+        value = getattr(obj, "first_order_at_anno", None)
+        return value.isoformat() if value else None
+
+    def get_total_spent(self, obj: User) -> int | None:
+        if hasattr(obj, "total_spent_anno"):
+            return int(obj.total_spent_anno or 0)
+        return None
 
     def get_orders_count(self, obj: User) -> int | None:
         if hasattr(obj, "orders_count_anno"):

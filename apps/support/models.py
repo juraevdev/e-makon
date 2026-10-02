@@ -57,6 +57,63 @@ class SupportTicket(TimeStampedModel):
         return f"Ticket #{self.pk}: {self.subject}"
 
 
+class ChatRoom(TimeStampedModel):
+    """Har bir mijoz va firma uchun alohida suhbat xonasi."""
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="chat_rooms",
+    )
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="chat_rooms",
+    )
+    last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    last_message_preview = models.CharField(max_length=255, blank=True)
+    customer_unread = models.PositiveIntegerField(default=0)
+    firm_unread = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-last_message_at", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "customer"], name="uniq_chat_room_firm_customer"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Chat #{self.pk} firm={self.organization_id} customer={self.customer_id}"
+
+
+class ChatMessage(TimeStampedModel):
+    class SenderRole(models.TextChoices):
+        CUSTOMER = "customer", "Mijoz"
+        FIRM = "firm", "Firma"
+        PLATFORM = "platform", "E-Makon"
+
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="chat_messages",
+    )
+    sender_role = models.CharField(max_length=16, choices=SenderRole.choices)
+    body = models.TextField()
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="chat_messages",
+    )
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+
 class SupportMessage(TimeStampedModel):
     ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(

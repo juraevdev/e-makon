@@ -7,6 +7,18 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
+  /// Edge-to-edge: tizim panellari shaffof. 3 tugmali navigatsiyada Android o'zi
+  /// kontrast fon qo'yadi, gesture navigatsiyada esa fon bo'lmaydi.
+  static const systemOverlay = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarContrastEnforced: true,
+  );
+
   /// Cached — GoogleFonts + ThemeData creation is expensive if rebuilt often.
   static ThemeData? _dark;
 
@@ -88,7 +100,7 @@ class AppTheme {
         backgroundColor: AppColors.background.withValues(alpha: 0.15),
         elevation: 0,
         scrolledUnderElevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: systemOverlay,
         titleTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 20,
           fontWeight: FontWeight.w600,

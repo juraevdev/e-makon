@@ -139,6 +139,19 @@ SERVICES = [
     },
 ]
 
+# slug → (price_from, price_to) so'mda; 0 — bepul, to'lov talab qilinmaydi
+PRICES = {
+    "free-consultation": (0, 0),
+    "landscape-design": (1_500_000, 8_500_000),
+    "tree-care": (250_000, 1_200_000),
+    "lawn-care": (180_000, 650_000),
+    "pine-shaping": (300_000, 2_000_000),
+    "pest-control": (220_000, 900_000),
+    "fertilizing": (150_000, 700_000),
+    "warranty": (0, 0),
+    "irrigation": (2_800_000, 15_000_000),
+}
+
 # Eski slug → yangi slug (mobile id lariga mos)
 SLUG_ALIASES = {
     "free-consult": "free-consultation",
@@ -161,8 +174,11 @@ class Command(BaseCommand):
 
         created = 0
         for item in SERVICES:
+            price_from, price_to = PRICES.get(item["slug"], (0, 0))
             payload = {
                 **item,
+                "price_from": price_from or None,
+                "price_to": price_to or None,
                 "organization": org,
                 "long_description": item.get("long_description", ""),
                 "hero_image_url": item.get("hero_image_url", ""),

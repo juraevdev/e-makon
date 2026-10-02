@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -7,7 +8,9 @@ import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
 import '../../core/widgets/motion.dart';
+import '../../core/widgets/partner_sheet.dart';
 import '../../core/widgets/widgets.dart';
+import '../chat/chat_provider.dart';
 import '../home/catalog_provider.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -19,6 +22,7 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> {
   String _filter = 'all';
+  int _tab = 0;
 
   @override
   void initState() {
@@ -26,6 +30,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final api = context.read<ApiClient>();
       context.read<MessagesProvider>().load(api);
+      context.read<ChatProvider>().loadRooms();
     });
   }
 
@@ -33,6 +38,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
         'offer' => Color.lerp(season.accent, const Color(0xFF64B5F6), 0.45)!,
         'bonus' => Color.lerp(season.accent, const Color(0xFFFFB74D), 0.35)!,
         'subscription' => Color.lerp(season.accentSoft, const Color(0xFFBA68C8), 0.4)!,
+        'order' => Color.lerp(season.accent, const Color(0xFFFFB300), 0.5)!,
+        'chat' => Color.lerp(season.accent, const Color(0xFF29B6F6), 0.5)!,
+        'care' => Color.lerp(season.accent, const Color(0xFFAB47BC), 0.5)!,
         _ => season.accent,
       };
 
@@ -40,6 +48,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
         'offer' => Icons.local_offer_rounded,
         'bonus' => Icons.stars_rounded,
         'subscription' => Icons.workspace_premium_rounded,
+        'order' => Icons.local_shipping_outlined,
+        'chat' => Icons.forum_rounded,
+        'care' => Icons.handshake_outlined,
         _ => Icons.notifications_active_rounded,
       };
 
@@ -47,19 +58,63 @@ class _MessagesScreenState extends State<MessagesScreen> {
         'offer' => 'Taklif',
         'bonus' => 'Bonus',
         'subscription' => 'Obuna',
+        'order' => 'Buyurtma',
+        'chat' => 'Suhbat',
+        'care' => 'Shartnoma',
         _ => 'Tizim',
       };
 
-  void _openMessage(AppMessage m, MessagesProvider provider, SeasonTheme season) {
+  PartnerModel _partnerForRoom(ChatRoomModel room) {
+    return context.read<HomeFeedProvider>().partnerById(room.firmId) ??
+        PartnerModel(
+          id: room.firmId,
+          name: room.firmName,
+          tagline: '',
+          emoji: '🌿',
+          phone: room.firmPhone,
+          fromServer: true,
+        );
+  }
+
+  Future<void> _openRoom(ChatRoomModel room) async {
+    final chat = context.read<ChatProvider>();
+    await context.push('/chat', extra: _partnerForRoom(room));
+    if (mounted) chat.loadRooms();
+  }
+
+  /// Buyurtma yoki suhbat haqidagi bildirishnoma — to'g'ridan-to'g'ri o'sha ekranga.
+  Future<bool> _openLinked(AppMessage m) async {
+    final id = m.entityId;
+    if (id == null) return false;
+    if (m.entityType == 'order') {
+      final order = context.read<OrdersProvider>().orders.where((o) => o.id == id).firstOrNull;
+      if (order == null) return false;
+      context.push('/order-detail', extra: order);
+      return true;
+    }
+    if (m.entityType == 'chat_room') {
+      final chat = context.read<ChatProvider>();
+      if (chat.roomById(id) == null) await chat.loadRooms();
+      final room = chat.roomById(id);
+      if (room == null || !mounted) return false;
+      await _openRoom(room);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _openMessage(AppMessage m, MessagesProvider provider, SeasonTheme season) async {
     provider.markRead(m.id);
+    if (await _openLinked(m) || !mounted) return;
     final color = _typeColor(m.type, season);
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surfaceContainer,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 28 + MediaQuery.paddingOf(ctx).bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,12 +211,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                season.subtitle,
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      color: accent,
-                                      letterSpacing: 0.2,
-                                    ),
+                              Flexible(
+                                child: Text(
+                                  season.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        color: accent,
+                                        letterSpacing: 0.2,
+                                      ),
+                                ),
                               ),
                               const SizedBox(width: 8),
                               SeasonChip(theme: season),
@@ -195,7 +254,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   ],
                 ),
               ),
-              if (provider.unreadCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Row(
+                  children: [
+                    _tabPill(0, 'Bildirishnomalar', provider.unreadCount, accent),
+                    const SizedBox(width: 8),
+                    _tabPill(1, 'Suhbatlar', context.watch<ChatProvider>().unreadTotal, accent),
+                  ],
+                ),
+              ),
+              if (_tab == 0 && provider.unreadCount > 0)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                   child: Container(
@@ -226,24 +295,30 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   ),
                 ),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 42,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _chip('all', 'Barchasi', accent),
-                    _chip('unread', 'Yangi', accent),
-                    _chip('offer', 'Taklif', accent),
-                    _chip('bonus', 'Bonus', accent),
-                    _chip('system', 'Tizim', accent),
-                    _chip('subscription', 'Obuna', accent),
-                  ],
+              if (_tab == 0) ...[
+                SizedBox(
+                  height: 42,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      _chip('all', 'Barchasi', accent),
+                      _chip('unread', 'Yangi', accent),
+                      _chip('order', 'Buyurtma', accent),
+                      _chip('chat', 'Suhbat', accent),
+                      _chip('care', 'Shartnoma', accent),
+                      _chip('offer', 'Taklif', accent),
+                      _chip('bonus', 'Bonus', accent),
+                      _chip('system', 'Tizim', accent),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               Expanded(
-                child: provider.loading
+                child: _tab == 1
+                    ? _rooms(accent)
+                    : provider.loading
                     ? Center(child: CircularProgressIndicator(color: accent))
                     : filtered.isEmpty
                         ? Center(
@@ -261,7 +336,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             color: accent,
                             onRefresh: () => provider.load(context.read<ApiClient>()),
                             child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                              padding: EdgeInsets.fromLTRB(20, 4, 20, MediaQuery.paddingOf(context).bottom + 16),
                               itemCount: filtered.length,
                               separatorBuilder: (_, _) => const SizedBox(height: 10),
                               itemBuilder: (_, i) {
@@ -382,6 +457,146 @@ class _MessagesScreenState extends State<MessagesScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _tabPill(int index, String label, int badge, Color accent) {
+    final active = _tab == index;
+    return Expanded(
+      child: PressableScale(
+        onTap: () => setState(() => _tab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: active ? accent.withValues(alpha: 0.24) : AppColors.surfaceContainerHigh.withValues(alpha: 0.4),
+            border: Border.all(color: active ? accent.withValues(alpha: 0.55) : AppColors.glassBorder),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: active ? accent : AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (badge > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(99)),
+                  child: Text(
+                    '$badge',
+                    style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _rooms(Color accent) {
+    final chat = context.watch<ChatProvider>();
+    if (chat.roomsLoading && !chat.roomsLoaded) {
+      return Center(child: CircularProgressIndicator(color: accent));
+    }
+    if (chat.rooms.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.forum_outlined, size: 52, color: accent.withValues(alpha: 0.45)),
+              const SizedBox(height: 12),
+              Text('Suhbatlar hali yo‘q', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              const Text(
+                'Firma sahifasida “Yozishma” tugmasini bosing — har bir firma bilan alohida suhbat ochiladi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      color: accent,
+      onRefresh: chat.loadRooms,
+      child: ListView.separated(
+        padding: EdgeInsets.fromLTRB(20, 4, 20, MediaQuery.paddingOf(context).bottom + 16),
+        itemCount: chat.rooms.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (_, i) {
+          final r = chat.rooms[i];
+          final partner = _partnerForRoom(r);
+          return PressableScale(
+            onTap: () => _openRoom(r),
+            child: GlassCard(
+              child: Row(
+                children: [
+                  PartnerLogo(partner: partner, size: 48),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.firmName,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: r.unread > 0 ? FontWeight.w800 : FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          r.lastMessagePreview.isEmpty ? 'Suhbat ochildi' : r.lastMessagePreview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (r.lastMessageAt != null)
+                        Text(
+                          DateUtils.isSameDay(r.lastMessageAt, DateTime.now())
+                              ? DateFormat('HH:mm').format(r.lastMessageAt!)
+                              : DateFormat('d MMM').format(r.lastMessageAt!),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 11),
+                        ),
+                      if (r.unread > 0) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(99)),
+                          child: Text(
+                            '${r.unread}',
+                            style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

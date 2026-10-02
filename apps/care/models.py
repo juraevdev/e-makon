@@ -8,17 +8,37 @@ from apps.orders.models import Order
 
 
 class CareContract(TimeStampedModel):
-    """1 yillik kafolatli parvarish — mygarden `CareContract`."""
+    """Uzoq muddatli parvarish shartnomasi: uy xo'jaligi yoki tashkilot bilan, E-Makon vositachiligida."""
 
     class Status(models.TextChoices):
+        DRAFT = "draft", "Qoralama"
+        PENDING = "pending", "Tizim tasdig'ida"
         ACTIVE = "active", "Faol"
+        PAUSED = "paused", "To'xtatilgan"
         COMPLETED = "completed", "Tugagan"
         CANCELLED = "cancelled", "Bekor"
+        REJECTED = "rejected", "Rad etilgan"
+
+    class ClientType(models.TextChoices):
+        HOUSEHOLD = "household", "Uy xo'jaligi"
+        ORGANIZATION = "organization", "Tashkilot / markaz"
+
+    class Frequency(models.TextChoices):
+        WEEKLY = "weekly", "Haftalik"
+        BIWEEKLY = "biweekly", "2 haftada bir"
+        MONTHLY = "monthly", "Oylik"
+
+    class PaymentTerms(models.TextChoices):
+        MONTHLY = "monthly", "Har oy"
+        QUARTERLY = "quarterly", "Har chorak"
+        UPFRONT = "upfront", "Oldindan to'liq"
 
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="care_contracts",
+        null=True,
+        blank=True,
     )
     organization = models.ForeignKey(
         "organizations.Organization",
@@ -29,15 +49,62 @@ class CareContract(TimeStampedModel):
     )
     order = models.OneToOneField(
         Order,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="care_contract",
+        null=True,
+        blank=True,
     )
-    preferred_weekdays = models.JSONField(default=list, blank=True)
-    area_size = models.CharField(max_length=255, blank=True)
+    service = models.ForeignKey(
+        "catalog.Service",
+        on_delete=models.SET_NULL,
+        related_name="care_contracts",
+        null=True,
+        blank=True,
+    )
+    title = models.CharField(max_length=255, blank=True)
+    client_type = models.CharField(
+        max_length=16, choices=ClientType.choices, default=ClientType.HOUSEHOLD
+    )
+    client_name = models.CharField(max_length=255, blank=True)
+    contact_person = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=32, blank=True)
+    address = models.CharField(max_length=512, blank=True)
+    location_lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    location_lng = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    area_size = models.CharField(max_length=255, blank=True)
+
+    frequency = models.CharField(max_length=16, choices=Frequency.choices, default=Frequency.WEEKLY)
+    preferred_weekdays = models.JSONField(default=list, blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    price_per_visit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    currency = models.CharField(max_length=8, default="UZS")
+    payment_terms = models.CharField(
+        max_length=16, choices=PaymentTerms.choices, default=PaymentTerms.MONTHLY
+    )
+    terms = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True
+    )
+    platform_note = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="care_contracts_approved",
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="care_contracts_created",
+        null=True,
+        blank=True,
+    )
     assigned_workers = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="care_contracts_assigned",
@@ -86,3 +153,21 @@ class CareVisit(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"CareVisit #{self.pk} on {self.visit_date}"
+
+
+class CareContractEvent(TimeStampedModel):
+    """Firma va tizim ma'muriyati o'rtasidagi shartnoma bo'yicha yozishma/harakatlar tarixi."""
+
+    contract = models.ForeignKey(CareContract, on_delete=models.CASCADE, related_name="events")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="care_contract_events",
+    )
+    action = models.CharField(max_length=32)
+    note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
