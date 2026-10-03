@@ -9,17 +9,27 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.catalog.models import Banner, Service
-from apps.catalog.serializers import AdminServiceSerializer, BannerSerializer, ServiceSerializer
+from apps.catalog.serializers import (
+    AdminServiceSerializer,
+    BannerSerializer,
+    PublicBannerSerializer,
+    ServiceSerializer,
+)
 from apps.catalog.services import attach_to_catalog_type, is_catalog_type, platform_owned_q
 from apps.core.exceptions import AppError
-from apps.core.permissions import IsAdmin, IsSuperAdmin
+from apps.core.permissions import IsAdmin, IsCustomer, IsSuperAdmin
 from apps.core.responses import success_response
 from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.models import Organization
 from apps.organizations.permissions import RequiresAdminCapability
-from apps.organizations.serializers import PublicFirmSerializer
+from apps.organizations.serializers import (
+    FirmReviewCreateSerializer,
+    PublicFirmReviewSerializer,
+    PublicFirmSerializer,
+)
 from apps.organizations.services import (
     DEFAULT_ORG_SLUG,
+    ReviewService,
     get_or_create_default_organization,
     resolve_organization_for_user,
 )
@@ -195,6 +205,39 @@ class PublicFirmViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             }
         return ctx
 
+    @action(detail=True, methods=["get", "post"])
+    def reviews(self, request, pk=None):
+        firm = (
+            Organization.objects.filter(pk=pk, status=Organization.Status.ACTIVE)
+            .exclude(slug=DEFAULT_ORG_SLUG)
+            .first()
+        )
+        if firm is None:
+            raise AppError("Firma topilmadi.", status_code=404)
+
+        if request.method == "POST":
+            if not IsCustomer().has_permission(request, self):
+                raise AppError("Sharh qoldirish uchun ilovaga mijoz sifatida kiring.", status_code=403)
+            payload = FirmReviewCreateSerializer(data=request.data)
+            payload.is_valid(raise_exception=True)
+            review = ReviewService.submit(
+                firm,
+                request.user,
+                score=payload.validated_data["score"],
+                comment=payload.validated_data.get("comment", ""),
+                order_id=payload.validated_data.get("order"),
+            )
+            return success_response(
+                PublicFirmReviewSerializer(review, context={"request": request}).data,
+                message="Sharh qabul qilindi",
+                status=201,
+            )
+
+        qs = firm.reviews.select_related("customer").order_by("-created_at")
+        page = self.paginate_queryset(qs)
+        data = PublicFirmReviewSerializer(page, many=True, context={"request": request}).data
+        return self.get_paginated_response(data)
+
 
 class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
     queryset = Service.objects.select_related("organization", "base_service").all()
@@ -336,6 +379,25 @@ class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         return self._moderate(request, Service.Moderation.REJECTED)
+
+
+class PublicBannerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """Ilovadagi karusel: faol yoki boshlanish vaqti kelgan, muddati o'tmagan bannerlar."""
+
+    serializer_class = PublicBannerSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filterset_fields = ("placement",)
+
+    def get_queryset(self):
+        now = timezone.now()
+        return (
+            Banner.objects.select_related("link_service")
+            .filter(status__in=[Banner.Status.ACTIVE, Banner.Status.SCHEDULED])
+            .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
+            .filter(Q(ends_at__isnull=True) | Q(ends_at__gt=now))
+            .order_by("sort_order", "-created_at")
+        )
 
 
 class AdminBannerViewSet(viewsets.ModelViewSet):

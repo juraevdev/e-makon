@@ -9,10 +9,16 @@ from apps.care.views import AdminCareContractViewSet, CustomerCareContractViewSe
 from apps.catalog.views import (
     AdminBannerViewSet,
     AdminServiceViewSet,
+    PublicBannerViewSet,
     PublicFirmViewSet,
     ServiceViewSet,
 )
-from apps.loyalty.views import LoyaltyRewardViewSet, LoyaltySettingsView, PointTransactionViewSet
+from apps.loyalty.views import (
+    CustomerLoyaltyViewSet,
+    LoyaltyRewardViewSet,
+    LoyaltySettingsView,
+    PointTransactionViewSet,
+)
 from apps.notifications.views import UserNotificationViewSet
 from apps.orders.views import AdminOrderViewSet, CustomerOrderViewSet
 from apps.organizations.views import FirmViewSet, InvestorViewSet
@@ -23,6 +29,8 @@ from apps.support.views import AdminSupportTicketViewSet, CustomerSupportTicketV
 customer_router = DefaultRouter()
 customer_router.register("services", ServiceViewSet, basename="service")
 customer_router.register("partners", PublicFirmViewSet, basename="partner")
+customer_router.register("banners", PublicBannerViewSet, basename="banner")
+customer_router.register("loyalty", CustomerLoyaltyViewSet, basename="loyalty")
 customer_router.register("chats", CustomerChatViewSet, basename="chat")
 customer_router.register("notifications", UserNotificationViewSet, basename="notification")
 customer_router.register("orders", CustomerOrderViewSet, basename="order")

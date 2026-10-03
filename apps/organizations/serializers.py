@@ -45,6 +45,33 @@ class FirmReviewSerializer(serializers.ModelSerializer):
         return obj.customer.display_name if obj.customer_id else ""
 
 
+class PublicFirmReviewSerializer(serializers.ModelSerializer):
+    """Ilovada ko'rinadigan sharh: mijoz telefoni oshkor qilinmaydi."""
+
+    firm_id = serializers.IntegerField(read_only=True)
+    author = serializers.SerializerMethodField()
+    mine = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FirmReview
+        fields = ("id", "firm_id", "order", "author", "score", "comment", "mine", "created_at")
+        read_only_fields = fields
+
+    def get_author(self, obj: FirmReview) -> str:
+        name = obj.customer.display_name if obj.customer_id else ""
+        return name or "Mijoz"
+
+    def get_mine(self, obj: FirmReview) -> bool:
+        request = self.context.get("request")
+        return bool(request and request.user.is_authenticated and obj.customer_id == request.user.pk)
+
+
+class FirmReviewCreateSerializer(serializers.Serializer):
+    score = serializers.IntegerField(min_value=1, max_value=5)
+    comment = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+    order = serializers.IntegerField(required=False, allow_null=True)
+
+
 class FirmMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.SerializerMethodField()
 

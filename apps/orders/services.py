@@ -275,6 +275,11 @@ class OrderService:
                     order, note="Buyurtma bekor qilindi — pul mijozga qaytariladi", actor=actor
                 )
 
+        if to_status == Order.Status.COMPLETED:
+            from apps.loyalty.services import LoyaltyService
+
+            LoyaltyService.award_for_order(order)
+
         from apps.notifications.services import NotificationService
 
         event_type = (

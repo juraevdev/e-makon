@@ -4,7 +4,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Sum
+from django.db import transaction
+from django.db.models import Avg, Count, Sum
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -14,6 +15,7 @@ from apps.organizations.models import (
     FirmFine,
     FirmMessage,
     FirmModerationLog,
+    FirmReview,
     Investor,
     Organization,
 )
@@ -242,6 +244,44 @@ class FirmService:
         firm.save(update_fields=["sales_banned_until", "updated_at"])
         FirmService.log(firm, "lift_sales_ban", actor=actor)
         return firm
+
+
+class ReviewService:
+    """Faqat firmada bajarilgan buyurtmasi bor mijoz sharh qoldiradi — har buyurtmaga bitta."""
+
+    @staticmethod
+    def recalc_rating(firm: Organization) -> None:
+        stats = firm.reviews.aggregate(avg=Avg("score"), count=Count("id"))
+        firm.rating = Decimal(str(round(stats["avg"] or 0, 2)))
+        firm.ratings_count = stats["count"] or 0
+        firm.save(update_fields=["rating", "ratings_count", "updated_at"])
+
+    @classmethod
+    @transaction.atomic
+    def submit(
+        cls, firm: Organization, customer: User, *, score: int, comment: str = "", order_id=None
+    ) -> FirmReview:
+        from apps.orders.models import Order
+
+        completed = Order.objects.filter(
+            customer=customer, organization=firm, status=Order.Status.COMPLETED
+        ).exclude(firm_reviews__customer=customer)
+        if order_id:
+            order = completed.filter(pk=order_id).first()
+            if order is None:
+                raise AppError("Bu buyurtma uchun sharh qoldirib bo'lmaydi.")
+        else:
+            order = completed.order_by("-updated_at").first()
+            if order is None:
+                raise AppError(
+                    "Sharh qoldirish uchun ushbu firmada bajarilgan buyurtmangiz bo'lishi kerak.",
+                    code="review_not_allowed",
+                )
+        review = FirmReview.objects.create(
+            firm=firm, order=order, customer=customer, score=score, comment=(comment or "").strip()
+        )
+        cls.recalc_rating(firm)
+        return review
 
 
 class InvestorService:

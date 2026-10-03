@@ -29,7 +29,7 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
 class PointTransactionSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     user_phone = serializers.CharField(source="user.phone", read_only=True)
-    order_id = serializers.IntegerField(source="order_id", read_only=True, allow_null=True)
+    order_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
         model = PointTransaction
@@ -49,3 +49,12 @@ class PointTransactionSerializer(serializers.ModelSerializer):
 
     def get_user_name(self, obj: PointTransaction) -> str:
         return obj.user.display_name if obj.user_id else ""
+
+
+class CustomerPointTransactionSerializer(serializers.ModelSerializer):
+    kind_label = serializers.CharField(source="get_kind_display", read_only=True)
+
+    class Meta:
+        model = PointTransaction
+        fields = ("id", "kind", "kind_label", "points", "order", "note", "created_at")
+        read_only_fields = fields

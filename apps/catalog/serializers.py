@@ -252,3 +252,47 @@ class BannerSerializer(serializers.ModelSerializer):
         if obj.link_service_id:
             return obj.link_service.name
         return None
+
+
+class PublicBannerSerializer(serializers.ModelSerializer):
+    """Ilova bosh sahifasidagi karusel (`CarouselItem`) formati."""
+
+    subtitle = serializers.CharField(source="description", read_only=True)
+    image = serializers.SerializerMethodField()
+    service_id = serializers.IntegerField(source="link_service_id", read_only=True)
+    service_slug = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    icon = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Banner
+        fields = (
+            "id",
+            "title",
+            "subtitle",
+            "image",
+            "placement",
+            "service_id",
+            "service_slug",
+            "category",
+            "icon",
+        )
+        read_only_fields = fields
+
+    def get_image(self, obj: Banner) -> str:
+        src = obj.image_src
+        request = self.context.get("request")
+        if obj.image and request and src and src.startswith("/"):
+            return request.build_absolute_uri(src)
+        return src
+
+    def get_service_slug(self, obj: Banner) -> str | None:
+        return obj.link_service.slug if obj.link_service_id else None
+
+    def get_category(self, obj: Banner) -> str:
+        return obj.link_service.category if obj.link_service_id else ""
+
+    def get_icon(self, obj: Banner) -> str:
+        if obj.link_service_id and obj.link_service.icon:
+            return obj.link_service.icon
+        return "eco"
