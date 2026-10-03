@@ -4,10 +4,13 @@ from django.db.models import Count, Max, Min, Q
 from django.utils import timezone
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
 from apps.catalog.models import Banner, Service
 from apps.catalog.serializers import AdminServiceSerializer, BannerSerializer, ServiceSerializer
+from apps.catalog.services import attach_to_catalog_type, is_catalog_type, platform_owned_q
 from apps.core.exceptions import AppError
 from apps.core.permissions import IsAdmin, IsSuperAdmin
 from apps.core.responses import success_response
@@ -15,7 +18,11 @@ from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.models import Organization
 from apps.organizations.permissions import RequiresAdminCapability
 from apps.organizations.serializers import PublicFirmSerializer
-from apps.organizations.services import get_or_create_default_organization, resolve_organization_for_user
+from apps.organizations.services import (
+    DEFAULT_ORG_SLUG,
+    get_or_create_default_organization,
+    resolve_organization_for_user,
+)
 
 OFFER_FIELDS_TRIGGERING_REVIEW = (
     "name",
@@ -36,16 +43,42 @@ def published_services():
 
 
 def offers_for_root(root: Service):
+    """Xizmat turini ko'rsatadigan firmalar takliflari (platformaning o'zi firma sifatida chiqmaydi)."""
     offers = list(
         published_services()
         .filter(base_service=root)
+        .exclude(platform_owned_q())
         .select_related("organization")
         .order_by("price_from", "id")
     )
-    if root.organization_id and (root.price_from or root.price_to):
+    if not is_catalog_type(root) and (root.price_from or root.price_to):
         offers.insert(0, root)
     offers.sort(key=lambda s: int(s.price_from or s.price_to or 0))
     return offers
+
+
+def firm_prices_by_root(roots) -> dict[int, list[dict]]:
+    """Katalog ro'yxati uchun: har bir turda qaysi firma qancha narx qo'ygani (arzonidan)."""
+    ids = [r.pk for r in roots]
+    rows: dict[int, list[dict]] = {pk: [] for pk in ids}
+    offers = (
+        published_services()
+        .filter(base_service_id__in=ids)
+        .exclude(platform_owned_q())
+        .select_related("organization")
+        .order_by("price_from", "id")
+    )
+    for offer in offers:
+        rows[offer.base_service_id].append(
+            {
+                "firm_id": offer.organization_id,
+                "firm_name": offer.organization.name,
+                "rating": float(offer.organization.rating or 0),
+                "service_id": offer.pk,
+                "price": int(offer.price_from or offer.price_to or 0),
+            }
+        )
+    return rows
 
 
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -65,7 +98,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
             offers__organization__status=Organization.Status.ACTIVE,
         )
         return (
-            qs.filter(base_service__isnull=True)
+            qs.filter(platform_owned_q(), base_service__isnull=True)
             .annotate(
                 offers_count_anno=Count("offers", filter=published_offer, distinct=True),
                 offers_min_anno=Min("offers__price_from", filter=published_offer),
@@ -73,6 +106,18 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
             )
             .order_by("sort_order", "id")
         )
+
+    def list(self, request, *args, **kwargs):
+        qs = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(qs)
+        items = list(page if page is not None else qs)
+        context = {**self.get_serializer_context(), "firm_prices": firm_prices_by_root(items)}
+        data = self.get_serializer(items, many=True, context=context).data
+        return self.get_paginated_response(data) if page is not None else Response(data)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs.setdefault("context", self.get_serializer_context())
+        return self.get_serializer_class()(*args, **kwargs)
 
     def get_object(self):
         qs = self.filter_queryset(self.get_queryset())
@@ -121,7 +166,9 @@ class PublicFirmViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             raise AppError("Xizmat topilmadi.", status_code=404) from None
 
     def get_queryset(self):
-        qs = Organization.objects.filter(status=Organization.Status.ACTIVE).annotate(
+        qs = Organization.objects.filter(status=Organization.Status.ACTIVE).exclude(
+            slug=DEFAULT_ORG_SLUG
+        ).annotate(
             services_count_anno=Count(
                 "services",
                 filter=Q(
@@ -152,6 +199,7 @@ class PublicFirmViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
 class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
     queryset = Service.objects.select_related("organization", "base_service").all()
     serializer_class = AdminServiceSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
     required_capability = "can_manage_orders"
     search_fields = ("name", "slug", "organization__name")
@@ -194,23 +242,57 @@ class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
                 moderated_by=self.request.user,
             )
         else:
-            serializer.save(organization=org, moderation_status=Service.Moderation.PENDING)
+            service = serializer.save(organization=org, moderation_status=Service.Moderation.PENDING)
+            self._notify_superadmins(service, created=True)
 
     def perform_update(self, serializer):
         if self._is_super():
             serializer.save()
             return
         needs_review = any(f in serializer.validated_data for f in OFFER_FIELDS_TRIGGERING_REVIEW)
+        needs_review = needs_review or "cover_image" in serializer.validated_data
         if needs_review:
-            serializer.save(moderation_status=Service.Moderation.PENDING, moderation_note="")
+            service = serializer.save(moderation_status=Service.Moderation.PENDING, moderation_note="")
+            self._notify_superadmins(service, created=False)
         else:
             serializer.save()
+
+    @staticmethod
+    def _notify_superadmins(service: Service, *, created: bool):
+        from apps.accounts.models import User
+        from apps.notifications.services import notify_user
+
+        firm = service.organization.name if service.organization_id else "Firma"
+        if service.base_service_id:
+            what = f"\"{service.base_service.name}\" turiga taklif"
+        else:
+            what = "yangi xizmat turi"
+        title = f"{firm}: {what} — {service.name}" if created else f"{firm} xizmatini o'zgartirdi — {service.name}"
+        price = int(service.price_from or 0)
+        for admin in User.objects.filter(role=User.Role.SUPERADMIN, is_active=True):
+            notify_user(
+                admin,
+                title=title,
+                body=f"Narx: {price:,} so'm. Tasdiqlash uchun Xizmatlar → Tekshiruv navbati.".replace(",", " "),
+                entity_type="service",
+                entity_id=service.pk,
+            )
 
     def _moderate(self, request, status: str):
         service = self.get_object()
         note = (request.data.get("note") or "").strip()
         if status == Service.Moderation.REJECTED and not note:
             raise AppError("Rad etish sababini yozing.")
+        if status == Service.Moderation.APPROVED:
+            base = None
+            raw_base = request.data.get("base_service")
+            if raw_base:
+                try:
+                    base = Service.objects.select_related("organization").get(pk=int(raw_base))
+                except (TypeError, ValueError, Service.DoesNotExist):
+                    raise AppError("Katalog turi topilmadi.") from None
+            attach_to_catalog_type(service, base=base, actor=request.user)
+            service.refresh_from_db()
         service.moderation_status = status
         service.moderation_note = note
         service.moderated_at = timezone.now()
@@ -238,7 +320,12 @@ class AdminServiceViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
                     else f"Xizmat rad etildi: {service.name}"
                 ),
                 body=note
-                or "Xizmatingiz tekshiruvdan o'tdi va ilovada mijozlarga ko'rinadi.",
+                or (
+                    f"Xizmatingiz tekshiruvdan o'tdi va ilovada \"{service.base_service.name}\" "
+                    "bo'limida boshqa firmalar qatorida mijozlarga ko'rinadi."
+                    if service.base_service_id
+                    else "Xizmatingiz tekshiruvdan o'tdi va ilovada mijozlarga ko'rinadi."
+                ),
             )
         return success_response(self.get_serializer(service).data)
 

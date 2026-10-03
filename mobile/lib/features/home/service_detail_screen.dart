@@ -32,7 +32,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load(refresh: true));
   }
 
   Future<void> _load({bool refresh = false}) async {
@@ -303,44 +303,86 @@ class _OfferTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firm = offer.firm!;
+    final meta = [
+      if (firm.rating > 0) '★ ${firm.rating.toStringAsFixed(1)}',
+      if (distanceKm >= 0) '${distanceKm.toStringAsFixed(1)} km',
+      if (offer.duration.isNotEmpty) offer.duration.replaceFirst('O‘rtacha vaqt: ', '').replaceFirst("O'rtacha vaqt: ", ''),
+    ].join(' · ');
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         onTap: onInfo,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PartnerLogo(partner: firm, size: 46),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(firm.name, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      '★ ${firm.rating.toStringAsFixed(1)}',
-                      if (distanceKm >= 0) '${distanceKm.toStringAsFixed(1)} km',
-                      if (offer.duration.isNotEmpty) offer.duration,
-                    ].join(' · '),
-                    style: Theme.of(context).textTheme.labelSmall,
+            Row(
+              children: [
+                PartnerLogo(partner: firm, size: 46),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firm.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${ServiceModel.formatMoney(offer.price)} so‘m',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      ServiceModel.formatMoney(offer.price),
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
+                    Text('so‘m', style: Theme.of(context).textTheme.labelSmall),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: onSelect,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+            if (offer.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                offer.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, height: 1.35),
               ),
-              child: const Text('Tanlash'),
+            ],
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onInfo,
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    label: const Text('Batafsil'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: onSelect,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.onPrimary,
+                      minimumSize: const Size(0, 40),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    child: const Text('Tanlash'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

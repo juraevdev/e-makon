@@ -105,6 +105,62 @@ class ServiceOfferTests(PortalTestBase):
         self.assertEqual(prices["Gulzor"], 300000)
         self.assertEqual(prices["Yashil Bog'"], 250000)
 
+    def _propose(self, client, name: str, slug: str, price: int):
+        resp = client.post(
+            "/api/v1/admin/services/",
+            {"name": name, "slug": slug, "price": price, "short_description": "Mevali daraxtlar"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201, resp.content)
+        return Service.objects.get(pk=resp.json()["data"]["id"] if "data" in resp.json() else resp.json()["id"])
+
+    def test_new_type_proposals_from_many_firms_become_one_catalog_service(self):
+        first = self._propose(self.api_firm, "Daraxt butash", "butash-a", 200000)
+        second = self._propose(self.api_rival, "daraxt  BUTASH", "butash-b", 180000)
+        self.assertIsNone(first.base_service_id)
+        self.assertTrue(
+            UserNotification.objects.filter(user=self.superadmin, entity_type="service", entity_id=first.pk).exists()
+        )
+        catalog = self.client.get("/api/v1/services/").json()["results"]
+        self.assertNotIn("Daraxt butash", [r["name"] for r in catalog])
+
+        self.assertEqual(self.api_super.post(f"/api/v1/admin/services/{first.pk}/approve/").status_code, 200)
+        self.assertEqual(self.api_super.post(f"/api/v1/admin/services/{second.pk}/approve/").status_code, 200)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertIsNotNone(first.base_service_id)
+        self.assertEqual(first.base_service_id, second.base_service_id)
+        root = first.base_service
+        self.assertEqual(root.organization_id, self.platform.pk)
+
+        catalog = self.client.get("/api/v1/services/").json()["results"]
+        rows = [r for r in catalog if r["name"] == "Daraxt butash"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["offers_count"], 2)
+        self.assertEqual((rows[0]["price_min"], rows[0]["price_max"]), (180000, 200000))
+
+        offers = self.client.get(f"/api/v1/services/{root.slug}/offers/").json()["data"]
+        self.assertEqual({o["firm"]["name"] for o in offers}, {"Yashil Bog'", "Gulzor"})
+
+        third_firm = Organization.objects.create(name="Bog'bon", slug="bogbon")
+        third = self._propose(_auth_client(self._admin("+998901000109", third_firm)), "Daraxt butash", "butash-c", 210000)
+        self.assertEqual(third.base_service_id, root.pk)
+        self.assertEqual(third.moderation_status, Service.Moderation.PENDING)
+
+    def test_superadmin_can_merge_proposal_into_existing_type(self):
+        proposal = self._propose(self.api_rival, "Maysa o'rish", "maysa", 150000)
+        resp = self.api_super.post(
+            f"/api/v1/admin/services/{proposal.pk}/approve/",
+            {"base_service": self.root.pk},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.base_service_id, self.root.pk)
+        offers = self.client.get(f"/api/v1/services/{self.root.slug}/offers/").json()["data"]
+        self.assertIn("Gulzor", {o["firm"]["name"] for o in offers if o["firm"]})
+
     def test_price_change_sends_offer_back_to_review(self):
         resp = self.api_firm.patch(
             f"/api/v1/admin/services/{self.offer.pk}/", {"price": 270000}, format="json"
@@ -118,8 +174,14 @@ class ServiceOfferTests(PortalTestBase):
         rows = self.client.get("/api/v1/services/").json()["results"]
         row = next(r for r in rows if r["id"] == self.root.pk)
         self.assertEqual(row["offers_count"], 1)
-        self.assertEqual(row["price_min"], 180000)
+        self.assertEqual((row["price_min"], row["price_max"]), (250000, 250000))
+        self.assertEqual(
+            [(f["firm_name"], f["price"]) for f in row["firms"]], [("Yashil Bog'", 250000)]
+        )
         self.assertNotIn(self.offer.pk, [r["id"] for r in rows])
+
+        offers = self.client.get(f"/api/v1/services/{self.root.slug}/offers/").json()["data"]
+        self.assertEqual([o["firm"]["name"] for o in offers], ["Yashil Bog'"])
 
     def test_partners_filtered_by_service_show_firm_price_and_socials(self):
         rows = self.client.get(f"/api/v1/partners/?service={self.root.pk}").json()["results"]

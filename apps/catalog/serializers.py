@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.catalog.models import Banner, Service
+from apps.catalog.services import find_catalog_type, is_catalog_type, is_type_proposal
 
 
 class ServiceFeatureSerializer(serializers.Serializer):
@@ -23,6 +24,10 @@ class ServiceSerializer(serializers.ModelSerializer):
     moderation_label = serializers.CharField(
         source="get_moderation_status_display", read_only=True
     )
+    image = serializers.SerializerMethodField()
+    firms = serializers.SerializerMethodField()
+    is_catalog_type = serializers.SerializerMethodField()
+    is_type_proposal = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
@@ -32,11 +37,15 @@ class ServiceSerializer(serializers.ModelSerializer):
             "organization_name",
             "base_service",
             "base_service_name",
+            "is_catalog_type",
+            "is_type_proposal",
+            "image",
             "moderation_status",
             "moderation_label",
             "moderation_note",
             "moderated_at",
             "offers_count",
+            "firms",
             "price",
             "name",
             "slug",
@@ -65,6 +74,23 @@ class ServiceSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id",)
 
+    def get_image(self, obj: Service) -> str:
+        if obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except ValueError:
+                url = ""
+            request = self.context.get("request")
+            if url:
+                return request.build_absolute_uri(url) if request else url
+        return obj.hero_image_url or ""
+
+    def get_is_catalog_type(self, obj: Service) -> bool:
+        return is_catalog_type(obj)
+
+    def get_is_type_proposal(self, obj: Service) -> bool:
+        return is_type_proposal(obj)
+
     def _own_prices(self, obj: Service) -> list[int]:
         values = [int(v) for v in (obj.price_from, obj.price_to) if v]
         return values
@@ -73,22 +99,41 @@ class ServiceSerializer(serializers.ModelSerializer):
         return int(obj.price_from or obj.price_to or 0)
 
     def get_offers_count(self, obj: Service) -> int:
+        firms = self._firm_prices(obj)
+        if firms is not None:
+            return len(firms)
         return int(getattr(obj, "offers_count_anno", 0) or 0)
 
+    def _firm_prices(self, obj: Service) -> list[dict] | None:
+        table = self.context.get("firm_prices")
+        return None if table is None else table.get(obj.pk, [])
+
+    def get_firms(self, obj: Service) -> list[dict]:
+        return self._firm_prices(obj) or []
+
+    def _offer_range(self, obj: Service) -> tuple[int, int] | None:
+        firms = self._firm_prices(obj)
+        if firms is not None:
+            prices = [f["price"] for f in firms if f["price"]]
+            return (min(prices), max(prices)) if prices else None
+        lo, hi = getattr(obj, "offers_min_anno", None), getattr(obj, "offers_max_anno", None)
+        if lo or hi:
+            return int(lo or hi), int(hi or lo)
+        return None
+
     def get_price_min(self, obj: Service) -> int:
-        candidates = self._own_prices(obj)[:1]
-        offer_min = getattr(obj, "offers_min_anno", None)
-        if offer_min:
-            candidates.append(int(offer_min))
-        return min(candidates) if candidates else 0
+        offer_range = self._offer_range(obj)
+        if offer_range:
+            return offer_range[0]
+        own = self._own_prices(obj)
+        return own[0] if own else 0
 
     def get_price_max(self, obj: Service) -> int:
+        offer_range = self._offer_range(obj)
+        if offer_range:
+            return offer_range[1]
         own = self._own_prices(obj)
-        candidates = own[-1:] if own else []
-        offer_max = getattr(obj, "offers_max_anno", None)
-        if offer_max:
-            candidates.append(int(offer_max))
-        return max(candidates) if candidates else 0
+        return own[-1] if own else 0
 
 
 class AdminServiceSerializer(ServiceSerializer):
@@ -131,13 +176,22 @@ class AdminServiceSerializer(ServiceSerializer):
         price = attrs.get("price", serializers.empty)
         if not is_super and self.instance is None and (price is serializers.empty or not price):
             raise serializers.ValidationError({"price": "Xizmatning aniq narxini kiriting."})
-        base = attrs.get("base_service")
         org = self.context.get("organization")
+        if "base_service" in attrs:
+            base = attrs["base_service"]
+        else:
+            base = self.instance.base_service if self.instance is not None else None
+        if not is_super and base is None:
+            name = attrs.get("name") or (self.instance.name if self.instance is not None else "")
+            exclude = self.instance.pk if self.instance is not None else None
+            match = find_catalog_type(name, exclude_pk=exclude)
+            if match is not None:
+                base = attrs["base_service"] = match
+        if base is not None and not is_catalog_type(base):
+            raise serializers.ValidationError(
+                {"base_service": "Faqat katalogdagi xizmat turini tanlash mumkin."}
+            )
         if base is not None and org is not None:
-            if base.organization_id == org.pk:
-                raise serializers.ValidationError(
-                    {"base_service": "O'z xizmatingizni katalog turi qilib tanlab bo'lmaydi."}
-                )
             dupes = Service.objects.filter(organization=org, base_service=base)
             if self.instance is not None:
                 dupes = dupes.exclude(pk=self.instance.pk)

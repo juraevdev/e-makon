@@ -38,6 +38,7 @@ const emptyForm = {
   price: "",
   duration: "O'rtacha vaqt: 1.5 - 2 soat",
   short_description: "",
+  description: "",
   icon: "eco",
   emoji: "🌿",
   category: "Parvarish",
@@ -45,6 +46,13 @@ const emptyForm = {
 };
 
 const priceOf = (s: Service) => Number(s.price ?? s.price_from ?? 0);
+
+const normalizeName = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[`'‘’ʻʼ´]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function XizmatlarPage() {
   const { query } = useSearch();
@@ -55,6 +63,8 @@ export default function XizmatlarPage() {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [toDelete, setToDelete] = useState<Service | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const { data, loading, error, reload } = useAsync(
     async () => {
@@ -78,10 +88,26 @@ export default function XizmatlarPage() {
   );
   const takenTypes = new Set(all.filter((s) => s.id !== editing?.id).map((s) => s.base_service).filter(Boolean));
   const chosenType = catalog?.find((c) => String(c.id) === form.base_service) ?? null;
+  const similarTypes = useMemo(() => {
+    const key = normalizeName(form.name);
+    if (form.base_service || key.length < 3) return [];
+    const words = key.split(" ").filter((w) => w.length >= 4);
+    return (catalog ?? []).filter((c) => {
+      const name = normalizeName(c.name);
+      return name === key || name.includes(key) || key.includes(name) || words.some((w) => name.includes(w.slice(0, 5)));
+    });
+  }, [catalog, form.base_service, form.name]);
+  const exactType = similarTypes.find((c) => normalizeName(c.name) === normalizeName(form.name)) ?? null;
+
+  function resetImage(src = "") {
+    setImageFile(null);
+    setImagePreview(src);
+  }
 
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    resetImage();
     setOpen(true);
   }
 
@@ -93,12 +119,22 @@ export default function XizmatlarPage() {
       price: priceOf(s) ? String(Math.round(priceOf(s))) : "",
       duration: s.duration,
       short_description: s.short_description,
+      description: s.description,
       icon: s.icon || "eco",
       emoji: s.emoji || "🌿",
       category: s.category,
       is_active: s.is_active,
     });
+    resetImage(s.image || "");
     setOpen(true);
+  }
+
+  function pickImage(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return showError("Faqat rasm fayl yuklang");
+    if (file.size > 5 * 1024 * 1024) return showError("Rasm 5 MB dan oshmasin");
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   }
 
   function pickType(id: string) {
@@ -117,27 +153,38 @@ export default function XizmatlarPage() {
     const price = Number(form.price);
     if (!form.name.trim()) return showError("Xizmat nomini kiriting");
     if (!price || price < 1000) return showError("Aniq narxni so'mda kiriting (masalan 250000)");
+    if (!form.short_description.trim()) return showError("Qisqa tavsifni yozing — mijoz nima olishini bilsin");
     setBusy(true);
     try {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
         price,
         duration: form.duration,
-        short_description: form.short_description,
+        short_description: form.short_description.trim(),
+        description: form.description.trim(),
         icon: form.icon,
         emoji: form.emoji,
         category: form.category,
         is_active: form.is_active,
         base_service: form.base_service ? Number(form.base_service) : null,
       };
-      if (editing) {
-        await api(`/admin/services/${editing.id}/`, { method: "PATCH", body: payload });
-      } else {
-        payload.slug = `${slugify(form.name) || "xizmat"}-${Date.now().toString(36)}`;
-        await api("/admin/services/", { method: "POST", body: payload });
+      if (!editing) payload.slug = `${slugify(form.name) || "xizmat"}-${Date.now().toString(36)}`;
+      let body: Record<string, unknown> | FormData = payload;
+      if (imageFile) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, v === null ? "" : String(v)));
+        fd.append("cover_image", imageFile);
+        body = fd;
       }
+      const saved = editing
+        ? await api<Service>(`/admin/services/${editing.id}/`, { method: "PATCH", body })
+        : await api<Service>("/admin/services/", { method: "POST", body });
       setOpen(false);
-      showSuccess("Saqlandi. Xizmat tizim ma'muriyati tekshiruvidan so'ng ilovada chiqadi.");
+      showSuccess(
+        saved?.base_service_name
+          ? `Yuborildi. Tasdiqlangach ilovada "${saved.base_service_name}" bo'limida firmangiz chiqadi.`
+          : "Yangi xizmat turi superadminga yuborildi. Tasdiqlangach ilova katalogiga qo'shiladi.",
+      );
       await reload();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Saqlanmadi");
@@ -187,9 +234,9 @@ export default function XizmatlarPage() {
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
       <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <p className="max-w-3xl text-sm text-on-surface-variant">
-          Firmangiz xizmatlari va <b className="text-on-surface">o&apos;zgarmas aniq narxlari</b>. Har bir yangi xizmat yoki narx
-          o&apos;zgarishi tizim ma&apos;muriyati tekshiruvidan o&apos;tgach mobil ilovaga chiqadi. Mijoz xizmat tanlaganda barcha firmalar
-          narxi yonma-yon ko&apos;rsatiladi.
+          Firmangiz ko&apos;rsatadigan xizmatlar va <b className="text-on-surface">o&apos;zgarmas aniq narxlari</b>. Xizmat turini
+          katalogdan tanlang (masalan &quot;Daraxt butash&quot;) — ilovada bitta xizmat ichida uni ko&apos;rsatadigan barcha firmalar narxi
+          bilan chiqadi. Katalogda yo&apos;q bo&apos;lsa, yangi tur taklif qiling: superadmin tasdiqlagach katalogga qo&apos;shiladi.
         </p>
         <div className="flex shrink-0 gap-2">
           <SecondaryButton icon="download" onClick={exportTable} disabled={!rows.length}>
@@ -234,16 +281,23 @@ export default function XizmatlarPage() {
                   <tr key={s.id} className="transition hover:bg-white/5">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-container/30 bg-primary-container/20 text-primary">
-                          <span className="material-symbols-outlined">{s.icon || "eco"}</span>
-                        </span>
+                        {s.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.image} alt="" className="h-10 w-10 rounded-xl border border-primary-container/30 object-cover" />
+                        ) : (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-container/30 bg-primary-container/20 text-primary">
+                            <span className="material-symbols-outlined">{s.icon || "eco"}</span>
+                          </span>
+                        )}
                         <div>
                           <p className="font-semibold">{s.emoji} {s.name}</p>
                           <p className="line-clamp-1 max-w-xs text-xs text-on-surface-variant">{s.short_description || "—"}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">{s.base_service_name || "Yangi tur"}</td>
+                    <td className="px-5 py-4 text-on-surface-variant">
+                      {s.base_service_name || <span className="text-amber-300">Yangi tur taklifi</span>}
+                    </td>
                     <td className="whitespace-nowrap px-5 py-4 font-bold">{formatMoney(priceOf(s), s.currency)}</td>
                     <td className="px-5 py-4 text-xs text-on-surface-variant">{s.duration || "—"}</td>
                     <td className="px-5 py-4">
@@ -303,14 +357,20 @@ export default function XizmatlarPage() {
                 {(catalog ?? []).map((c) => (
                   <option key={c.id} value={c.id} disabled={takenTypes.has(c.id)}>
                     {c.emoji} {c.name}
+                    {c.offers_count ? ` — ${c.offers_count} ta firma` : ""}
                     {takenTypes.has(c.id) ? " (qo'shilgan)" : ""}
                   </option>
                 ))}
               </select>
             </Field>
           </div>
-          <Field label="Xizmat nomi (ilovada)" required>
-            <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Field label={form.base_service ? "Xizmat nomi (firmangiz taklifi)" : "Yangi xizmat turi nomi"} required>
+            <input
+              className={inputClass}
+              placeholder={form.base_service ? "" : "Masalan: Daraxt butash"}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
           </Field>
           <Field label="Aniq narx (UZS)" required>
             <input
@@ -327,14 +387,69 @@ export default function XizmatlarPage() {
           <Field label="Ikonka (Material)">
             <input className={inputClass} value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} />
           </Field>
+          {similarTypes.length ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100 sm:col-span-2">
+              <p className="mb-2">
+                {exactType
+                  ? `"${exactType.name}" katalogda bor — takrorlanmasligi uchun xizmatingiz shu turga qo'shiladi.`
+                  : "Katalogda shunga o'xshash tur bor. Xizmatingiz shulardan biri bo'lsa, tanlang — ilovada alohida emas, shu xizmat ichida chiqasiz:"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {similarTypes.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={takenTypes.has(c.id)}
+                    onClick={() => pickType(String(c.id))}
+                    className="rounded-lg border border-amber-400/40 px-3 py-1.5 font-semibold hover:bg-amber-400/20 disabled:opacity-40"
+                  >
+                    {c.emoji} {c.name}
+                    {c.offers_count ? ` · ${c.offers_count} ta firma` : ""}
+                    {takenTypes.has(c.id) ? " (qo'shilgan)" : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="sm:col-span-2">
-            <Field label="Qisqa tavsif (nima kiradi)">
+            <Field label="Qisqa tavsif (nima kiradi)" required>
               <textarea
                 className={inputClass}
-                rows={3}
+                rows={2}
+                placeholder="Masalan: mevali va manzarali daraxtlarni shakl berib butash, shox-shabbani olib ketish"
                 value={form.short_description}
                 onChange={(e) => setForm({ ...form, short_description: e.target.value })}
               />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Batafsil ma'lumot">
+              <textarea
+                className={inputClass}
+                rows={4}
+                placeholder="Ish tartibi, ishlatiladigan asboblar, kafolat, qo'shimcha shartlar..."
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Xizmat rasmi">
+              <div className="flex items-center gap-4">
+                {imagePreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imagePreview} alt="" className="h-20 w-28 rounded-xl border border-[#26352c] object-cover" />
+                ) : (
+                  <span className="flex h-20 w-28 items-center justify-center rounded-xl border border-dashed border-[#26352c] text-on-surface-variant">
+                    <span className="material-symbols-outlined">add_photo_alternate</span>
+                  </span>
+                )}
+                <label className="cursor-pointer rounded-lg border border-[#26352c] px-4 py-2 text-sm hover:bg-white/5">
+                  {imagePreview ? "Rasmni almashtirish" : "Rasm yuklash"}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImage(e.target.files?.[0])} />
+                </label>
+                <span className="text-xs text-on-surface-variant">JPG/PNG, 5 MB gacha</span>
+              </div>
             </Field>
           </div>
           <label className="flex items-center gap-2 text-sm text-on-surface">
@@ -356,8 +471,14 @@ export default function XizmatlarPage() {
               {formatMoney(chosenType.price_max)}
             </p>
           ) : null}
+          {!form.base_service && !exactType ? (
+            <p>
+              Yangi tur taklifi superadminga yuboriladi. Tasdiqlansa, u ilova katalogiga qo&apos;shiladi va boshqa firmalar ham shu turga
+              o&apos;z narxi bilan qo&apos;shila oladi.
+            </p>
+          ) : null}
           {editing?.moderation_status === "approved" ? (
-            <p className="text-amber-200">Nom, narx yoki tavsif o&apos;zgarsa xizmat qayta tekshiruvga yuboriladi.</p>
+            <p className="text-amber-200">Nom, narx, tavsif yoki rasm o&apos;zgarsa xizmat qayta tekshiruvga yuboriladi.</p>
           ) : null}
         </div>
 

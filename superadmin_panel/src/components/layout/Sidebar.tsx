@@ -1,8 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { api, asPage } from "@/lib/api/client";
 import { navItems } from "@/lib/nav";
+
+function usePendingServices(pathname: string) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      api("/admin/services/", { query: { moderation_status: "pending", page_size: 1 } })
+        .then((raw) => alive && setCount(asPage(raw).count))
+        .catch(() => undefined);
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [pathname]);
+  return count;
+}
 
 type SidebarProps = {
   open?: boolean;
@@ -11,6 +31,7 @@ type SidebarProps = {
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const pendingServices = usePendingServices(pathname);
 
   return (
     <>
@@ -62,6 +83,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <span className="text-sm font-semibold tracking-wide">
                   {item.label}
                 </span>
+                {item.href === "/xizmatlar" && pendingServices > 0 ? (
+                  <span
+                    className="ml-auto mr-3 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-black"
+                    title="Tekshiruvni kutayotgan firma xizmatlari"
+                  >
+                    {pendingServices}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

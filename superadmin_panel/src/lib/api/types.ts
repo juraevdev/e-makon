@@ -80,6 +80,9 @@ export type Service = {
   organization_name?: string;
   base_service?: number | null;
   base_service_name?: string;
+  is_catalog_type?: boolean;
+  is_type_proposal?: boolean;
+  image?: string;
   moderation_status?: ModerationStatus;
   moderation_label?: string;
   moderation_note?: string;

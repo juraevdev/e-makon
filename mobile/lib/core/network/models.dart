@@ -90,36 +90,36 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'phone': phone,
-        'full_name': fullName,
-        'role': role,
-        'first_name': firstName,
-        'last_name': lastName,
-        'company': company,
-        'email': email,
-        'address': address,
-        'avatar_path': avatarPath,
-        'points': points,
-        'rating': rating,
-        'rating_count': ratingCount,
-      };
+    'id': id,
+    'phone': phone,
+    'full_name': fullName,
+    'role': role,
+    'first_name': firstName,
+    'last_name': lastName,
+    'company': company,
+    'email': email,
+    'address': address,
+    'avatar_path': avatarPath,
+    'points': points,
+    'rating': rating,
+    'rating_count': ratingCount,
+  };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as int? ?? 0,
-        phone: json['phone'] as String? ?? '',
-        fullName: json['full_name'] as String? ?? '',
-        role: json['role'] as String? ?? 'customer',
-        firstName: json['first_name'] as String? ?? '',
-        lastName: json['last_name'] as String? ?? '',
-        company: json['company'] as String? ?? '',
-        email: json['email'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-        avatarPath: json['avatar_path'] as String?,
-        points: json['points'] as int? ?? 0,
-        rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
-        ratingCount: json['rating_count'] as int? ?? 0,
-      );
+    id: json['id'] as int? ?? 0,
+    phone: json['phone'] as String? ?? '',
+    fullName: json['full_name'] as String? ?? '',
+    role: json['role'] as String? ?? 'customer',
+    firstName: json['first_name'] as String? ?? '',
+    lastName: json['last_name'] as String? ?? '',
+    company: json['company'] as String? ?? '',
+    email: json['email'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+    avatarPath: json['avatar_path'] as String?,
+    points: json['points'] as int? ?? 0,
+    rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
+    ratingCount: json['rating_count'] as int? ?? 0,
+  );
 }
 
 class ServiceModel {
@@ -136,6 +136,7 @@ class ServiceModel {
     this.priceMax = 0,
     this.image = '',
     this.offersCount = 0,
+    this.firms = const [],
   });
 
   final int id;
@@ -152,6 +153,9 @@ class ServiceModel {
 
   /// Ushbu xizmatni tasdiqlangan narx bilan ko'rsatayotgan firmalar soni.
   final int offersCount;
+
+  /// Qaysi firma qancha narx qo'ygani (arzonidan qimmatiga).
+  final List<FirmPrice> firms;
 
   bool get hasImage => image.isNotEmpty;
 
@@ -172,21 +176,40 @@ class ServiceModel {
   }
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) => ServiceModel(
-        id: json['id'] as int,
-        name: json['name'] as String? ?? '',
-        slug: json['slug'] as String? ?? '',
-        emoji: json['emoji'] as String? ?? '',
-        icon: json['icon'] as String? ?? 'eco',
-        shortDescription: json['short_description'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        accent: json['accent'] as int? ?? 0xFF88D982,
-        priceMin: asInt(json['price_min'] ?? json['price']),
-        priceMax: asInt(json['price_max'] ?? json['price']),
-        image: json['image'] as String? ?? json['image_url'] as String? ?? '',
-        offersCount: asInt(json['offers_count']),
-      );
+    id: json['id'] as int,
+    name: json['name'] as String? ?? '',
+    slug: json['slug'] as String? ?? '',
+    emoji: json['emoji'] as String? ?? '',
+    icon: json['icon'] as String? ?? 'eco',
+    shortDescription: json['short_description'] as String? ?? '',
+    description: json['description'] as String? ?? '',
+    accent: json['accent'] as int? ?? 0xFF88D982,
+    priceMin: asInt(json['price_min'] ?? json['price']),
+    priceMax: asInt(json['price_max'] ?? json['price']),
+    image: json['image'] as String? ?? json['image_url'] as String? ?? '',
+    offersCount: asInt(json['offers_count']),
+    firms: json['firms'] is List
+        ? (json['firms'] as List).whereType<Map>().map((e) => FirmPrice.fromJson(Map<String, dynamic>.from(e))).toList()
+        : const [],
+  );
 
   static List<ServiceModel> get fallback => const [];
+}
+
+class FirmPrice {
+  const FirmPrice({required this.firmId, required this.firmName, required this.price, this.rating = 0});
+
+  final int firmId;
+  final String firmName;
+  final int price;
+  final double rating;
+
+  factory FirmPrice.fromJson(Map<String, dynamic> json) => FirmPrice(
+    firmId: asInt(json['firm_id']),
+    firmName: asStr(json['firm_name']),
+    price: asInt(json['price']),
+    rating: (json['rating'] as num?)?.toDouble() ?? 0,
+  );
 }
 
 class OrderModel {
@@ -311,9 +334,7 @@ class OrderModel {
       distanceKm: asDouble(json['distance_km']) ?? 0,
       amount: asInt(json['amount']),
       pointsEarned: asInt(json['points_earned']),
-      serviceNames: services is List
-          ? services.map((e) => e is Map ? '${e['name']}' : '$e').toList()
-          : const [],
+      serviceNames: services is List ? services.map((e) => e is Map ? '${e['name']}' : '$e').toList() : const [],
       receiptCode: json['receipt_code'] as String? ?? 'EM-${json['id']}',
       scheduledDate: DateTime.tryParse(asStr(json['scheduled_date'])),
       timeSlot: asStr(json['time_slot']),
@@ -325,9 +346,7 @@ class OrderModel {
       paymentProvider: payment is Map ? asStr(payment['provider']) : '',
       checkoutUrl: payment is Map ? asStr(payment['checkout_url']) : '',
       paymentOptions: json['payment_options'] is Map
-          ? {
-              for (final e in (json['payment_options'] as Map).entries) '${e.key}': e.value == true,
-            }
+          ? {for (final e in (json['payment_options'] as Map).entries) '${e.key}': e.value == true}
           : const {},
       firmId: json['firm_id'] == null ? null : asInt(json['firm_id']),
       workStage: asStr(json['work_stage']),
@@ -359,102 +378,93 @@ class OrderModel {
     DateTime? etaAt,
     String? workerName,
     List<OrderStageEvent>? history,
-  }) =>
-      OrderModel(
-        id: id,
-        status: status ?? this.status,
-        serviceName: serviceName,
-        createdAt: createdAt,
-        areaSize: areaSize,
-        phoneNumber: phoneNumber,
-        address: address,
-        notes: notes,
-        partnerName: partnerName ?? this.partnerName,
-        distanceKm: distanceKm ?? this.distanceKm,
-        amount: amount ?? this.amount,
-        pointsEarned: pointsEarned,
-        serviceNames: serviceNames,
-        receiptCode: receiptCode,
-        scheduledDate: scheduledDate,
-        timeSlot: timeSlot,
-        lat: lat,
-        lng: lng,
-        partnerLat: partnerLat,
-        partnerLng: partnerLng,
-        paymentStatus: paymentStatus ?? this.paymentStatus,
-        paymentProvider: paymentProvider ?? this.paymentProvider,
-        checkoutUrl: checkoutUrl ?? this.checkoutUrl,
-        paymentOptions: paymentOptions ?? this.paymentOptions,
-        firmId: firmId ?? this.firmId,
-        workStage: workStage ?? this.workStage,
-        workStageLabel: workStageLabel ?? this.workStageLabel,
-        workStageAt: workStageAt ?? this.workStageAt,
-        etaMinutes: etaMinutes ?? this.etaMinutes,
-        etaAt: etaAt ?? this.etaAt,
-        workerName: workerName ?? this.workerName,
-        history: history ?? this.history,
-      );
+  }) => OrderModel(
+    id: id,
+    status: status ?? this.status,
+    serviceName: serviceName,
+    createdAt: createdAt,
+    areaSize: areaSize,
+    phoneNumber: phoneNumber,
+    address: address,
+    notes: notes,
+    partnerName: partnerName ?? this.partnerName,
+    distanceKm: distanceKm ?? this.distanceKm,
+    amount: amount ?? this.amount,
+    pointsEarned: pointsEarned,
+    serviceNames: serviceNames,
+    receiptCode: receiptCode,
+    scheduledDate: scheduledDate,
+    timeSlot: timeSlot,
+    lat: lat,
+    lng: lng,
+    partnerLat: partnerLat,
+    partnerLng: partnerLng,
+    paymentStatus: paymentStatus ?? this.paymentStatus,
+    paymentProvider: paymentProvider ?? this.paymentProvider,
+    checkoutUrl: checkoutUrl ?? this.checkoutUrl,
+    paymentOptions: paymentOptions ?? this.paymentOptions,
+    firmId: firmId ?? this.firmId,
+    workStage: workStage ?? this.workStage,
+    workStageLabel: workStageLabel ?? this.workStageLabel,
+    workStageAt: workStageAt ?? this.workStageAt,
+    etaMinutes: etaMinutes ?? this.etaMinutes,
+    etaAt: etaAt ?? this.etaAt,
+    workerName: workerName ?? this.workerName,
+    history: history ?? this.history,
+  );
 
   /// Server javobidagi holat, to'lov va ish bosqichi maydonlarini mahalliy (boyitilgan) buyurtmaga qo'shadi.
   OrderModel mergeServer(OrderModel server) => copyWith(
-        status: server.status,
-        amount: server.amount > 0 ? server.amount : amount,
-        paymentStatus: server.paymentStatus,
-        paymentProvider: server.paymentProvider,
-        checkoutUrl: server.checkoutUrl,
-        paymentOptions: server.paymentOptions.isNotEmpty ? server.paymentOptions : paymentOptions,
-        distanceKm: server.distanceKm > 0 ? server.distanceKm : distanceKm,
-        firmId: server.firmId,
-        partnerName: server.partnerName.isNotEmpty ? server.partnerName : partnerName,
-        workStage: server.workStage,
-        workStageLabel: server.workStageLabel,
-        workStageAt: server.workStageAt,
-        etaMinutes: server.etaMinutes,
-        etaAt: server.etaAt,
-        workerName: server.workerName,
-        history: server.history,
-      );
+    status: server.status,
+    amount: server.amount > 0 ? server.amount : amount,
+    paymentStatus: server.paymentStatus,
+    paymentProvider: server.paymentProvider,
+    checkoutUrl: server.checkoutUrl,
+    paymentOptions: server.paymentOptions.isNotEmpty ? server.paymentOptions : paymentOptions,
+    distanceKm: server.distanceKm > 0 ? server.distanceKm : distanceKm,
+    firmId: server.firmId,
+    partnerName: server.partnerName.isNotEmpty ? server.partnerName : partnerName,
+    workStage: server.workStage,
+    workStageLabel: server.workStageLabel,
+    workStageAt: server.workStageAt,
+    etaMinutes: server.etaMinutes,
+    etaAt: server.etaAt,
+    workerName: server.workerName,
+    history: server.history,
+  );
 
-  bool get needsPayment =>
-      isActive && (paymentStatus == 'unpaid' || paymentStatus == 'rejected');
+  bool get needsPayment => isActive && (paymentStatus == 'unpaid' || paymentStatus == 'rejected');
 
   bool get isPaymentChecking => paymentStatus == 'checking';
 
   bool get isPaid => paymentStatus == 'paid' || paymentStatus == 'released';
 
   String get paymentLabel => switch (paymentStatus) {
-        'unpaid' => "To'lov kutilmoqda",
-        'checking' => "To'lov tekshirilmoqda",
-        'rejected' => "To'lov hisobga tushmadi",
-        'paid' when paymentProvider == 'test' => "Soxta to'lov qilindi (sinov rejimi)",
-        'paid' => "To'landi · tizim hisobida",
-        'released' => "To'landi · firmaga o'tkazildi",
-        'refunded' => 'Pul qaytarildi',
-        _ => "To'lov talab qilinmaydi",
-      };
+    'unpaid' => "To'lov kutilmoqda",
+    'checking' => "To'lov tekshirilmoqda",
+    'rejected' => "To'lov hisobga tushmadi",
+    'paid' when paymentProvider == 'test' => "Soxta to'lov qilindi (sinov rejimi)",
+    'paid' => "To'landi · tizim hisobida",
+    'released' => "To'landi · firmaga o'tkazildi",
+    'refunded' => 'Pul qaytarildi',
+    _ => "To'lov talab qilinmaydi",
+  };
 
   String get statusLabel => switch (status) {
-        'new' => 'Yangi',
-        'in_review' => "Ko'rib chiqilmoqda",
-        'contacted' => "Bog'lanildi",
-        'completed' => 'Bajarildi',
-        'cancelled' => 'Bekor qilindi',
-        // legacy / demo aliases → backend labels
-        'accepted' || 'in_progress' => "Ko'rib chiqilmoqda",
-        'on_way' || 'arrived' => "Bog'lanildi",
-        'done' => 'Bajarildi',
-        _ => status,
-      };
+    'new' => 'Yangi',
+    'in_review' => "Ko'rib chiqilmoqda",
+    'contacted' => "Bog'lanildi",
+    'completed' => 'Bajarildi',
+    'cancelled' => 'Bekor qilindi',
+    // legacy / demo aliases → backend labels
+    'accepted' || 'in_progress' => "Ko'rib chiqilmoqda",
+    'on_way' || 'arrived' => "Bog'lanildi",
+    'done' => 'Bajarildi',
+    _ => status,
+  };
 
-  bool get isActive => const {
-        'new',
-        'in_review',
-        'contacted',
-        'accepted',
-        'on_way',
-        'arrived',
-        'in_progress',
-      }.contains(status);
+  bool get isActive =>
+      const {'new', 'in_review', 'contacted', 'accepted', 'on_way', 'arrived', 'in_progress'}.contains(status);
 
   bool get isCompleted => status == 'completed' || status == 'done';
 
@@ -464,13 +474,13 @@ class OrderModel {
 
   /// Backend progress: Yangi → Ko'rib chiqilmoqda → Bog'lanildi → Bajarildi
   int get statusStep => switch (status) {
-        'new' => 0,
-        'in_review' || 'accepted' || 'in_progress' => 1,
-        'contacted' || 'on_way' || 'arrived' => 2,
-        'completed' || 'done' => 3,
-        'cancelled' => -1,
-        _ => 0,
-      };
+    'new' => 0,
+    'in_review' || 'accepted' || 'in_progress' => 1,
+    'contacted' || 'on_way' || 'arrived' => 2,
+    'completed' || 'done' => 3,
+    'cancelled' => -1,
+    _ => 0,
+  };
 
   double get progress {
     if (isCancelled) return 0;
@@ -509,13 +519,13 @@ class OrderStageEvent {
   final DateTime createdAt;
 
   factory OrderStageEvent.fromJson(Map<String, dynamic> json) => OrderStageEvent(
-        toStatus: asStr(json['to_status']),
-        workStage: asStr(json['stage']),
-        label: asStr(json['stage_label']),
-        note: asStr(json['note']),
-        byName: asStr(json['changed_by_name']),
-        createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
-      );
+    toStatus: asStr(json['to_status']),
+    workStage: asStr(json['stage']),
+    label: asStr(json['stage_label']),
+    note: asStr(json['note']),
+    byName: asStr(json['changed_by_name']),
+    createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
+  );
 }
 
 /// Firmaning muayyan xizmat uchun tasdiqlangan qat'iy narxi.
@@ -528,11 +538,11 @@ class PartnerOffer {
   final String duration;
 
   factory PartnerOffer.fromJson(Map<String, dynamic> json) => PartnerOffer(
-        serviceId: asInt(json['service_id']),
-        name: asStr(json['name']),
-        price: asInt(json['price']),
-        duration: asStr(json['duration']),
-      );
+    serviceId: asInt(json['service_id']),
+    name: asStr(json['name']),
+    price: asInt(json['price']),
+    duration: asStr(json['duration']),
+  );
 }
 
 class PartnerSocial {
@@ -601,14 +611,14 @@ class ChatRoomModel {
   final int unread;
 
   factory ChatRoomModel.fromJson(Map<String, dynamic> json) => ChatRoomModel(
-        id: asInt(json['id']),
-        firmId: asInt(json['firm_id']),
-        firmName: asStr(json['firm_name']),
-        firmPhone: asStr(json['firm_phone']),
-        lastMessageAt: DateTime.tryParse(asStr(json['last_message_at']))?.toLocal(),
-        lastMessagePreview: asStr(json['last_message_preview']),
-        unread: asInt(json['unread']),
-      );
+    id: asInt(json['id']),
+    firmId: asInt(json['firm_id']),
+    firmName: asStr(json['firm_name']),
+    firmPhone: asStr(json['firm_phone']),
+    lastMessageAt: DateTime.tryParse(asStr(json['last_message_at']))?.toLocal(),
+    lastMessagePreview: asStr(json['last_message_preview']),
+    unread: asInt(json['unread']),
+  );
 }
 
 class CarouselItem {
@@ -636,23 +646,19 @@ class CarouselItem {
   bool get isNetworkImage => image.startsWith('http://') || image.startsWith('https://');
 
   factory CarouselItem.fromJson(Map<String, dynamic> json) => CarouselItem(
-        id: json['id'] as int? ?? 0,
-        title: json['title'] as String? ?? '',
-        subtitle: json['subtitle'] as String? ?? '',
-        category: json['category'] as String? ?? '',
-        icon: json['icon'] as String? ?? 'eco',
-        serviceSlug: json['service_slug'] as String?,
-        accent: json['accent'] as int? ?? 0xFF2E7D32,
-        image: json['image'] as String? ?? json['image_url'] as String? ?? '',
-      );
+    id: json['id'] as int? ?? 0,
+    title: json['title'] as String? ?? '',
+    subtitle: json['subtitle'] as String? ?? '',
+    category: json['category'] as String? ?? '',
+    icon: json['icon'] as String? ?? 'eco',
+    serviceSlug: json['service_slug'] as String?,
+    accent: json['accent'] as int? ?? 0xFF2E7D32,
+    image: json['image'] as String? ?? json['image_url'] as String? ?? '',
+  );
 }
 
 class GalleryItem {
-  const GalleryItem({
-    required this.before,
-    required this.after,
-    this.caption = '',
-  });
+  const GalleryItem({required this.before, required this.after, this.caption = ''});
 
   final String before;
   final String after;
@@ -703,14 +709,14 @@ class ChatMessage {
   bool get fromPlatform => senderRole == 'platform';
 
   factory ChatMessage.fromJson(Map<String, dynamic> json, {required int partnerId}) => ChatMessage(
-        id: asInt(json['id']),
-        partnerId: partnerId,
-        text: asStr(json['body']),
-        fromMe: json['mine'] == true || json['sender_role'] == 'customer',
-        createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
-        senderRole: asStr(json['sender_role']),
-        senderName: asStr(json['sender_name']),
-      );
+    id: asInt(json['id']),
+    partnerId: partnerId,
+    text: asStr(json['body']),
+    fromMe: json['mine'] == true || json['sender_role'] == 'customer',
+    createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
+    senderRole: asStr(json['sender_role']),
+    senderName: asStr(json['sender_name']),
+  );
 }
 
 class PartnerModel {
@@ -824,14 +830,14 @@ class OfferModel {
   bool get hasImage => image.isNotEmpty;
 
   factory OfferModel.fromJson(Map<String, dynamic> json) => OfferModel(
-        id: json['id'] as int? ?? 0,
-        title: json['title'] as String? ?? '',
-        subtitle: json['subtitle'] as String? ?? '',
-        kind: json['kind'] as String? ?? 'promo',
-        emoji: json['emoji'] as String? ?? '✨',
-        accent: json['accent'] as int? ?? 0xFF2E7D32,
-        image: json['image'] as String? ?? json['image_url'] as String? ?? '',
-      );
+    id: json['id'] as int? ?? 0,
+    title: json['title'] as String? ?? '',
+    subtitle: json['subtitle'] as String? ?? '',
+    kind: json['kind'] as String? ?? 'promo',
+    emoji: json['emoji'] as String? ?? '✨',
+    accent: json['accent'] as int? ?? 0xFF2E7D32,
+    image: json['image'] as String? ?? json['image_url'] as String? ?? '',
+  );
 }
 
 class AppMessage {
@@ -860,35 +866,30 @@ class AppMessage {
   final int? entityId;
 
   AppMessage copyWith({bool? read}) => AppMessage(
-        id: id,
-        title: title,
-        body: body,
-        type: type,
-        createdAt: createdAt,
-        read: read ?? this.read,
-        entityType: entityType,
-        entityId: entityId,
-      );
+    id: id,
+    title: title,
+    body: body,
+    type: type,
+    createdAt: createdAt,
+    read: read ?? this.read,
+    entityType: entityType,
+    entityId: entityId,
+  );
 
   factory AppMessage.fromJson(Map<String, dynamic> json) => AppMessage(
-        id: asInt(json['id']),
-        title: asStr(json['title']),
-        body: asStr(json['body']),
-        type: json['type'] as String? ?? 'system',
-        createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
-        read: json['read'] as bool? ?? false,
-        entityType: asStr(json['entity_type']),
-        entityId: json['entity_id'] == null ? null : asInt(json['entity_id']),
-      );
+    id: asInt(json['id']),
+    title: asStr(json['title']),
+    body: asStr(json['body']),
+    type: json['type'] as String? ?? 'system',
+    createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
+    read: json['read'] as bool? ?? false,
+    entityType: asStr(json['entity_type']),
+    entityId: json['entity_id'] == null ? null : asInt(json['entity_id']),
+  );
 }
 
 class BonusService {
-  const BonusService({
-    required this.id,
-    required this.title,
-    required this.costPoints,
-    required this.emoji,
-  });
+  const BonusService({required this.id, required this.title, required this.costPoints, required this.emoji});
 
   final int id;
   final String title;
