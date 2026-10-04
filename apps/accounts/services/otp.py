@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 import secrets
 from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -16,6 +18,12 @@ from apps.core.phone import normalize_phone
 from apps.organizations.services import get_or_create_default_organization
 
 logger = logging.getLogger(__name__)
+
+# Same message for staff/inactive numbers so the response does not reveal account type.
+INELIGIBLE_MESSAGE = "Bu raqam bilan OTP orqali kirib bo'lmaydi."
+# Missing, expired, locked or already-used challenges are indistinguishable to the client.
+INVALID_CHALLENGE_MESSAGE = "Kod noto'g'ri yoki muddati tugagan. Yangi kod so'rang."
+WRONG_CODE_MESSAGE = "OTP noto'g'ri."
 
 
 def _hash_code(code: str) -> str:
@@ -37,6 +45,9 @@ class OTPService:
         # TODO: integrate Eskiz / Playmobile / Twilio via SMS_PROVIDER settings.
         provider = getattr(settings, "SMS_PROVIDER", "") or ""
         if not provider:
+            if not settings.OTP_DEBUG_RETURN_CODE:
+                logger.error("OTP SMS provider is not configured; code was not delivered.")
+                return None
             # Dev/local: no SMS — print code clearly in API terminal.
             logger.warning(
                 "========== OTP (SMS YO'Q) ==========\n"
@@ -56,12 +67,8 @@ class OTPService:
         existing = User.objects.filter(phone=phone).only("role", "is_active").first()
         if existing is None:
             return
-        if existing.role != User.Role.CUSTOMER:
-            raise OTPError(
-                "Bu raqam admin/xodim hisobi. OTP orqali kira olmaydi.",
-            )
-        if not existing.is_active:
-            raise OTPError("Hisob faol emas.")
+        if existing.role != User.Role.CUSTOMER or not existing.is_active:
+            raise OTPError(INELIGIBLE_MESSAGE)
 
     @classmethod
     def _assert_rate_limit(cls, phone: str) -> None:
@@ -114,8 +121,44 @@ class OTPService:
             payload["debug_code"] = code
         return payload
 
+    @staticmethod
+    def _consume_challenge(phone: str, code: str, purpose: str) -> None:
+        """
+        Check the code and record the attempt. Must not run inside a transaction that
+        an OTPError would roll back, otherwise failed attempts are never persisted.
+        Every counter change is a single conditional UPDATE, so concurrent guesses
+        cannot exceed OTP_MAX_ATTEMPTS and a code can be consumed only once.
+        """
+        max_attempts = int(settings.OTP_MAX_ATTEMPTS)
+        challenge = (
+            OTPChallenge.objects.filter(phone=phone, purpose=purpose, is_used=False)
+            .order_by("-created_at")
+            .first()
+        )
+        if challenge is None:
+            raise OTPError(INVALID_CHALLENGE_MESSAGE)
+
+        live = OTPChallenge.objects.filter(pk=challenge.pk, is_used=False)
+        now = timezone.now()
+        if challenge.expires_at <= now:
+            live.update(is_used=True, updated_at=now)
+            raise OTPError(INVALID_CHALLENGE_MESSAGE)
+
+        counted = live.filter(attempts__lt=max_attempts).update(
+            attempts=F("attempts") + 1, updated_at=now
+        )
+        if not counted:
+            live.update(is_used=True, updated_at=now)
+            raise OTPError(INVALID_CHALLENGE_MESSAGE)
+
+        if not hmac.compare_digest(challenge.code_hash, _hash_code((code or "").strip())):
+            live.filter(attempts__gte=max_attempts).update(is_used=True, updated_at=now)
+            raise OTPError(WRONG_CODE_MESSAGE)
+
+        if not live.update(is_used=True, updated_at=now):
+            raise OTPError(INVALID_CHALLENGE_MESSAGE)
+
     @classmethod
-    @transaction.atomic
     def verify_and_issue_tokens(
         cls,
         phone: str,
@@ -127,36 +170,12 @@ class OTPService:
     ) -> dict:
         phone = normalize_phone(phone)
         cls._assert_customer_eligible(phone)
+        cls._consume_challenge(phone, code, purpose)
+        return cls._issue_tokens(phone, full_name, first_name, last_name)
 
-        challenge = (
-            OTPChallenge.objects.filter(
-                phone=phone,
-                purpose=purpose,
-                is_used=False,
-            )
-            .order_by("-created_at")
-            .first()
-        )
-        if challenge is None:
-            raise OTPError("OTP topilmadi. Qayta so'rang.")
-        if challenge.is_expired:
-            challenge.is_used = True
-            challenge.save(update_fields=["is_used", "updated_at"])
-            raise OTPError("OTP muddati tugagan.")
-
-        if challenge.attempts >= settings.OTP_MAX_ATTEMPTS:
-            challenge.is_used = True
-            challenge.save(update_fields=["is_used", "updated_at"])
-            raise OTPError("Urinishlar soni tugadi.")
-
-        challenge.attempts += 1
-        if challenge.code_hash != _hash_code(code.strip()):
-            challenge.save(update_fields=["attempts", "updated_at"])
-            raise OTPError("OTP noto'g'ri.")
-
-        challenge.is_used = True
-        challenge.save(update_fields=["is_used", "attempts", "updated_at"])
-
+    @classmethod
+    @transaction.atomic
+    def _issue_tokens(cls, phone: str, full_name: str, first_name: str, last_name: str) -> dict:
         if not first_name and not last_name and full_name:
             chunks = full_name.strip().split(None, 1)
             first_name = chunks[0] if chunks else ""
@@ -189,10 +208,8 @@ class OTPService:
         if updates:
             user.save()
 
-        if not user.is_active:
-            raise OTPError("Hisob faol emas.")
-        if user.role != User.Role.CUSTOMER:
-            raise OTPError("Bu raqam admin/xodim hisobi. OTP orqali kira olmaydi.")
+        if not user.is_active or user.role != User.Role.CUSTOMER:
+            raise OTPError(INELIGIBLE_MESSAGE)
 
         refresh = RefreshToken.for_user(user)
         return {

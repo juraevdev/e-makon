@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -212,12 +212,28 @@ class AdminChatViewSet(
 
     @action(detail=False, methods=["post"])
     def open(self, request):
+        if self._is_super():
+            raise AppError("Suhbatni firma admini ochadi.", status_code=403)
         org_id = organization_id_for_queryset(request.user)
         if org_id is None:
             raise AppError("Suhbatni firma admini ochadi.", status_code=403)
-        customer = User.objects.filter(
-            pk=request.data.get("customer_id"), role=User.Role.CUSTOMER
-        ).first()
+        if not Organization.objects.filter(pk=org_id, status=Organization.Status.ACTIVE).exists():
+            raise AppError("Firma faol emas.", status_code=403)
+        customer_id = request.data.get("customer_id")
+        if not str(customer_id or "").isdigit():
+            raise AppError("Mijoz topilmadi.", status_code=404)
+        # Same relationship as /admin/customers/: an order with the firm, registered
+        # under the firm, or an existing room. Unrelated customers look nonexistent.
+        related = (
+            Q(orders__organization_id=org_id)
+            | Q(organization_id=org_id)
+            | Q(chat_rooms__organization_id=org_id)
+        )
+        customer = (
+            User.objects.filter(related, pk=int(customer_id), role=User.Role.CUSTOMER)
+            .distinct()
+            .first()
+        )
         if customer is None:
             raise AppError("Mijoz topilmadi.", status_code=404)
         room, _ = ChatRoom.objects.get_or_create(organization_id=org_id, customer=customer)

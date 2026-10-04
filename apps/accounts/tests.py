@@ -1,7 +1,11 @@
+from datetime import timedelta
+from unittest import mock
+
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.accounts.models import User
+from apps.accounts.models import OTPChallenge, User
 from apps.organizations.models import Organization
 from apps.organizations.services import get_or_create_default_organization
 from apps.staff.models import AdminProfile
@@ -62,6 +66,106 @@ class OTPFlowTests(TestCase):
             format="json",
         )
         self.assertEqual(blocked.status_code, 400)
+
+
+@override_settings(OTP_MAX_ATTEMPTS=3, OTP_DEBUG_RETURN_CODE=True)
+class OTPBruteForceTests(TestCase):
+    PHONE = "901554433"
+    NORMALIZED = "+998901554433"
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _request(self) -> str:
+        resp = self.client.post("/api/v1/auth/otp/request/", {"phone": self.PHONE}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return resp.json()["data"]["debug_code"]
+
+    def _verify(self, code: str):
+        return self.client.post(
+            "/api/v1/auth/otp/verify/", {"phone": self.PHONE, "code": code}, format="json"
+        )
+
+    @staticmethod
+    def _wrong(code: str) -> str:
+        return "000000" if code != "000000" else "111111"
+
+    def _challenge(self) -> OTPChallenge:
+        return OTPChallenge.objects.filter(phone=self.NORMALIZED).latest("created_at")
+
+    def test_failed_attempts_are_persisted_and_lock_the_code(self):
+        code = self._request()
+        for expected_attempts in (1, 2, 3):
+            self.assertEqual(self._verify(self._wrong(code)).status_code, 400)
+            self.assertEqual(self._challenge().attempts, expected_attempts)
+        self.assertTrue(self._challenge().is_used)
+
+        blocked = self._verify(code)
+        self.assertEqual(blocked.status_code, 400)
+        self.assertNotIn("access", blocked.content.decode())
+        self.assertEqual(self._challenge().attempts, 3)
+        self.assertFalse(User.objects.filter(phone=self.NORMALIZED).exists())
+
+    def test_correct_code_within_limit_succeeds_once(self):
+        code = self._request()
+        self.assertEqual(self._verify(self._wrong(code)).status_code, 400)
+        self.assertEqual(self._verify(self._wrong(code)).status_code, 400)
+        ok = self._verify(code)
+        self.assertEqual(ok.status_code, 200, ok.content)
+        self.assertIn("access", ok.json()["data"])
+        self.assertEqual(self._verify(code).status_code, 400)
+
+    def test_expired_code_cannot_be_used(self):
+        code = self._request()
+        OTPChallenge.objects.filter(phone=self.NORMALIZED).update(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        self.assertEqual(self._verify(code).status_code, 400)
+        self.assertTrue(self._challenge().is_used)
+        self.assertFalse(User.objects.filter(phone=self.NORMALIZED).exists())
+
+    def test_resend_invalidates_previous_code(self):
+        with mock.patch(
+            "apps.accounts.services.otp._generate_code", side_effect=["111111", "222222"]
+        ):
+            first = self._request()
+            second = self._request()
+        self.assertEqual(self._verify(first).status_code, 400)
+        self.assertEqual(self._verify(second).status_code, 200)
+
+    def test_ineligible_numbers_get_identical_generic_error(self):
+        org = get_or_create_default_organization()
+        User.objects.create_user(
+            phone="+998901998870", password="secret123", role=User.Role.ADMIN, organization=org
+        )
+        User.objects.create_user(
+            phone="+998901998871", role=User.Role.CUSTOMER, organization=org, is_active=False
+        )
+        messages = []
+        for phone in ("901998870", "901998871"):
+            for path, body in (
+                ("/api/v1/auth/otp/request/", {"phone": phone}),
+                ("/api/v1/auth/otp/verify/", {"phone": phone, "code": "123456"}),
+            ):
+                resp = self.client.post(path, body, format="json")
+                self.assertEqual(resp.status_code, 400)
+                messages.append(resp.json()["message"])
+        self.assertEqual(len(set(messages)), 1)
+        self.assertNotIn("admin", messages[0].lower())
+
+    @override_settings(OTP_DEBUG_RETURN_CODE=False, SMS_PROVIDER="")
+    def test_code_is_not_logged_or_returned_without_debug(self):
+        with mock.patch(
+            "apps.accounts.services.otp._generate_code", return_value="987654"
+        ), self.assertLogs("apps.accounts.services.otp", level="DEBUG") as logs:
+            resp = self.client.post(
+                "/api/v1/auth/otp/request/", {"phone": self.PHONE}, format="json"
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn("debug_code", resp.json()["data"])
+        output = "\n".join(logs.output)
+        self.assertNotIn("987654", output)
+        self.assertNotIn("554433", output)
 
 
 class AdminOrgScopeTests(TestCase):

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import base64
+import importlib
+import os
+import sys
 from decimal import Decimal
+from unittest import mock
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -20,6 +24,36 @@ def _auth_client(user: User) -> APIClient:
     token = RefreshToken.for_user(user)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
     return client
+
+
+class ProductionPaymentSettingsTests(SimpleTestCase):
+    MODULES = ("config.settings.base", "config.settings.production")
+
+    def _load_production(self, **env_vars):
+        import config.settings as package
+
+        saved_modules = {name: sys.modules.pop(name) for name in self.MODULES if name in sys.modules}
+        saved_attrs = {name: getattr(package, name.rsplit(".", 1)[1], None) for name in self.MODULES}
+        environment = {k: v for k, v in os.environ.items() if k != "PAYMENTS_TEST_MODE"}
+        environment.update(env_vars)
+        try:
+            with mock.patch.dict(os.environ, environment, clear=True), mock.patch(
+                "environ.Env.read_env"
+            ):
+                return importlib.import_module("config.settings.production")
+        finally:
+            for name in self.MODULES:
+                sys.modules.pop(name, None)
+            sys.modules.update(saved_modules)
+            for name, module in saved_attrs.items():
+                if module is not None:
+                    setattr(package, name.rsplit(".", 1)[1], module)
+
+    def test_production_disables_test_payments_by_default(self):
+        self.assertFalse(self._load_production().PAYMENTS_TEST_MODE)
+
+    def test_production_test_payments_require_explicit_opt_in(self):
+        self.assertTrue(self._load_production(PAYMENTS_TEST_MODE="True").PAYMENTS_TEST_MODE)
 
 
 @override_settings(PAYME_MERCHANT_ID="", CLICK_SERVICE_ID="", CLICK_MERCHANT_ID="")
