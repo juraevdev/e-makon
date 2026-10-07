@@ -150,6 +150,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final displayName = context.select<AuthProvider, String>((a) => a.user?.displayName ?? 'e-makon');
     final points = context.select<AuthProvider, int>((a) => a.user?.points ?? 0);
     final allServices = context.select<CatalogProvider, List<ServiceModel>>((c) => c.services);
+    final catalogError = context.select<CatalogProvider, String?>((c) => c.error);
+    final catalogLoading = context.select<CatalogProvider, bool>((c) => c.loading);
     final feed = context.watch<HomeFeedProvider>();
     final favs = context.watch<FavoritesProvider>();
     final unread = context.select<MessagesProvider, int>((m) => m.unreadCount);
@@ -202,7 +204,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             color: AppColors.primary,
             onRefresh: _refresh,
             child: CustomScrollView(
-              cacheExtent: 420,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
@@ -283,6 +284,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 ),
 
                 // Hero carousel
+                if (feed.carousel.isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 228,
@@ -421,6 +423,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     }),
                   ),
                 ),
+                ],
 
                 // Points
                 SliverToBoxAdapter(
@@ -586,6 +589,23 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     accent: season.accent,
                   ),
                 ),
+                if (allServices.isEmpty && !catalogLoading)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              catalogError ?? 'Hozircha xizmatlar yo‘q',
+                              style: const TextStyle(color: AppColors.onSurfaceVariant),
+                            ),
+                          ),
+                          TextButton(onPressed: _refresh, child: const Text('Yangilash')),
+                        ],
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverGrid(
@@ -691,6 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
                 const SliverToBoxAdapter(child: NearestOfficesSection()),
 
+                if (feed.offers.isNotEmpty)
                 SliverToBoxAdapter(
                   child: SectionHeader(
                     title: 'Ommabop takliflar',
@@ -699,7 +720,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     accent: season.accent,
                   ),
                 ),
-                if (offers.isEmpty)
+                if (feed.offers.isEmpty)
+                  const SliverToBoxAdapter(child: SizedBox.shrink())
+                else if (offers.isEmpty)
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
@@ -800,6 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   void _showBonuses(BuildContext context) {
     final auth = context.read<AuthProvider>();
+    final rewardsFuture = auth.loadRewards();
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -818,31 +842,61 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               const SizedBox(height: 4),
               Text('Balans: $pointsNow ball', style: const TextStyle(color: AppColors.primary)),
               const SizedBox(height: 16),
-              for (final b in DemoContent.bonuses)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Text(b.emoji, style: const TextStyle(fontSize: 26)),
-                  title: Text(b.title),
-                  subtitle: Text('${b.costPoints} ball'),
-                  trailing: FilledButton(
-                    onPressed: pointsNow >= b.costPoints
-                        ? () async {
-                            final success = await auth.redeemBonus(b.costPoints);
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(success ? '${b.title} ochildi!' : 'Ball yetarli emas'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          }
-                        : null,
-                    style: FilledButton.styleFrom(minimumSize: const Size(76, 40)),
-                    child: const Text('Olish'),
-                  ),
-                ),
+              FutureBuilder<List<BonusService>>(
+                future: rewardsFuture,
+                builder: (ctx, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (snap.hasError) {
+                    final err = snap.error;
+                    return Text(
+                      err is ApiException ? err.message : 'Mukofotlarni yuklab bo‘lmadi',
+                      style: const TextStyle(color: AppColors.onSurfaceVariant),
+                    );
+                  }
+                  final rewards = snap.data ?? const <BonusService>[];
+                  if (rewards.isEmpty) {
+                    return const Text('Hozircha mukofotlar yo‘q', style: TextStyle(color: AppColors.onSurfaceVariant));
+                  }
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final b in rewards)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Text(b.emoji, style: const TextStyle(fontSize: 26)),
+                          title: Text(b.title),
+                          subtitle: Text('${b.costPoints} ball'),
+                          trailing: FilledButton(
+                            onPressed: pointsNow >= b.costPoints
+                                ? () async {
+                                    String message;
+                                    try {
+                                      await auth.redeemBonus(b);
+                                      message = '${b.title} ochildi!';
+                                    } on ApiException catch (e) {
+                                      message = e.message;
+                                    }
+                                    if (ctx.mounted) Navigator.pop(ctx);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+                                      );
+                                    }
+                                  }
+                                : null,
+                            style: FilledButton.styleFrom(minimumSize: const Size(76, 40)),
+                            child: const Text('Olish'),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         );

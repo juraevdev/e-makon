@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/constants/api_config.dart';
 import '../../core/data/demo_content.dart';
@@ -8,7 +9,7 @@ import '../../core/network/models.dart';
 import '../../core/services/notification_service.dart';
 
 class MessagesProvider extends ChangeNotifier {
-  List<AppMessage> messages = List.of(DemoContent.messages);
+  List<AppMessage> messages = ApiConfig.useLocalData ? List.of(DemoContent.messages) : <AppMessage>[];
   bool loading = false;
   bool serverOk = false;
   String? error;
@@ -38,8 +39,7 @@ class MessagesProvider extends ChangeNotifier {
           : <AppMessage>[];
       serverOk = true;
     } catch (e) {
-      if (!serverOk) messages = List.of(DemoContent.messages);
-      error = null;
+      error = e is ApiException ? e.message : 'Xabarlarni yuklab bo‘lmadi';
       if (kDebugMode) debugPrint('messages: $e');
     } finally {
       loading = false;
@@ -63,9 +63,11 @@ class MessagesProvider extends ChangeNotifier {
 }
 
 class HomeFeedProvider extends ChangeNotifier {
-  List<CarouselItem> carousel = List.of(DemoContent.carousel);
-  List<PartnerModel> partners = List.of(DemoContent.partners);
-  List<OfferModel> offers = List.of(DemoContent.offers);
+  List<CarouselItem> carousel = ApiConfig.useLocalData ? List.of(DemoContent.carousel) : <CarouselItem>[];
+  List<PartnerModel> partners = ApiConfig.useLocalData ? List.of(DemoContent.partners) : <PartnerModel>[];
+
+  /// Backendda "takliflar" endpointi yo'q — faqat demo rejimda to'ldiriladi.
+  List<OfferModel> offers = ApiConfig.useLocalData ? List.of(DemoContent.offers) : <OfferModel>[];
   bool loading = false;
   bool serverOk = false;
   String? error;
@@ -88,16 +90,17 @@ class HomeFeedProvider extends ChangeNotifier {
       return;
     }
     final results = await Future.wait([
-      _tryGet(api, '/home/carousel/'),
+      _tryGet(api, '/banners/'),
       _tryGet(api, '/partners/'),
-      _tryGet(api, '/offers/'),
     ]);
-    final c = _parseList(results[0], CarouselItem.fromJson);
-    final o = _parseList(results[2], OfferModel.fromJson);
-    carousel = c.isNotEmpty ? c : List.of(DemoContent.carousel);
-    offers = o.isNotEmpty ? o : List.of(DemoContent.offers);
+    // Server rejimida soxta kontent ko'rsatilmaydi; xatoda oxirgi muvaffaqiyatli ma'lumot qoladi.
+    if (results[0] != null) carousel = _parseList(results[0], CarouselItem.fromJson);
     serverOk = results[1] != null;
-    partners = serverOk ? _parseList(results[1], PartnerModel.fromJson) : List.of(DemoContent.partners);
+    if (serverOk) {
+      partners = _parseList(results[1], PartnerModel.fromJson);
+    } else {
+      error = 'Serverga ulanib bo‘lmadi. Pastga tortib yangilang';
+    }
     loading = false;
     notifyListeners();
     await refreshLocation();
@@ -180,6 +183,14 @@ class OrdersProvider extends ChangeNotifier {
   bool serverOk = false;
   String? error;
   int _localId = 9000;
+
+  void reset() {
+    orders = ApiConfig.useLocalData ? List.of(DemoContent.sampleOrders) : <OrderModel>[];
+    _localOrderIds.clear();
+    serverOk = false;
+    error = null;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     loading = true;
@@ -288,11 +299,15 @@ class OrdersProvider extends ChangeNotifier {
     // no-op: backend statuslari customer tomonidan o‘zgartirilmaydi
   }
 
+  /// Buyurtmani rasmlari bilan birga (multipart) yuboradi.
+  /// [idempotencyKey] — bitta "Yuborish" urinishi uchun bir xil: tarmoq uzilib qayta yuborilsa ham
+  /// server ikkinchi buyurtma yaratmaydi.
   Future<OrderModel> create({
     required List<ServiceModel> services,
     required String areaSize,
     required String address,
     required String notes,
+    required String idempotencyKey,
     String phone = '',
     String partnerName = '',
     int? firmId,
@@ -315,24 +330,27 @@ class OrdersProvider extends ChangeNotifier {
 
     if (!ApiConfig.useLocalData) {
       try {
-        final data = await _api.post('/orders/', body: {
-          'service_ids': services.map((e) => e.id).toList(),
-          'service_id': services.first.id,
+        final fields = <String, String>{
+          'service_id': '${services.first.id}',
+          for (var i = 0; i < services.length; i++) 'service_ids[$i]': '${services[i].id}',
           'area_size': areaSize,
           'address': address,
           'notes': notes,
           if (phone.isNotEmpty) 'phone_number': phone,
-          if (partnerName.isNotEmpty) 'partner_name': partnerName,
-          'firm_id': ?firmId,
-          'lat': ?lat,
-          'lng': ?lng,
-          'amount': amount,
-          'media_count': mediaPaths.length,
+          if (firmId != null) 'firm_id': '$firmId',
+          if (lat != null) 'lat': lat.toStringAsFixed(6),
+          if (lng != null) 'lng': lng.toStringAsFixed(6),
           if (scheduledDate != null)
             'scheduled_date':
                 '${scheduledDate.year.toString().padLeft(4, '0')}-${scheduledDate.month.toString().padLeft(2, '0')}-${scheduledDate.day.toString().padLeft(2, '0')}',
           if (timeSlot.isNotEmpty) 'time_slot': timeSlot,
-        });
+        };
+        final data = await _api.postMultipart(
+          '/orders/',
+          fields: fields,
+          files: [for (final path in mediaPaths) () => http.MultipartFile.fromPath('media', path)],
+          idempotencyKey: idempotencyKey,
+        );
         final order = OrderModel.fromJson(Map<String, dynamic>.from(data as Map));
         final serverAmount = order.amount > 0 ? order.amount : amount;
         final enriched = OrderModel(
@@ -347,7 +365,8 @@ class OrdersProvider extends ChangeNotifier {
           partnerName: partnerName,
           distanceKm: distanceKm,
           amount: serverAmount,
-          pointsEarned: OrderModel.pointsForAmount(serverAmount),
+          // Ballar buyurtma bajarilgach serverda yoziladi — bu yerda faqat server qiymati.
+          pointsEarned: order.pointsEarned,
           serviceNames: names,
           receiptCode: order.receiptCode.isNotEmpty ? order.receiptCode : 'EM-${order.id}',
           scheduledDate: scheduledDate,
@@ -402,7 +421,7 @@ class CatalogProvider extends ChangeNotifier {
   CatalogProvider(this._api);
 
   final ApiClient _api;
-  List<ServiceModel> services = List.of(DemoContent.catalogWithPrices);
+  List<ServiceModel> services = ApiConfig.useLocalData ? List.of(DemoContent.catalogWithPrices) : <ServiceModel>[];
   bool loading = false;
   bool serverOk = false;
   String? error;
@@ -422,19 +441,15 @@ class CatalogProvider extends ChangeNotifier {
     try {
       final data = await _api.get('/services/', auth: false, query: const {'page_size': '100'});
       final list = data is Map ? data['results'] : data;
-      if (list is List && list.isNotEmpty) {
-        services = list
-            .map((e) => ServiceModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-        serverOk = true;
-      } else {
-        services = List.of(DemoContent.catalogWithPrices);
-        serverOk = true;
-      }
+      // Demo xizmatlarning id lari serverda yo'q — ular bilan buyurtma berib bo'lmaydi, shuning uchun
+      // server rejimida hech qachon demo katalogga tushmaymiz.
+      services = list is List
+          ? list.map((e) => ServiceModel.fromJson(Map<String, dynamic>.from(e as Map))).toList()
+          : <ServiceModel>[];
+      serverOk = true;
     } catch (e) {
-      services = List.of(DemoContent.catalogWithPrices);
       serverOk = false;
-      error = null;
+      error = e is ApiException ? e.message : 'Xizmatlarni yuklab bo‘lmadi';
       if (kDebugMode) debugPrint('catalog: $e');
     } finally {
       loading = false;

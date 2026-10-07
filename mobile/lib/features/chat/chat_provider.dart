@@ -21,6 +21,16 @@ class ChatProvider extends ChangeNotifier {
 
   int get unreadTotal => rooms.fold(0, (s, r) => s + r.unread);
 
+  /// Chiqishda — keyingi foydalanuvchiga oldingi suhbatlar ko'rinmasin.
+  void reset() {
+    _threads.clear();
+    _roomByPartner.clear();
+    _demoPartners.clear();
+    rooms = [];
+    roomsLoaded = false;
+    notifyListeners();
+  }
+
   List<ChatMessage> messagesFor(int partnerId) => List.unmodifiable(_threads[partnerId] ?? const []);
 
   bool isDemo(int partnerId) => _demoPartners.contains(partnerId);

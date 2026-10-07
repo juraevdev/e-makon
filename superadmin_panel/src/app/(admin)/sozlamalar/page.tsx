@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   EmptyState,
   Field,
   inputClass,
   LoadingBlock,
-  Modal,
   PrimaryButton,
   StatusPill,
 } from "@/components/ui";
@@ -15,19 +15,19 @@ import type { AdminProfile } from "@/lib/api/types";
 import { ROLE_LABEL } from "@/lib/domain";
 import { useAsync } from "@/hooks/useAsync";
 import { useAuth } from "@/providers/AuthProvider";
+import { useToast } from "@/providers/ToastProvider";
 
 export default function SozlamalarPage() {
   const { user, refreshMe } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
   const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState({
     first_name: user?.first_name || "",
     last_name: user?.last_name || "",
     email: user?.email || "",
   });
-  const [form, setForm] = useState({ phone: "", full_name: "", password: "", title: "Admin" });
 
-  const { data, loading, error, reload } = useAsync(async () => {
+  const { data, loading, error } = useAsync(async () => {
     const raw = await api("/admin/admins/", { query: { page_size: 50 } });
     return asPage<AdminProfile>(raw).results;
   }, []);
@@ -37,18 +37,9 @@ export default function SozlamalarPage() {
     try {
       await api("/auth/me/", { method: "PATCH", body: profile });
       await refreshMe();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addAdmin() {
-    setBusy(true);
-    try {
-      await api("/admin/admins/", { method: "POST", body: form });
-      setOpen(false);
-      setForm({ phone: "", full_name: "", password: "", title: "Admin" });
-      await reload();
+      showSuccess("Profil saqlandi");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Profil saqlanmadi");
     } finally {
       setBusy(false);
     }
@@ -83,7 +74,13 @@ export default function SozlamalarPage() {
             <h3 className="text-xl font-semibold">Administratorlar</h3>
             <p className="text-xs text-on-surface-variant">Panelga telefon + parol bilan kiradigan adminlar</p>
           </div>
-          <PrimaryButton icon="person_add" onClick={() => setOpen(true)}>Admin qo&apos;shish</PrimaryButton>
+          <Link
+            href="/administratorlar"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-black"
+          >
+            <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
+            Boshqarish
+          </Link>
         </div>
         {loading ? (
           <LoadingBlock />
@@ -118,26 +115,6 @@ export default function SozlamalarPage() {
           </table>
         )}
       </section>
-
-      <Modal open={open} title="Yangi admin" onClose={() => setOpen(false)}>
-        <div className="space-y-3">
-          <Field label="Ism">
-            <input className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-          </Field>
-          <Field label="Telefon">
-            <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </Field>
-          <Field label="Parol">
-            <input type="password" className={inputClass} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          </Field>
-          <Field label="Lavozim">
-            <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </Field>
-          <PrimaryButton disabled={busy || !form.phone || !form.password} onClick={() => void addAdmin()}>
-            Yaratish
-          </PrimaryButton>
-        </div>
-      </Modal>
     </div>
   );
 }

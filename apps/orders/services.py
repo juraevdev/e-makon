@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.exceptions import AppError, ConflictError
-from apps.orders.models import Order, OrderIdempotency, OrderMedia, OrderStatusHistory
+from apps.orders.models import Order, OrderIdempotency, OrderItem, OrderMedia, OrderStatusHistory
 
 
 # Canonical lifecycle (enforced for admin transitions).
@@ -39,6 +39,8 @@ STAGE_STATUS: dict[str, str] = {
     Order.WorkStage.WORKING: Order.Status.CONTACTED,
     Order.WorkStage.FINISHED: Order.Status.COMPLETED,
 }
+
+CUSTOMER_CANCELLABLE_STAGES: set[str] = {"", Order.WorkStage.ACCEPTED}
 
 STATUS_PATH: list[str] = [
     Order.Status.NEW,
@@ -95,6 +97,7 @@ class OrderService:
         time_slot: str = "",
         location_lat=None,
         location_lng=None,
+        items: list[tuple] | None = None,
     ) -> tuple[Order, bool]:
         """
         Create an order. Returns (order, created).
@@ -164,6 +167,12 @@ class OrderService:
             changed_by=customer,
             note="Buyurtma yaratildi",
         )
+        OrderItem.objects.bulk_create(
+            [
+                OrderItem(order=order, service=item_service, amount=amount, sort_order=index)
+                for index, (item_service, amount) in enumerate(items or [(service, quoted_price)])
+            ]
+        )
         for index, uploaded in enumerate(media_files or []):
             kind = (
                 OrderMedia.Kind.VIDEO
@@ -198,7 +207,23 @@ class OrderService:
             order=order,
             extra={"from_status": "", "to_status": Order.Status.NEW},
         )
+        if order.organization_id:
+            from apps.organizations.models import FirmMessage
+
+            FirmMessage.objects.create(
+                firm_id=order.organization_id,
+                kind=FirmMessage.Kind.MESSAGE,
+                subject=f"Yangi buyurtma #{order.pk}",
+                body=f"{service.name} · {order.address or 'manzil ko‘rsatilmagan'}.",
+            )
         return order, True
+
+    @staticmethod
+    def customer_can_cancel(order: Order) -> bool:
+        """Mijoz ishchi guruh yo'lga chiqquncha bekor qila oladi; keyin firma yoki platforma orqali."""
+        if order.status not in {Order.Status.NEW, Order.Status.IN_REVIEW}:
+            return False
+        return order.work_stage in CUSTOMER_CANCELLABLE_STAGES
 
     @staticmethod
     def assert_transition_allowed(from_status: str, to_status: str) -> None:

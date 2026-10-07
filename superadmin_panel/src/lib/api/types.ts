@@ -245,6 +245,7 @@ export type Employee = {
 export type AdminProfile = {
   id: number;
   user: User;
+  organization_id: number | null;
   title: string;
   can_manage_staff: boolean;
   can_manage_orders: boolean;

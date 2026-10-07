@@ -51,6 +51,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     FocusScope.of(context).unfocus();
 
     final auth = context.read<AuthProvider>();
+    // Tashlab ketilgan ro'yxatdan o'tish ma'lumoti login OTP'ni 'register' qilib yubormasin.
+    auth.pendingRegistration = null;
     try {
       final data = await auth.requestOtp(_digits);
       if (!mounted) return;

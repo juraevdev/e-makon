@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../constants/api_config.dart';
+import '../network/api_client.dart';
 import '../network/models.dart';
 import '../theme/app_colors.dart';
 import 'app_image.dart';
@@ -41,6 +43,9 @@ class PartnerLogo extends StatelessWidget {
 }
 
 Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {double? distanceKm}) {
+  if (partner.fromServer || ApiConfig.useLocalData) {
+    context.read<ReviewsProvider>().loadFor(partner.id, refresh: true);
+  }
   return showModalBottomSheet(
     context: context,
     useRootNavigator: true,
@@ -266,18 +271,26 @@ class _ReviewsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reviews = context.watch<ReviewsProvider>().forPartner(partner.id);
+    final provider = context.watch<ReviewsProvider>();
+    final reviews = provider.forPartner(partner.id);
+    final error = provider.errorFor(partner.id);
+    final canReview = partner.fromServer || ApiConfig.useLocalData;
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.all(20),
       children: [
-        PrimaryButton(
-          label: 'Sharh qoldirish',
-          icon: Icons.star_rate_rounded,
-          onPressed: () => _leaveReview(context, partner),
-        ),
+        if (canReview)
+          PrimaryButton(
+            label: 'Sharh qoldirish',
+            icon: Icons.star_rate_rounded,
+            onPressed: () => _leaveReview(context, partner),
+          ),
         const SizedBox(height: 14),
-        if (reviews.isEmpty)
+        if (provider.isLoading(partner.id) && reviews.isEmpty)
+          const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+        else if (error != null && reviews.isEmpty)
+          Text(error, style: const TextStyle(color: AppColors.onSurfaceVariant))
+        else if (reviews.isEmpty)
           const Text('Hali sharh yo‘q — birinchisini yozing', style: TextStyle(color: AppColors.onSurfaceVariant))
         else
           for (final r in reviews)
@@ -347,17 +360,34 @@ class _ReviewsTab extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true && context.mounted) {
-      final name = context.read<AuthProvider>().user?.displayName ?? 'Siz';
+    final comment = text.text.trim();
+    text.dispose();
+    if (ok != true || !context.mounted) return;
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sharh qoldirish uchun tizimga kiring'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    try {
       await context.read<ReviewsProvider>().add(
             partnerId: partner.id,
-            author: name,
+            author: auth.user?.displayName ?? 'Siz',
             stars: stars,
-            text: text.text.trim().isEmpty ? 'Yaxshi xizmat' : text.text.trim(),
+            text: comment,
           );
-      text.dispose();
-    } else {
-      text.dispose();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sharh qabul qilindi'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), behavior: SnackBarBehavior.floating),
+        );
+      }
     }
   }
 }

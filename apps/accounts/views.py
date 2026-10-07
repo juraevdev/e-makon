@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import generics, permissions
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import User
@@ -19,10 +20,13 @@ from apps.accounts.services.telegram_link import TelegramLinkService
 from apps.core.bot_auth import IsBotService
 from apps.core.permissions import IsCustomer
 from apps.core.responses import success_response
+from apps.core.throttling import SettingsScopedRateThrottle
 
 
 class OTPRequestView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [SettingsScopedRateThrottle]
+    throttle_scope = "otp_request"
 
     def post(self, request):
         serializer = OTPRequestSerializer(data=request.data)
@@ -36,6 +40,8 @@ class OTPRequestView(APIView):
 
 class OTPVerifyView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [SettingsScopedRateThrottle]
+    throttle_scope = "otp_verify"
 
     def post(self, request):
         serializer = OTPVerifySerializer(data=request.data)
@@ -63,6 +69,8 @@ class AdminLoginView(APIView):
     """Superadmin / admin panel login (telefon + parol)."""
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [SettingsScopedRateThrottle]
+    throttle_scope = "admin_login"
 
     def post(self, request):
         serializer = AdminPasswordLoginSerializer(data=request.data)
@@ -88,6 +96,23 @@ class AdminLoginView(APIView):
             },
             message="Kirish muvaffaqiyatli",
         )
+
+
+class LogoutView(APIView):
+    """Refresh tokenni bekor qiladi (blacklist). Access token muddati tugaguncha amal qiladi."""
+
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [SettingsScopedRateThrottle]
+    throttle_scope = "token"
+
+    def post(self, request):
+        raw = str(request.data.get("refresh") or "").strip()
+        if raw:
+            try:
+                RefreshToken(raw).blacklist()
+            except TokenError:
+                pass
+        return success_response(None, message="Chiqildi")
 
 
 class MeView(generics.RetrieveUpdateAPIView):

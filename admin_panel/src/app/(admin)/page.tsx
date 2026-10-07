@@ -11,7 +11,7 @@ import {
   StatCard,
   inputClass,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, fetchAll } from "@/lib/api/client";
 import type { DashboardData, Order, OrderStatus, PartnerFirm } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
 import { formatMoney, formatPhone, initials } from "@/lib/format";
@@ -105,34 +105,44 @@ function ServiceUsageList({
   );
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function downloadPdfReport(firm: PartnerFirm | null, query: Record<string, string>) {
   const bundle = await api<{ generated_at: string; title: string; summary: DashboardData }>(
     "/admin/reports/bundle/",
     { query },
   );
   const s = bundle.summary;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${firm?.name ?? ""} — hisobot</title>
+  const e = escapeHtml;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${e(firm?.name ?? "")} — hisobot</title>
   <style>
     body{font-family:Arial,sans-serif;padding:24px;color:#111}
     h1{color:#1b6d24} table{width:100%;border-collapse:collapse;margin:16px 0}
     th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}
     th{background:#eef7ee} .muted{color:#666;font-size:12px}
   </style></head><body>
-  <h1>${firm?.name ?? "Firma"} — hisobot</h1>
-  <p class="muted">Yaratilgan: ${bundle.generated_at} · Davr: ${s.date_from} — ${s.date_to}</p>
+  <h1>${e(firm?.name ?? "Firma")} — hisobot</h1>
+  <p class="muted">Yaratilgan: ${e(bundle.generated_at)} · Davr: ${e(s.date_from)} — ${e(s.date_to)}</p>
   <table>
-    <tr><th>Davr buyurtmalari</th><td>${s.orders_in_period}</td></tr>
-    <tr><th>Faol buyurtmalar</th><td>${s.active_orders}</td></tr>
-    <tr><th>Yakunlangan buyurtmalar</th><td>${s.completed_orders}</td></tr>
-    <tr><th>Davr aylanmasi</th><td>${s.revenue_period} UZS</td></tr>
-    <tr><th>Umumiy aylanma</th><td>${s.revenue_done} UZS</td></tr>
-    <tr><th>Platforma ulushi</th><td>${s.platform_share_total} UZS</td></tr>
-    <tr><th>O'rtacha chek</th><td>${s.avg_check} UZS</td></tr>
-    <tr><th>Mijozlar</th><td>${s.total_customers}</td></tr>
+    <tr><th>Davr buyurtmalari</th><td>${e(s.orders_in_period)}</td></tr>
+    <tr><th>Faol buyurtmalar</th><td>${e(s.active_orders)}</td></tr>
+    <tr><th>Yakunlangan buyurtmalar</th><td>${e(s.completed_orders)}</td></tr>
+    <tr><th>Davr aylanmasi</th><td>${e(s.revenue_period)} UZS</td></tr>
+    <tr><th>Umumiy aylanma</th><td>${e(s.revenue_done)} UZS</td></tr>
+    <tr><th>Platforma ulushi</th><td>${e(s.platform_share_total)} UZS</td></tr>
+    <tr><th>O'rtacha chek</th><td>${e(s.avg_check)} UZS</td></tr>
+    <tr><th>Mijozlar</th><td>${e(s.total_customers)}</td></tr>
   </table>
   <h2>Xizmatlar</h2>
   <table><tr><th>Xizmat</th><th>Buyurtma</th><th>Aylanma</th></tr>
-  ${(s.top_services || []).map((t) => `<tr><td>${t.name}</td><td>${t.orders}</td><td>${t.revenue}</td></tr>`).join("")}
+  ${(s.top_services || []).map((t) => `<tr><td>${e(t.name)}</td><td>${e(t.orders)}</td><td>${e(t.revenue)}</td></tr>`).join("")}
   </table>
   <script>window.onload=()=>window.print()</script>
   </body></html>`;
@@ -156,8 +166,12 @@ export default function DashboardPage() {
   } = useAsync(() => api<DashboardData>("/admin/dashboard/", { query: { period: "month" } }), []);
 
   const { data: orders } = useAsync(async () => {
-    const raw = await api("/admin/orders/", { query: { page_size: 100 } });
-    return asPage<Order>(raw).results;
+    const groups = await Promise.all(
+      (["new", "in_review", "contacted", "completed"] as const).map((status) =>
+        fetchAll<Order>("/admin/orders/", { status }, status === "completed" ? 5 : 20),
+      ),
+    );
+    return groups.flat();
   }, []);
 
   const chartQuery = useMemo(() => {

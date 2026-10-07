@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
 import '../../core/utils/location_helper.dart';
@@ -78,22 +79,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _address.text = result.label;
     final auth = context.read<AuthProvider>();
     final feed = context.read<HomeFeedProvider>();
-    await auth.updateProfile(address: result.label);
+    String message = 'Manzil GPS orqali aniqlandi';
+    try {
+      await auth.updateProfile(address: result.label);
+    } on ApiException catch (e) {
+      message = e.message;
+    }
     await feed.refreshLocation();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Manzil GPS orqali aniqlandi'), behavior: SnackBarBehavior.floating),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
   Future<void> _save() async {
-    await context.read<AuthProvider>().updateProfile(
-          firstName: _first.text.trim(),
-          lastName: _last.text.trim(),
-          company: _company.text.trim(),
-          email: _email.text.trim(),
-          address: _address.text.trim(),
-        );
+    try {
+      await context.read<AuthProvider>().updateProfile(
+            firstName: _first.text.trim(),
+            lastName: _last.text.trim(),
+            company: _company.text.trim(),
+            email: _email.text.trim(),
+            address: _address.text.trim(),
+          );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
     if (!mounted) return;
     setState(() => _editing = false);
     ScaffoldMessenger.of(context).showSnackBar(

@@ -119,13 +119,22 @@ class SessionStore:
             updated_at=row["updated_at"],
         )
 
-    def update_access(self, telegram_id: int, access_token: str) -> None:
+    def update_access(
+        self, telegram_id: int, access_token: str, refresh_token: str | None = None
+    ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         with self._lock, self._connect() as conn:
-            conn.execute(
-                "UPDATE sessions SET access_enc = ?, updated_at = ? WHERE telegram_id = ?",
-                (self._enc(access_token), now, telegram_id),
-            )
+            if refresh_token:
+                conn.execute(
+                    "UPDATE sessions SET access_enc = ?, refresh_enc = ?, updated_at = ? "
+                    "WHERE telegram_id = ?",
+                    (self._enc(access_token), self._enc(refresh_token), now, telegram_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE sessions SET access_enc = ?, updated_at = ? WHERE telegram_id = ?",
+                    (self._enc(access_token), now, telegram_id),
+                )
             conn.commit()
 
     def delete(self, telegram_id: int) -> None:

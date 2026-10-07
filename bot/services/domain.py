@@ -41,19 +41,7 @@ class AuthService:
             return None
 
     async def request_otp(self, phone: str) -> dict:
-        data = await self.api.otp_request(normalize_phone(phone))
-        # Dev: API may return debug_code when SMS is not configured
-        debug = data.get("debug_code") if isinstance(data, dict) else None
-        if debug:
-            logger.warning(
-                "========== OTP (BOT LOG) ==========\n"
-                "Telefon: %s\n"
-                "Kod:     %s\n"
-                "===================================",
-                phone,
-                debug,
-            )
-        return data
+        return await self.api.otp_request(normalize_phone(phone))
 
     async def verify_and_link(
         self,
@@ -94,9 +82,14 @@ class AuthService:
         return session
 
     async def with_access(self, session: BotSession):
-        async def on_refreshed(new_access: str) -> None:
-            self.sessions.update_access(session.telegram_id, new_access)
+        async def on_refreshed(new_access: str | None, new_refresh: str | None) -> None:
+            if not new_access:
+                self.sessions.delete(session.telegram_id)
+                return
+            self.sessions.update_access(session.telegram_id, new_access, new_refresh)
             session.access_token = new_access
+            if new_refresh:
+                session.refresh_token = new_refresh
 
         return session.access_token, session.refresh_token, on_refreshed
 
@@ -182,6 +175,18 @@ class OrderFlowService:
     async def cancel(self, session: BotSession, order_id: int) -> dict:
         access, refresh, on_refreshed = await self.auth.with_access(session)
         return await self.api.cancel_order(
+            access, order_id, refresh_token=refresh, on_refreshed=on_refreshed
+        )
+
+    async def start_payment(self, session: BotSession, order_id: int, provider: str) -> dict:
+        access, refresh, on_refreshed = await self.auth.with_access(session)
+        return await self.api.start_payment(
+            access, order_id, provider, refresh_token=refresh, on_refreshed=on_refreshed
+        )
+
+    async def test_pay(self, session: BotSession, order_id: int) -> dict:
+        access, refresh, on_refreshed = await self.auth.with_access(session)
+        return await self.api.test_pay(
             access, order_id, refresh_token=refresh, on_refreshed=on_refreshed
         )
 

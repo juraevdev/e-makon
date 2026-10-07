@@ -158,6 +158,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Expanded(
                 child: ordersProvider.loading && orders.isEmpty
                     ? Center(child: CircularProgressIndicator(color: accent))
+                    : ordersProvider.error != null && all.isEmpty
+                        ? _LoadError(
+                            message: ordersProvider.error!,
+                            accent: accent,
+                            onRetry: () => context.read<OrdersProvider>().load(),
+                          )
                     : orders.isEmpty
                         ? _EmptyOrders(onBrowse: () => context.go('/home'), accent: accent)
                         : RefreshIndicator(
@@ -384,6 +390,36 @@ class _OrderCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right_rounded, color: statusColor, size: 20),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.message, required this.accent, required this.onRetry});
+  final String message;
+  final Color accent;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 52, color: accent.withValues(alpha: 0.55)),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Qayta urinish'),
             ),
           ],
         ),

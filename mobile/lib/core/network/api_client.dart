@@ -30,7 +30,8 @@ class ApiClient {
   /// Token yangilab bo'lmaganda (sessiya tugagan) chaqiriladi — AuthProvider foydalanuvchini chiqaradi.
   void Function()? onSessionExpired;
 
-  Future<bool>? _refreshing;
+  /// true — yangilandi, false — server rad etdi (sessiya tugagan), null — tarmoq xatosi.
+  Future<bool?>? _refreshing;
 
   Future<String?> get accessToken => _storage.read(key: _accessKey);
 
@@ -65,7 +66,7 @@ class ApiClient {
   }
 
   /// Access token muddati tugaganda (12 soat) refresh token bilan yangisini oladi.
-  Future<bool> _refreshTokens() {
+  Future<bool?> _refreshTokens() {
     return _refreshing ??= () async {
       try {
         final refresh = await _storage.read(key: _refreshKey);
@@ -77,7 +78,8 @@ class ApiClient {
               body: jsonEncode({'refresh': refresh}),
             )
             .timeout(ApiConfig.requestTimeout);
-        if (res.statusCode != 200) return false;
+        if (res.statusCode == 400 || res.statusCode == 401) return false;
+        if (res.statusCode != 200) return null;
         final raw = jsonDecode(res.body);
         final data = raw is Map && raw['data'] is Map ? raw['data'] as Map : raw;
         final access = data is Map ? data['access'] as String? : null;
@@ -85,19 +87,23 @@ class ApiClient {
         await saveTokens(access: access, refresh: (data['refresh'] as String?) ?? refresh);
         return true;
       } catch (_) {
-        return false;
+        return null;
       } finally {
         _refreshing = null;
       }
     }();
   }
 
-  Future<dynamic> _guard(Future<http.Response> Function() send, {bool auth = true}) async {
+  Future<dynamic> _guard(Future<http.Response> Function() send, {bool auth = true, Duration? timeout}) async {
+    final limit = timeout ?? ApiConfig.requestTimeout;
     try {
-      var res = await send().timeout(ApiConfig.requestTimeout);
+      var res = await send().timeout(limit);
       if (res.statusCode == 401 && auth && await hasToken) {
-        if (await _refreshTokens()) {
-          res = await send().timeout(ApiConfig.requestTimeout);
+        final refreshed = await _refreshTokens();
+        if (refreshed == true) {
+          res = await send().timeout(limit);
+        } else if (refreshed == null) {
+          throw ApiException('Serverga ulanib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring');
         } else {
           await clearTokens();
           onSessionExpired?.call();
@@ -105,6 +111,8 @@ class ApiClient {
         }
       }
       return _decode(res);
+    } on TimeoutException {
+      throw ApiException('Server javob bermadi. Internetni tekshirib, qayta urinib ko‘ring');
     } on SocketException {
       throw ApiException('Serverga ulanib bo‘lmadi. Internet yoki API manzilini tekshiring');
     } on HttpException {
@@ -129,15 +137,37 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool auth = true,
+    String? idempotencyKey,
   }) async {
     return _guard(
       () async => _client.post(
         _uri(path),
-        headers: await _headers(auth: auth),
+        headers: {
+          ...await _headers(auth: auth),
+          'Idempotency-Key': ?idempotencyKey,
+        },
         body: body == null ? null : jsonEncode(body),
       ),
       auth: auth,
     );
+  }
+
+  /// Tokenni serverda bekor qiladi (blacklist) va lokal nusxani o'chiradi.
+  Future<void> logout() async {
+    final refresh = await _storage.read(key: _refreshKey);
+    await clearTokens();
+    if (refresh == null || refresh.isEmpty || refresh == 'demo-refresh') return;
+    try {
+      await _client
+          .post(
+            _uri('/auth/logout/'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh': refresh}),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Lokal tokenlar o'chirildi; server tomonda bekor qilish — best effort.
+    }
   }
 
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
@@ -148,20 +178,26 @@ class ApiClient {
         ));
   }
 
+  /// [files] — fabrikalar: 401 dan keyin qayta yuborishda MultipartFile qaytadan yaratilishi shart
+  /// (bir marta o'qilgan stream'ni qayta yuborib bo'lmaydi).
   Future<dynamic> postMultipart(
     String path, {
     required Map<String, String> fields,
-    List<http.MultipartFile> files = const [],
+    List<Future<http.MultipartFile> Function()> files = const [],
+    String? idempotencyKey,
   }) async {
     return _guard(() async {
       final req = http.MultipartRequest('POST', _uri(path));
       final token = await accessToken;
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
+      if (idempotencyKey != null) req.headers['Idempotency-Key'] = idempotencyKey;
       req.fields.addAll(fields);
-      req.files.addAll(files);
-      final streamed = await req.send();
+      for (final make in files) {
+        req.files.add(await make());
+      }
+      final streamed = await _client.send(req);
       return http.Response.fromStream(streamed);
-    });
+    }, timeout: const Duration(seconds: 90));
   }
 
   dynamic _decode(http.Response res) {

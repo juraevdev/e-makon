@@ -51,6 +51,8 @@ class SupportTicketSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
+            "subject",
+            "order",
             "customer_id",
             "customer_name",
             "customer_phone",

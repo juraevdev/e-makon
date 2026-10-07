@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
+from django.db import transaction
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -25,6 +28,8 @@ from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.permissions import RequiresAdminCapability
 from apps.organizations.services import organization_id_for_queryset
 
+ORDER_PREFETCH = ("media", "status_history__changed_by", "items__service", "payments", "point_transactions")
+
 
 class CustomerOrderViewSet(
     mixins.ListModelMixin,
@@ -41,8 +46,8 @@ class CustomerOrderViewSet(
     def get_queryset(self):
         return (
             Order.objects.filter(customer=self.request.user)
-            .select_related("service", "customer")
-            .prefetch_related("media", "status_history")
+            .select_related("service", "customer", "organization", "escrow")
+            .prefetch_related(*ORDER_PREFETCH)
         )
 
     def create(self, request, *args, **kwargs):
@@ -82,6 +87,12 @@ class CustomerOrderViewSet(
         order = self.get_object()
         if order.status in {Order.Status.COMPLETED, Order.Status.CANCELLED}:
             raise AppError("Bu buyurtmani bekor qilib bo'lmaydi.")
+        if not OrderService.customer_can_cancel(order):
+            raise AppError(
+                "Ishchi guruh yo'lga chiqqan — bekor qilish uchun firma yoki E-Makon "
+                "qo'llab-quvvatlash xizmatiga yozing.",
+                code="order_cancel_locked",
+            )
         OrderService.transition(
             order,
             Order.Status.CANCELLED,
@@ -133,7 +144,7 @@ class AdminOrderViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet
         Order.objects.select_related(
             "service", "customer", "assigned_worker", "organization", "escrow"
         )
-        .prefetch_related("media", "status_history")
+        .prefetch_related(*ORDER_PREFETCH)
         .all()
     )
     filterset_fields = ("status", "service", "work_stage", "organization", "assigned_worker", "customer")
@@ -187,11 +198,13 @@ class AdminOrderViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet
         return success_response(OrderSerializer(order, context={"request": request}).data)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def transition(self, request, pk=None):
         order = self.get_object()
         serializer = OrderStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        OrderService.assert_transition_allowed(order.status, data["status"])
         price = data.get("quoted_price")
         if (
             price is not None
@@ -249,12 +262,19 @@ class AdminOrderViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet
         elif action_name == "dispute":
             escrow = FinanceService.dispute(order, note=note, actor=actor)
         elif action_name == "punish_firm":
+            try:
+                fine_amount = Decimal(str(request.data.get("fine_amount", 100000) or 0))
+                sales_ban_days = int(request.data.get("sales_ban_days") or 0)
+            except (InvalidOperation, TypeError, ValueError) as exc:
+                raise AppError("Jarima summasi yoki taqiq kunlari noto'g'ri.") from exc
+            if fine_amount < 0 or not 0 <= sales_ban_days <= 365:
+                raise AppError("Jarima manfiy bo'lmasin, taqiq 0–365 kun oralig'ida bo'lsin.")
             escrow = FinanceService.punish_firm(
                 order,
                 note=note,
                 refund=bool(request.data.get("refund")),
-                fine_amount=request.data.get("fine_amount") or 100000,
-                sales_ban_days=int(request.data.get("sales_ban_days") or 0),
+                fine_amount=fine_amount,
+                sales_ban_days=sales_ban_days,
                 actor=actor,
             )
         elif action_name == "punish_user":

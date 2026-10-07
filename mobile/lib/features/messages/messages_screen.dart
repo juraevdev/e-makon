@@ -328,7 +328,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                 Icon(Icons.mark_email_read_outlined,
                                     size: 52, color: accent.withValues(alpha: 0.45)),
                                 const SizedBox(height: 12),
-                                Text('Xabar topilmadi', style: Theme.of(context).textTheme.titleMedium),
+                                Text(provider.error ?? 'Xabar topilmadi',
+                                    textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+                                if (provider.error != null)
+                                  TextButton(
+                                    onPressed: () => provider.load(context.read<ApiClient>()),
+                                    child: const Text('Qayta urinish'),
+                                  ),
                               ],
                             ),
                           )

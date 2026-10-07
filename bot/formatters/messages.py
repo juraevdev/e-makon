@@ -95,13 +95,37 @@ def order_summary(data: dict) -> str:
     return "\n".join(lines)
 
 
+PAYMENT_LABELS = {
+    "not_required": "Talab qilinmaydi",
+    "unpaid": "To'lanmagan",
+    "checking": "Tekshirilmoqda",
+    "rejected": "Rad etilgan",
+    "paid": "To'langan (E-Makon'da saqlanmoqda)",
+    "released": "Firmaga o'tkazilgan",
+    "refunded": "Qaytarilgan",
+}
+
+
+def _payment_line(order: dict) -> str:
+    status = order.get("payment_status") or ""
+    if not status or status == "not_required":
+        return ""
+    return f"To'lov: {PAYMENT_LABELS.get(status, status)}"
+
+
 def order_created(order: dict) -> str:
-    return (
+    text = (
         "✅ <b>Buyurtma qabul qilindi</b>\n\n"
         f"Raqam: #{order.get('id')}\n"
         f"Xizmat: {order.get('service_name') or (order.get('service') or {}).get('name', '—')}\n"
         f"Holat: {status_label(order.get('status', ''))}\n"
     )
+    if order.get("payment_status") in {"unpaid", "rejected"}:
+        text += (
+            f"Narx: {order.get('quoted_price')} {order.get('currency') or 'UZS'}\n\n"
+            "Buyurtma to'lovdan keyin firmaga yuboriladi."
+        )
+    return text
 
 
 def order_card(order: dict) -> str:
@@ -116,6 +140,8 @@ def order_card(order: dict) -> str:
         lines.append(f"Maydon: {order['area_size']}")
     if order.get("quoted_price") is not None:
         lines.append(f"Narx: {order['quoted_price']} {order.get('currency') or 'UZS'}")
+    if payment := _payment_line(order):
+        lines.append(payment)
     if order.get("assigned_worker_name"):
         lines.append(f"Xodim: {order['assigned_worker_name']}")
     if order.get("agreed_duration"):

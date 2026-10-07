@@ -198,51 +198,61 @@ async def run_polling() -> None:
                 pass
 
 
-def run_webhook() -> None:
+async def run_webhook() -> None:
     import os
 
-    async def _boot():
-        return await _prepare()
-
-    bot, dp, redis, bundle = asyncio.get_event_loop().run_until_complete(_boot())
+    # Redis/HTTP clients are bound to the loop they were created on, so everything
+    # (setup, aiohttp server, worker) has to live inside this single asyncio.run() loop.
+    bot, dp, redis, bundle = await _prepare()
     settings = bundle.settings
-
-    async def _start_worker(app: web.Application):
-        if redis is None:
-            logger.warning("notification_worker_skipped (no Redis)")
-            return
-        worker = NotificationWorker(bot, redis, settings.notification_queue_key)
-        set_notify_worker(worker)
-        app["worker_task"] = asyncio.create_task(worker.run())
-
-    async def _stop_worker(app: web.Application):
-        worker = get_notify_worker()
-        if worker:
-            worker.stop()
-        task = app.get("worker_task")
-        if task:
-            task.cancel()
+    if not settings.webhook_url:
+        raise SystemExit("WEBHOOK_URL is required when BOT_RUN_MODE=webhook")
 
     app = web.Application()
-    app.on_startup.append(_start_worker)
-    app.on_cleanup.append(_stop_worker)
     SimpleRequestHandler(
         dispatcher=dp,
         bot=bot,
         secret_token=settings.webhook_secret or None,
     ).register(app, path=settings.webhook_path)
     setup_application(app, dp, bot=bot)
-    web.run_app(
-        app,
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(
+        runner,
         host=os.getenv("BOT_HOST", "0.0.0.0"),
         port=int(os.getenv("BOT_PORT", "8081")),
     )
+    await site.start()
+    logger.info("webhook_server_started path=%s", settings.webhook_path)
+
+    worker_task = None
+    if redis is not None:
+        worker = NotificationWorker(bot, redis, settings.notification_queue_key)
+        set_notify_worker(worker)
+        worker_task = asyncio.create_task(worker.run())
+    else:
+        logger.warning("notification_worker_skipped (no Redis)")
+
+    try:
+        await asyncio.Event().wait()
+    finally:
+        worker = get_notify_worker()
+        if worker:
+            worker.stop()
+        if worker_task:
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
+        await runner.cleanup()
 
 
 def main() -> None:
     settings = get_settings()
     if settings.run_mode == "webhook":
-        run_webhook()
+        asyncio.run(run_webhook())
     else:
         asyncio.run(run_polling())
 

@@ -13,7 +13,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, fetchAll, fetchPages } from "@/lib/api/client";
 import type { Employee, Order, OrderStatus, WorkStage } from "@/lib/api/types";
 import { downloadCsv } from "@/lib/csv";
 import {
@@ -108,6 +108,7 @@ function stageTimes(o: Order) {
 }
 
 const EMPTY_FORM = { quoted_price: "", agreed_duration: "", worker: "", note: "", distance_km: "", eta_minutes: "" };
+const ORDER_PAGES = 5;
 
 export default function BuyurtmalarPage() {
   const { query } = useSearch();
@@ -120,21 +121,16 @@ export default function BuyurtmalarPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   const { data, loading, error, reload } = useAsync(
-    async () => {
-      const raw = await api("/admin/orders/", {
-        query: { page_size: 100, search: query || undefined },
-      });
-      return asPage<Order>(raw);
-    },
+    async () => fetchPages<Order>("/admin/orders/", { search: query || undefined }, ORDER_PAGES),
     [query],
     { keepPrevious: true },
   );
   usePolling(() => void reload(), 30000);
 
-  const { data: employees } = useAsync(async () => {
-    const raw = await api("/admin/employees/", { query: { page_size: 100, employment_status: "active" } });
-    return asPage<Employee>(raw).results;
-  }, []);
+  const { data: employees } = useAsync(
+    async () => fetchAll<Employee>("/admin/employees/", { employment_status: "active" }),
+    [],
+  );
 
   const all = useMemo(() => data?.results ?? [], [data]);
   const orders = useMemo(() => {
@@ -251,6 +247,12 @@ export default function BuyurtmalarPage() {
           </SecondaryButton>
         </div>
       </div>
+
+      {data && data.count > all.length ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+          Oxirgi {all.length} ta buyurtma ko&apos;rsatilmoqda (jami {data.count}). Eskilarini topish uchun qidiruvdan foydalaning.
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         {[

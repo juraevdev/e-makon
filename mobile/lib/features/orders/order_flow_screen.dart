@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +57,13 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   String _timeSlot = _slots.first;
   double? _lat;
   double? _lng;
+
+  /// Shu ekrandagi barcha yuborish urinishlari uchun bitta kalit — javob yo'qolib qayta bosilsa,
+  /// server ikkinchi buyurtma ochmaydi.
+  late final String _idempotencyKey = () {
+    final rnd = Random.secure();
+    return List.generate(16, (_) => rnd.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+  }();
 
   /// Xizmatni ko'rsatadigan firmalar (`offer.price` — qat'iy narx). null — yuklanmoqda.
   List<PartnerModel>? _firms;
@@ -157,7 +165,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   }
 
   Future<void> _pickImages() async {
-    final files = await ImagePicker().pickMultiImage(imageQuality: 80);
+    final files = await ImagePicker().pickMultiImage(imageQuality: 80, maxWidth: 1920, maxHeight: 1920);
     if (files.isEmpty) return;
     setState(() {
       _images.addAll(files);
@@ -222,10 +230,6 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
       setState(() => _error = 'Izoh majburiy — bog‘ holatini yozing');
       return false;
     }
-    if (_images.length < 2) {
-      setState(() => _error = 'Kamida 2 ta rasm yuklang (maks. 3)');
-      return false;
-    }
     setState(() => _error = null);
     return true;
   }
@@ -247,6 +251,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             areaSize: _area.text.trim(),
             address: _address.text.trim(),
             notes: _notes.text.trim(),
+            idempotencyKey: _idempotencyKey,
             phone: _phone.text.trim(),
             partnerName: _partner?.name ?? '',
             firmId: _partner != null && _partner!.fromServer ? _partner!.id : null,
@@ -260,9 +265,6 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             partnerLng: _partner?.lng,
             estimatedAmount: _estimate,
           );
-      if (!mounted) return;
-      final pts = order.pointsEarned;
-      if (pts > 0) await context.read<AuthProvider>().addPoints(pts);
       await NotificationService.instance.show(
         title: 'Buyurtma qabul qilindi',
         body: order.needsPayment
@@ -621,7 +623,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Bog‘ holatidan 2–3 ta rasm *', style: Theme.of(context).textTheme.titleMedium),
+          Text('Bog‘ holatidan rasmlar (ixtiyoriy, maks. 3)', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           SizedBox(
             height: 92,

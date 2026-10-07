@@ -5,9 +5,22 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
+from apps.core.phone import normalize_phone
 from apps.organizations.models import Organization
 from apps.organizations.services import get_or_create_default_organization
 from apps.staff.models import AdminProfile, EmployeeProfile
+
+
+def _clean_phone(value: str, instance: AdminProfile | EmployeeProfile | None) -> str:
+    phone = normalize_phone(value)
+    if len(phone) < 10:
+        raise serializers.ValidationError("Telefon raqam noto'g'ri.")
+    taken = User.objects.filter(phone=phone)
+    if instance is not None:
+        taken = taken.exclude(pk=instance.user_id)
+    if taken.exists():
+        raise serializers.ValidationError("Bu telefon raqam boshqa hisobga biriktirilgan.")
+    return phone
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -66,6 +79,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def get_completed_orders(self, obj: EmployeeProfile) -> int:
         return int(getattr(obj, "completed_orders_anno", 0) or 0)
+
+    def validate_phone(self, value: str) -> str:
+        return _clean_phone(value, self.instance)
 
     def validate_skills(self, value):
         if not isinstance(value, list):
@@ -143,6 +159,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "user", "created_at")
 
+    def validate_phone(self, value: str) -> str:
+        return _clean_phone(value, self.instance)
+
     def create(self, validated_data):
         phone = validated_data.pop("phone", None)
         password = validated_data.pop("password", None)
@@ -181,6 +200,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
             user_changed = True
         if password:
             user.set_password(password)
+            user_changed = True
+        if "organization" in validated_data:
+            org = validated_data["organization"] or get_or_create_default_organization()
+            validated_data["organization"] = org
+            if user.organization_id != org.pk:
+                # Querysets scope by User.organization; keep both in sync.
+                user.organization = org
+                user_changed = True
+        if "is_active" in validated_data and user.is_active != validated_data["is_active"]:
+            user.is_active = validated_data["is_active"]
             user_changed = True
         if user_changed:
             user.save()

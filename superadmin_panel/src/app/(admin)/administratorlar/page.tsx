@@ -16,8 +16,8 @@ import {
   StatusPill,
   TableSkeleton,
 } from "@/components/ui";
-import { api, ApiError, asPage } from "@/lib/api/client";
-import type { AdminProfile } from "@/lib/api/types";
+import { api, ApiError, asPage, fetchAll } from "@/lib/api/client";
+import type { AdminProfile, PartnerFirm } from "@/lib/api/types";
 import { formatDate, formatPhone, pageNumbers } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useAuth } from "@/providers/AuthProvider";
@@ -28,6 +28,7 @@ const emptyAdminForm = {
   phone: "+998",
   full_name: "",
   password: "",
+  organization_id: "",
   title: "Admin",
   can_manage_staff: true,
   can_manage_orders: true,
@@ -64,6 +65,9 @@ export default function AdministratorlarPage() {
     return asPage<AdminProfile>(raw);
   }, [page, statusFilter, query]);
 
+  const { data: firms } = useAsync(async () => fetchAll<PartnerFirm>("/admin/firms/"), []);
+  const firmName = (id: number | null) => firms?.find((f) => f.id === id)?.name;
+
   const admins = data?.results ?? [];
   const totalCount = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / 15));
@@ -80,6 +84,7 @@ export default function AdministratorlarPage() {
       phone: admin.user.phone,
       full_name: admin.user.full_name || "",
       password: "",
+      organization_id: admin.organization_id ? String(admin.organization_id) : "",
       title: admin.title || "Admin",
       can_manage_staff: admin.can_manage_staff,
       can_manage_orders: admin.can_manage_orders,
@@ -98,12 +103,17 @@ export default function AdministratorlarPage() {
       showError("Admin uchun parol majburiy");
       return;
     }
+    if (!form.organization_id) {
+      showError("Admin qaysi firmaga tegishli ekanini tanlang");
+      return;
+    }
 
     setBusy(true);
     try {
       const payload: Record<string, unknown> = {
         phone: form.phone.trim(),
         full_name: form.full_name.trim(),
+        organization_id: Number(form.organization_id),
         title: form.title.trim() || "Admin",
         can_manage_staff: form.can_manage_staff,
         can_manage_orders: form.can_manage_orders,
@@ -247,6 +257,7 @@ export default function AdministratorlarPage() {
                 </td>
                 <td className="px-4 py-3.5 text-xs text-on-surface">
                   {admin.title || "Admin"}
+                  <div className="text-[11px] text-on-surface-variant">{firmName(admin.organization_id) || "Firma tanlanmagan"}</div>
                 </td>
                 <td className="px-4 py-3.5 text-xs">
                   <div className="flex flex-wrap gap-1">
@@ -347,6 +358,21 @@ export default function AdministratorlarPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
+          </Field>
+
+          <Field label="Firma" required>
+            <select
+              className={inputClass}
+              value={form.organization_id}
+              onChange={(e) => setForm({ ...form, organization_id: e.target.value })}
+            >
+              <option value="">— Firmani tanlang —</option>
+              {(firms ?? []).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
           </Field>
 
           <Field label="Lavozim / Unvon">

@@ -23,11 +23,10 @@ class RequiresAdminCapability(BasePermission):
         if user.role != User.Role.ADMIN:
             return False
 
-        capability = getattr(view, "required_capability", None)
-        if not capability:
-            return True
-
         profile = getattr(user, "admin_profile", None)
         if profile is None or not profile.is_active:
             return False
+        capability = getattr(view, "required_capability", None)
+        if not capability:
+            return True
         return bool(getattr(profile, capability, False))

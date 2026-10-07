@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+from decimal import Decimal
+
+from django.conf import settings
 from rest_framework import serializers
 
 from apps.catalog.models import Service
@@ -13,8 +17,10 @@ from apps.orders.models import (
     OrderPayment,
     OrderStatusHistory,
 )
-from apps.orders.payments import PaymentService, estimate_order_amount, payment_options
+from apps.orders.payments import PaymentService, estimate_items, payment_options
 from apps.orders.services import OrderService
+
+ORDER_MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".mp4", ".mov", ".3gp"}
 
 
 class OrderMediaSerializer(serializers.ModelSerializer):
@@ -167,12 +173,18 @@ class OrderSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     payment = serializers.SerializerMethodField()
     payment_options = serializers.SerializerMethodField()
+    services = serializers.SerializerMethodField()
+    points_earned = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = (
             "id",
             "service",
+            "services",
+            "points_earned",
+            "can_cancel",
             "service_id",
             "service_name",
             "service_icon",
@@ -255,13 +267,40 @@ class OrderSerializer(serializers.ModelSerializer):
         return int(obj.quoted_price or 0)
 
     def get_payment_status(self, obj: Order) -> str:
-        return PaymentService.status(obj)
+        return PaymentService.status(obj, use_prefetched=True)
 
     def get_payment_options(self, obj: Order) -> dict:
         return payment_options()
 
+    def get_services(self, obj: Order) -> list[dict]:
+        items = list(obj.items.all())
+        if not items:
+            return [
+                {
+                    "id": obj.service_id,
+                    "name": obj.service.name,
+                    "icon": obj.service.icon,
+                    "amount": int(obj.quoted_price or 0),
+                }
+            ]
+        return [
+            {
+                "id": item.service_id,
+                "name": item.service.name,
+                "icon": item.service.icon,
+                "amount": int(item.amount or 0),
+            }
+            for item in items
+        ]
+
+    def get_points_earned(self, obj: Order) -> int:
+        return sum(tx.points for tx in obj.point_transactions.all() if tx.kind == "earn")
+
+    def get_can_cancel(self, obj: Order) -> bool:
+        return OrderService.customer_can_cancel(obj)
+
     def get_payment(self, obj: Order) -> dict | None:
-        payment = PaymentService.latest(obj)
+        payment = PaymentService.latest(obj, use_prefetched=True)
         return OrderPaymentSerializer(payment).data if payment else None
 
     def get_progress(self, obj: Order) -> float:
@@ -306,6 +345,22 @@ class OrderCreateSerializer(serializers.Serializer):
     time_slot = serializers.CharField(max_length=64, required=False, allow_blank=True)
     lat = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     lng = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+
+    def validate_media(self, files):
+        max_files = int(getattr(settings, "ORDER_MEDIA_MAX_FILES", 5))
+        max_bytes = int(getattr(settings, "ORDER_MEDIA_MAX_BYTES", 10 * 1024 * 1024))
+        if len(files) > max_files:
+            raise serializers.ValidationError(f"Ko'pi bilan {max_files} ta fayl yuklash mumkin.")
+        for uploaded in files:
+            ext = os.path.splitext(uploaded.name or "")[1].lower()
+            content_type = (getattr(uploaded, "content_type", "") or "").lower()
+            if ext not in ORDER_MEDIA_EXTENSIONS or not content_type.startswith(("image/", "video/")):
+                raise serializers.ValidationError("Faqat rasm yoki video yuklash mumkin.")
+            if uploaded.size > max_bytes:
+                raise serializers.ValidationError(
+                    f"Fayl juda katta (maks. {max_bytes // (1024 * 1024)} MB)."
+                )
+        return files
 
     def to_internal_value(self, data):
         raw = data.get("scheduled_date") if hasattr(data, "get") else None
@@ -355,15 +410,18 @@ class OrderCreateSerializer(serializers.Serializer):
         extra_ids = [
             i for i in validated_data.get("service_ids") or [] if i != validated_data["service_id"]
         ]
+        extra_services = list(published.filter(pk__in=extra_ids))
+        if len(extra_services) != len(set(extra_ids)):
+            raise AppError("Tanlangan qo'shimcha xizmatlardan biri topilmadi.")
         extras = []
-        for extra in published.filter(pk__in=extra_ids):
-            try:
-                resolved = self._resolve_for_firm(extra, firm_id or service.organization_id)
-            except AppError:
-                continue
-            if resolved.pk != service.pk:
+        for extra in extra_services:
+            resolved = self._resolve_for_firm(extra, firm_id or service.organization_id)
+            if resolved.organization_id != service.organization_id:
+                raise AppError("Barcha xizmatlar bitta firmadan bo'lishi kerak.")
+            if resolved.pk != service.pk and resolved not in extras:
                 extras.append(resolved)
-        priced_services = [service, *extras]
+        items = estimate_items([service, *extras], validated_data.get("area_size") or "")
+        total = sum(amount or 0 for _, amount in items)
         first_name = (
             validated_data.get("customer_first_name")
             or validated_data.get("first_name")
@@ -386,13 +444,12 @@ class OrderCreateSerializer(serializers.Serializer):
             customer_last_name=last_name,
             media_files=validated_data.get("media") or [],
             idempotency_key=self.context.get("idempotency_key"),
-            quoted_price=estimate_order_amount(
-                priced_services, validated_data.get("area_size") or ""
-            ),
+            quoted_price=Decimal(total) if total > 0 else None,
             scheduled_date=validated_data.get("scheduled_date"),
             time_slot=validated_data.get("time_slot") or "",
             location_lat=validated_data.get("lat"),
             location_lng=validated_data.get("lng"),
+            items=items,
         )
 
 

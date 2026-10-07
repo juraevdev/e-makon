@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from django.conf import settings
+from django.db import transaction
 
 from apps.notifications.models import NotificationDelivery, UserNotification
 
@@ -42,7 +43,9 @@ def _redis_client():
     if not url:
         return None
     try:
-        return redis.Redis.from_url(url, decode_responses=True)
+        return redis.Redis.from_url(
+            url, decode_responses=True, socket_connect_timeout=2, socket_timeout=2
+        )
     except Exception:  # noqa: BLE001
         logger.exception("redis_connect_failed")
         return None
@@ -123,6 +126,18 @@ class NotificationService:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "payload": payload or {},
         }
+        # Never announce rows that may still be rolled back.
+        transaction.on_commit(lambda: cls._push(body))
+        return True
+
+    @classmethod
+    def _push(cls, body: dict) -> bool:
+        event_id = body["event_id"]
+        event_type = body["event_type"]
+        user_id = body["user_id"]
+        telegram_id = body["telegram_id"]
+        entity_type = body["entity_type"]
+        entity_id = body["entity_id"]
 
         client = _redis_client()
         if client is None:

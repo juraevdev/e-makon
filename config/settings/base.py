@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django_filters",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     # Local
     "apps.core",
@@ -142,13 +143,23 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
+    # Reverse proxies in front of gunicorn (nginx = 1); needed for per-client throttling.
+    "NUM_PROXIES": env.int("DRF_NUM_PROXIES", default=0) or None,
+}
+
+# Per-client limits for auth endpoints (apps.core.throttling). Empty dict disables.
+API_THROTTLE_RATES = {
+    "otp_request": env("THROTTLE_OTP_REQUEST", default="20/min"),
+    "otp_verify": env("THROTTLE_OTP_VERIFY", default="30/min"),
+    "admin_login": env("THROTTLE_ADMIN_LOGIN", default="10/min"),
+    "token": env("THROTTLE_TOKEN", default="60/min"),
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
@@ -207,3 +218,5 @@ PAYMENTS_TEST_MODE = env.bool("PAYMENTS_TEST_MODE", default=True)
 # File uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
+ORDER_MEDIA_MAX_FILES = env.int("ORDER_MEDIA_MAX_FILES", default=5)
+ORDER_MEDIA_MAX_BYTES = env.int("ORDER_MEDIA_MAX_BYTES", default=10 * 1024 * 1024)

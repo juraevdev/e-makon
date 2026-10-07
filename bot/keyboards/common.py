@@ -166,8 +166,33 @@ def orders_keyboard(orders: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def order_detail_keyboard(order_id: int, can_cancel: bool) -> InlineKeyboardMarkup:
-    rows = []
+PAYABLE_STATUSES = frozenset({"unpaid", "rejected"})
+
+
+def payment_rows(order: dict) -> list[list[InlineKeyboardButton]]:
+    if order.get("payment_status") not in PAYABLE_STATUSES:
+        return []
+    if order.get("status") in {"completed", "cancelled"}:
+        return []
+    options = order.get("payment_options") or {}
+    order_id = order.get("id")
+    buttons = [
+        InlineKeyboardButton(text=f"💳 {label}", callback_data=f"order:pay:{order_id}:{key}")
+        for key, label in (("click", "Click"), ("payme", "Payme"))
+        if options.get(key)
+    ]
+    rows = [buttons] if buttons else []
+    if options.get("test"):
+        rows.append(
+            [InlineKeyboardButton(text="🧪 Sinov to'lovi", callback_data=f"order:testpay:{order_id}")]
+        )
+    return rows
+
+
+def order_detail_keyboard(
+    order_id: int, can_cancel: bool, order: dict | None = None
+) -> InlineKeyboardMarkup:
+    rows = payment_rows(order or {})
     if can_cancel:
         rows.append(
             [InlineKeyboardButton(text="Bekor qilish", callback_data=f"order:cancel:{order_id}")]
@@ -206,14 +231,24 @@ def support_list_keyboard(tickets: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def view_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
+def view_order_keyboard(order_id: int, order: dict | None = None) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            *payment_rows(order or {}),
             [
                 InlineKeyboardButton(
                     text=msg.BTN_VIEW_ORDER, callback_data=f"order:view:{order_id}"
                 )
-            ]
+            ],
+        ]
+    )
+
+
+def checkout_keyboard(url: str, order_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💳 To'lov sahifasini ochish", url=url)],
+            [InlineKeyboardButton(text=msg.BTN_VIEW_ORDER, callback_data=f"order:view:{order_id}")],
         ]
     )
 

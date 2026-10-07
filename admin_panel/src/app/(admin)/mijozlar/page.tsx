@@ -15,7 +15,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, asPage, fetchAll } from "@/lib/api/client";
 import type { Order, User } from "@/lib/api/types";
 import { downloadCsv } from "@/lib/csv";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
@@ -105,8 +105,7 @@ export default function MijozlarPage() {
 
   async function exportTable() {
     try {
-      const raw = await api("/admin/customers/", { query: { ...params, page_size: 100 } });
-      const list = asPage<User>(raw).results;
+      const list = await fetchAll<User>("/admin/customers/", params);
       downloadCsv(
         `mijozlar-${segment}-${new Date().toISOString().slice(0, 10)}`,
         ["ID", "F.I.Sh", "Telefon", "Manzil", "Buyurtmalar", "Sarflagan (UZS)", "Birinchi buyurtma", "Oxirgi buyurtma", "Ro'yxatdan o'tgan"],

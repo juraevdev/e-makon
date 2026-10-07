@@ -88,7 +88,9 @@ def subscription_yearly_if_monthly_usd(units: int) -> Decimal:
 
 def suggested_commission_rate(firm: Organization) -> Decimal:
     """Volume-based suggested rate clamped to 0.1–3%."""
-    completed = firm.orders.filter(status="completed").count()
+    completed = getattr(firm, "completed_count_anno", None)
+    if completed is None:
+        completed = firm.orders.filter(status="completed").count()
     if completed >= 100:
         rate = Decimal("0.10")
     elif completed >= 50:
@@ -103,9 +105,14 @@ def suggested_commission_rate(firm: Organization) -> Decimal:
 
 
 def firm_revenue_totals(firm: Organization) -> tuple[Decimal, Decimal]:
-    completed = firm.orders.filter(status="completed", quoted_price__isnull=False)
-    revenue = completed.aggregate(total=Sum("quoted_price"))["total"] or Decimal("0")
-    platform = completed.aggregate(total=Sum("platform_share"))["total"]
+    if hasattr(firm, "revenue_anno"):
+        revenue = firm.revenue_anno or Decimal("0")
+        platform = firm.platform_share_anno
+    else:
+        completed = firm.orders.filter(status="completed", quoted_price__isnull=False)
+        totals = completed.aggregate(revenue=Sum("quoted_price"), platform=Sum("platform_share"))
+        revenue = totals["revenue"] or Decimal("0")
+        platform = totals["platform"]
     if platform is None:
         rate = firm.commission_rate or Decimal("0")
         platform = (revenue * rate / Decimal("100")).quantize(Decimal("0.01"))

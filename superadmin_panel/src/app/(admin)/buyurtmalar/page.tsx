@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  ConfirmDialog,
   EmptyState,
   Field,
   FilterChip,
@@ -13,7 +14,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, ApiError, asPage } from "@/lib/api/client";
+import { api, ApiError, fetchPages } from "@/lib/api/client";
 import type { Order, OrderEscrow, OrderStatus, PaymentStatus } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, WORK_STAGES } from "@/lib/domain";
 import { formatDate, formatDateTime, formatMoney, formatPhone, initials } from "@/lib/format";
@@ -62,6 +63,16 @@ const PAYMENT_TONE: Record<PaymentStatus, "success" | "warning" | "error" | "neu
   refunded: "neutral",
 };
 
+const ORDER_PAGES = 5;
+
+type PendingFinance = {
+  action: string;
+  title: string;
+  description: string;
+  variant: "danger" | "primary" | "warning";
+  body?: Record<string, unknown>;
+};
+
 export default function BuyurtmalarPage() {
   const { query } = useSearch();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
@@ -69,13 +80,39 @@ export default function BuyurtmalarPage() {
   const [busy, setBusy] = useState(false);
   const [financeErr, setFinanceErr] = useState("");
   const [financeNote, setFinanceNote] = useState("");
+  const [pending, setPending] = useState<PendingFinance | null>(null);
+  const [fine, setFine] = useState("100000");
+  const [banDays, setBanDays] = useState("7");
+  const [blockUser, setBlockUser] = useState(false);
 
-  const { data, loading, error, reload } = useAsync(async () => {
-    const ordersRaw = await api("/admin/orders/", {
-      query: { page_size: 50, search: query || undefined },
-    });
-    return asPage<Order>(ordersRaw);
-  }, [query]);
+  const { data, loading, error, reload } = useAsync(
+    async () => fetchPages<Order>("/admin/orders/", { search: query || undefined }, ORDER_PAGES),
+    [query],
+  );
+
+  function askFinance(next: PendingFinance) {
+    setFinanceErr("");
+    setPending(next);
+  }
+
+  function confirmFinance() {
+    if (!pending) return;
+    let body = pending.body ?? {};
+    if (pending.action === "punish_firm") {
+      const fineAmount = Number(fine);
+      const days = Number(banDays);
+      if (!Number.isFinite(fineAmount) || fineAmount < 0 || !Number.isInteger(days) || days < 0 || days > 365) {
+        setFinanceErr("Jarima 0 yoki musbat, taqiq 0–365 kun bo'lsin");
+        setPending(null);
+        return;
+      }
+      body = { ...body, fine_amount: fineAmount, sales_ban_days: days };
+    }
+    if (pending.action === "punish_user") body = { ...body, block: blockUser };
+    const action = pending.action;
+    setPending(null);
+    void financeAction(action, body);
+  }
 
   const orders = useMemo(() => {
     const list = data?.results ?? [];
@@ -128,6 +165,12 @@ export default function BuyurtmalarPage() {
           Yangilash
         </SecondaryButton>
       </div>
+
+      {data && data.count > data.results.length ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+          Oxirgi {data.results.length} ta buyurtma ko&apos;rsatilmoqda (jami {data.count}). Eskilarini qidiruv orqali toping.
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         {[
@@ -377,7 +420,17 @@ export default function BuyurtmalarPage() {
                 <SecondaryButton disabled={busy || !selected.quoted_price} onClick={() => void financeAction("ensure")}>
                   Escrow ochish
                 </SecondaryButton>
-                <PrimaryButton disabled={busy} onClick={() => void financeAction("mark_paid")}>
+                <PrimaryButton
+                  disabled={busy}
+                  onClick={() =>
+                    askFinance({
+                      action: "mark_paid",
+                      title: "To'lov tushganini tasdiqlaysizmi?",
+                      description: `#${selected.id} bo'yicha ${formatMoney(selected.quoted_price)} E-Makon hisobiga tushganini bank/provayderda tekshirdingizmi? Buyurtma firmaga yuboriladi.`,
+                      variant: "primary",
+                    })
+                  }
+                >
                   To&apos;lov hisobga tushdi — tasdiqlash
                 </PrimaryButton>
                 {selected.payment && ["pending", "submitted"].includes(selected.payment.status) ? (
@@ -385,18 +438,56 @@ export default function BuyurtmalarPage() {
                     type="button"
                     disabled={busy}
                     className="rounded-xl border border-error/40 px-3 py-2 text-sm text-error"
-                    onClick={() => void financeAction("reject_payment")}
+                    onClick={() =>
+                      askFinance({
+                        action: "reject_payment",
+                        title: "To'lov rad etilsinmi?",
+                        description: "Mijozga to'lov tushmagani haqida xabar boradi va u qayta to'lashi kerak bo'ladi.",
+                        variant: "danger",
+                      })
+                    }
                   >
                     To&apos;lov tushmadi — rad etish
                   </button>
                 ) : null}
-                <SecondaryButton disabled={busy} onClick={() => void financeAction("release")}>
+                <SecondaryButton
+                  disabled={busy}
+                  onClick={() =>
+                    askFinance({
+                      action: "release",
+                      title: "Pul firmaga o'tkazilsinmi?",
+                      description: "Firma ulushi uning hisobiga o'tadi. Bu amalni qaytarib bo'lmaydi.",
+                      variant: "warning",
+                    })
+                  }
+                >
                   Firmaga o&apos;tkazish
                 </SecondaryButton>
-                <SecondaryButton disabled={busy} onClick={() => void financeAction("refund", { punish_firm: true })}>
+                <SecondaryButton
+                  disabled={busy}
+                  onClick={() =>
+                    askFinance({
+                      action: "refund",
+                      title: "Pul mijozga qaytarilsinmi?",
+                      description: "To'lov mijozga qaytariladi va firma jazo hisobiga yoziladi.",
+                      variant: "danger",
+                      body: { punish_firm: true },
+                    })
+                  }
+                >
                   Userga qaytarish + firma jazo
                 </SecondaryButton>
-                <SecondaryButton disabled={busy} onClick={() => void financeAction("dispute")}>
+                <SecondaryButton
+                  disabled={busy}
+                  onClick={() =>
+                    askFinance({
+                      action: "dispute",
+                      title: "Nizo ochilsinmi?",
+                      description: "Pul muzlatiladi — firma ham, mijoz ham olmaydi, to'g'ri qaror qabul qilinmaguncha.",
+                      variant: "warning",
+                    })
+                  }
+                >
                   Nizo
                 </SecondaryButton>
                 <button
@@ -404,10 +495,12 @@ export default function BuyurtmalarPage() {
                   disabled={busy}
                   className="rounded-xl border border-error/40 px-3 py-2 text-sm text-error"
                   onClick={() =>
-                    void financeAction("punish_firm", {
-                      refund: true,
-                      fine_amount: 100000,
-                      sales_ban_days: 7,
+                    askFinance({
+                      action: "punish_firm",
+                      title: "Firmani jazolash",
+                      description: "To'lov mijozga qaytariladi, firmaga jarima yoziladi va sotuv vaqtincha to'xtatiladi.",
+                      variant: "danger",
+                      body: { refund: true },
                     })
                   }
                 >
@@ -417,12 +510,19 @@ export default function BuyurtmalarPage() {
                   type="button"
                   disabled={busy}
                   className="rounded-xl border border-amber-500/40 px-3 py-2 text-sm text-amber-300"
-                  onClick={() =>
-                    void financeAction("punish_user", {
-                      block: false,
-                      release_to_firm: selected.status === "completed",
-                    })
-                  }
+                  onClick={() => {
+                    setBlockUser(false);
+                    askFinance({
+                      action: "punish_user",
+                      title: "Mijozni jazolash",
+                      description:
+                        selected.status === "completed"
+                          ? "Pul firmaga o'tkaziladi va mijozdan 50 ballgacha yechiladi."
+                          : "Mijozdan 50 ballgacha yechiladi.",
+                      variant: "warning",
+                      body: { release_to_firm: selected.status === "completed" },
+                    });
+                  }}
                 >
                   User jazosi
                 </button>
@@ -456,6 +556,39 @@ export default function BuyurtmalarPage() {
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmDialog
+        open={!!pending}
+        title={pending?.title ?? ""}
+        variant={pending?.variant ?? "primary"}
+        busy={busy}
+        confirmText="Tasdiqlash"
+        cancelText="Bekor"
+        onCancel={() => setPending(null)}
+        onConfirm={confirmFinance}
+        description={
+          <div className="space-y-3">
+            <p>{pending?.description}</p>
+            {pending?.action === "punish_firm" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Jarima (UZS)">
+                  <input className={inputClass} inputMode="numeric" value={fine} onChange={(e) => setFine(e.target.value)} />
+                </Field>
+                <Field label="Sotuv taqiqi (kun)">
+                  <input className={inputClass} inputMode="numeric" value={banDays} onChange={(e) => setBanDays(e.target.value)} />
+                </Field>
+              </div>
+            ) : null}
+            {pending?.action === "punish_user" ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={blockUser} onChange={(e) => setBlockUser(e.target.checked)} />
+                Mijoz akkauntini bloklash
+              </label>
+            ) : null}
+            {financeNote ? <p className="text-xs">Izoh: {financeNote}</p> : null}
+          </div>
+        }
+      />
     </div>
   );
 }

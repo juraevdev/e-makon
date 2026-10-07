@@ -98,5 +98,87 @@ class IntakeKeyboardTests(unittest.TestCase):
         self.assertIn(msg.BTN_SKIP, texts)
 
 
+class TokenRotationTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        fd, self.path = tempfile.mkstemp(suffix=".sqlite3")
+        os.close(fd)
+        self.store = SessionStore(path=self.path, secret="unit-test-secret-key")
+        self.store.save(telegram_id=1, user_id=2, refresh_token="r-old", access_token="a-old")
+
+    def tearDown(self):
+        try:
+            os.remove(self.path)
+        except OSError:
+            pass
+
+    def _api(self, handler):
+        import httpx
+
+        from bot.api.client import EMakonAPIClient
+
+        api = EMakonAPIClient()
+        api._client = httpx.AsyncClient(
+            base_url="http://api.test/api/v1", transport=httpx.MockTransport(handler)
+        )
+        return api
+
+    async def test_rotated_refresh_token_is_persisted(self):
+        import httpx
+
+        from bot.services.domain import OrderFlowService
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("/auth/token/refresh/"):
+                return httpx.Response(200, json={"access": "a-new", "refresh": "r-new"})
+            if request.headers.get("Authorization") == "Bearer a-new":
+                return httpx.Response(200, json={"success": True, "message": "", "data": []})
+            return httpx.Response(401, json={"detail": "expired"})
+
+        api = self._api(handler)
+        orders = OrderFlowService(api, self.store)
+        self.assertEqual(await orders.list_orders(self.store.get(1)), [])
+        session = self.store.get(1)
+        self.assertEqual(session.access_token, "a-new")
+        self.assertEqual(session.refresh_token, "r-new")
+        await api.aclose()
+
+    async def test_dead_refresh_token_drops_session(self):
+        import httpx
+
+        from bot.api.client import APIError
+        from bot.services.domain import OrderFlowService
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(401, json={"detail": "Token is blacklisted"})
+
+        api = self._api(handler)
+        orders = OrderFlowService(api, self.store)
+        with self.assertRaises(APIError) as ctx:
+            await orders.list_orders(self.store.get(1))
+        self.assertEqual(ctx.exception.code, "session_expired")
+        self.assertIsNone(self.store.get(1))
+        await api.aclose()
+
+
+class PaymentKeyboardTests(unittest.TestCase):
+    def test_unpaid_order_offers_enabled_providers_only(self):
+        from bot.keyboards import common as kb
+
+        order = {
+            "id": 9,
+            "status": "new",
+            "payment_status": "unpaid",
+            "payment_options": {"click": True, "payme": False, "test": True},
+        }
+        data = [b.callback_data for row in kb.payment_rows(order) for b in row]
+        self.assertEqual(data, ["order:pay:9:click", "order:testpay:9"])
+
+    def test_paid_order_has_no_payment_buttons(self):
+        from bot.keyboards import common as kb
+
+        order = {"id": 9, "status": "new", "payment_status": "paid", "payment_options": {"click": True}}
+        self.assertEqual(kb.payment_rows(order), [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/api_config.dart';
+import '../../core/data/demo_content.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 
@@ -38,10 +39,12 @@ class AuthProvider extends ChangeNotifier {
       try {
         final data = await _api.get('/auth/me/');
         user = UserModel.fromJson(Map<String, dynamic>.from(data as Map));
+        await _saveLocalProfile(user!);
         demoSession = false;
       } on ApiException catch (e) {
-        // Tarmoq vaqtincha yo'q — sessiyani saqlab qolamiz; 401 bo'lsa ApiClient tokenlarni tozalaydi.
-        if (e.statusCode == null && await _api.hasToken) {
+        // Faqat server sessiyani rad etsa (401/403) chiqaramiz; tarmoq yoki 5xx xatosida sessiya saqlanadi.
+        final rejected = e.statusCode == 401 || e.statusCode == 403;
+        if (!rejected && await _api.hasToken) {
           user = await _loadLocalProfile() ??
               UserModel(id: 0, phone: '', fullName: 'Foydalanuvchi', role: 'customer');
         } else {
@@ -217,6 +220,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Profilni serverda saqlaydi. Xato bo'lsa [ApiException] tashlanadi — ekran xabarni ko'rsatadi.
+  /// Avatar fayli hozircha faqat qurilmada saqlanadi (server avatar yuklashni qo'llab-quvvatlamaydi).
   Future<void> updateProfile({
     String? firstName,
     String? lastName,
@@ -224,7 +229,6 @@ class AuthProvider extends ChangeNotifier {
     String? email,
     String? address,
     String? avatarPath,
-    int? points,
     bool clearAvatar = false,
   }) async {
     if (user == null) return;
@@ -235,7 +239,6 @@ class AuthProvider extends ChangeNotifier {
       email: email,
       address: address,
       avatarPath: avatarPath,
-      points: points,
       clearAvatar: clearAvatar,
       fullName: () {
         final f = firstName ?? user!.firstName;
@@ -245,38 +248,63 @@ class AuthProvider extends ChangeNotifier {
       }(),
     );
 
-    if (demoSession) {
+    final onlyLocal = firstName == null && lastName == null && email == null && address == null;
+    if (demoSession || onlyLocal) {
       user = next;
       await _saveLocalProfile(user!);
       notifyListeners();
       return;
     }
 
-    try {
-      final data = await _api.patch('/auth/me/', body: {
-        'first_name': ?firstName,
-        'last_name': ?lastName,
-        'company': ?company,
-        'email': ?email,
-        'address': ?address,
-        'full_name': next.fullName,
-      });
-      user = UserModel.fromJson(Map<String, dynamic>.from(data as Map));
-    } catch (_) {
-      user = next;
-    }
+    final data = await _api.patch('/auth/me/', body: {
+      'first_name': ?firstName,
+      'last_name': ?lastName,
+      'email': ?email,
+      'home_address': ?address,
+      'full_name': next.fullName,
+    });
+    // Avatar va kompaniya nomi faqat qurilmada — server javobi ularni o'chirib yubormasin.
+    user = UserModel.fromJson(Map<String, dynamic>.from(data as Map))
+        .copyWith(avatarPath: next.avatarPath, company: next.company, clearAvatar: next.avatarPath == null);
+    await _saveLocalProfile(user!);
     notifyListeners();
   }
 
-  Future<bool> redeemBonus(int cost) async {
-    if (user == null || user!.points < cost) return false;
-    await updateProfile(points: user!.points - cost);
-    return true;
+  /// Mukofotlar ro'yxati va joriy balans (`/loyalty/`).
+  Future<List<BonusService>> loadRewards() async {
+    if (demoSession || ApiConfig.useLocalData) return DemoContent.bonuses;
+    final data = Map<String, dynamic>.from(await _api.get('/loyalty/') as Map);
+    _setPoints(asInt(data['balance'], user?.points ?? 0));
+    final rewards = data['rewards'];
+    if (rewards is! List) return const [];
+    return rewards.whereType<Map>().map((r) {
+      final icon = asStr(r['icon']);
+      return BonusService(
+        id: asInt(r['id']),
+        title: asStr(r['name']),
+        costPoints: asInt(r['points_cost']),
+        emoji: icon.isNotEmpty && icon.runes.length <= 2 ? icon : '🎁',
+      );
+    }).toList();
   }
 
-  Future<void> addPoints(int amount) async {
+  /// Ballarni mukofotga almashtiradi; balansni server hisoblaydi.
+  Future<void> redeemBonus(BonusService reward) async {
     if (user == null) return;
-    await updateProfile(points: user!.points + amount);
+    if (demoSession || ApiConfig.useLocalData) {
+      if (user!.points < reward.costPoints) throw ApiException('Ball yetarli emas');
+      _setPoints(user!.points - reward.costPoints);
+      return;
+    }
+    final data = await _api.post('/loyalty/redeem/', body: {'reward_id': reward.id});
+    if (data is Map) _setPoints(asInt(data['balance'], user!.points));
+  }
+
+  void _setPoints(int points) {
+    if (user == null || user!.points == points) return;
+    user = user!.copyWith(points: points);
+    _saveLocalProfile(user!);
+    notifyListeners();
   }
 
   Future<void> rateUser(double stars) async {
@@ -289,7 +317,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _api.clearTokens();
+    await _api.logout();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profileKey);
     user = null;
     demoSession = false;
     pendingRegistration = null;

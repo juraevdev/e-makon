@@ -71,7 +71,7 @@ class AmbientBackdrop extends StatelessWidget {
             ),
           ),
         ),
-        if (child != null) child!,
+        ?child,
       ],
     );
   }
@@ -301,7 +301,7 @@ class SectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

@@ -148,9 +148,10 @@ export default function XodimlarPage() {
     setBusyToggle(true);
     const nextStatus = !toggleTarget.is_active;
     try {
-      await api(`/admin/employees/${toggleTarget.id}/`, {
-        method: "PATCH",
-        body: { is_active: nextStatus },
+      // is_active is read-only on the serializer; employment status drives it server-side.
+      await api(`/admin/employees/${toggleTarget.id}/set-status/`, {
+        method: "POST",
+        body: { status: nextStatus ? "active" : "on_leave" },
       });
       showSuccess(
         nextStatus

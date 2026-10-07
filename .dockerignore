@@ -1,0 +1,15 @@
+.git
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.env
+db.sqlite3
+media
+staticfiles
+bot_data
+admin_panel
+superadmin_panel
+mobile
+**/node_modules
+**/.next

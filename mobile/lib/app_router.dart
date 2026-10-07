@@ -60,6 +60,8 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: '/order',
+        redirect: (context, state) =>
+            state.extra is OrderFlowArgs || state.extra is ServiceModel ? null : '/home',
         builder: (context, state) {
           final extra = state.extra;
           if (extra is OrderFlowArgs) {
@@ -71,20 +73,29 @@ GoRouter createRouter() {
       GoRoute(path: '/area-scan', builder: (context, state) => const AreaScannerScreen()),
       GoRoute(
         path: '/order-payment',
+        redirect: _requireExtra<OrderModel>('/orders'),
         builder: (context, state) => PaymentScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/order-success',
+        redirect: _requireExtra<OrderModel>('/orders'),
         builder: (context, state) => OrderSuccessScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/order-detail',
+        redirect: _requireExtra<OrderModel>('/orders'),
         builder: (context, state) => OrderDetailScreen(order: state.extra as OrderModel),
       ),
       GoRoute(
         path: '/chat',
+        redirect: _requireExtra<PartnerModel>('/messages'),
         builder: (context, state) => ChatScreen(partner: state.extra as PartnerModel),
       ),
     ],
   );
 }
+
+/// `extra` xotirada saqlanmaydi (jarayon qayta tiklanganda yoki deep link'da yo'qoladi) —
+/// noto'g'ri turdagi `extra` bilan ekranni qurish o'rniga [fallback] ga qaytaramiz.
+GoRouterRedirect _requireExtra<T>(String fallback) =>
+    (context, state) => state.extra is T ? null : fallback;

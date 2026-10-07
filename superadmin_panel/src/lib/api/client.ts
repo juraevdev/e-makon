@@ -74,17 +74,42 @@ async function parseBody(res: Response) {
   }
 }
 
-async function refreshAccess(): Promise<string | null> {
+const REQUEST_TIMEOUT_MS = 20000;
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("Server javob bermadi. Internetni tekshirib, qayta urinib ko'ring.", 0);
+    }
+    throw new ApiError("Serverga ulanib bo'lmadi.", 0);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Refresh tokens rotate and the old one is blacklisted, so concurrent 401s must share one refresh.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
   const refresh = getRefreshToken();
   if (!refresh) return null;
-  const res = await fetch(buildUrl("/auth/token/refresh/"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(buildUrl("/auth/token/refresh/"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+  } catch {
+    return null;
+  }
   const json = await parseBody(res);
   if (!res.ok) {
-    clearTokens();
+    if (res.status === 400 || res.status === 401) clearTokens();
     return null;
   }
   const data = unwrap(json) as { access?: string; refresh?: string };
@@ -92,6 +117,34 @@ async function refreshAccess(): Promise<string | null> {
   if (!access) return null;
   saveTokens(access, data.refresh || refresh);
   return access;
+}
+
+function refreshAccess(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+export async function logoutRequest() {
+  const refresh = getRefreshToken();
+  clearTokens();
+  if (!refresh) return;
+  try {
+    await fetchWithTimeout(
+      buildUrl("/auth/logout/"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      },
+      5000,
+    );
+  } catch {
+    // Local tokens are already gone; server-side revoke is best effort.
+  }
 }
 
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -106,7 +159,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   }
 
   const send = (hdrs: Record<string, string>) =>
-    fetch(buildUrl(path, query), {
+    fetchWithTimeout(buildUrl(path, query), {
       method,
       headers: hdrs,
       body:
@@ -136,6 +189,29 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     throw new ApiError(message, res.status);
   }
   return unwrap(json) as T;
+}
+
+/** Walks DRF pages (max 100 rows each); `count` is the server total, so callers can show truncation. */
+export async function fetchPages<T>(
+  path: string,
+  query: RequestOptions["query"] = {},
+  maxPages = 20,
+): Promise<{ count: number; results: T[] }> {
+  const rows: T[] = [];
+  let count = 0;
+  for (let page = 1; page <= maxPages; page += 1) {
+    const raw = await api(path, { query: { ...query, page, page_size: 100 } });
+    const parsed = asPage<T>(raw);
+    count = parsed.count;
+    rows.push(...parsed.results);
+    const hasNext = Boolean(raw && typeof raw === "object" && "next" in raw && (raw as { next?: string | null }).next);
+    if (!hasNext) break;
+  }
+  return { count: Math.max(count, rows.length), results: rows };
+}
+
+export async function fetchAll<T>(path: string, query: RequestOptions["query"] = {}, maxPages = 20): Promise<T[]> {
+  return (await fetchPages<T>(path, query, maxPages)).results;
 }
 
 export function asPage<T>(raw: unknown): { count: number; results: T[] } {

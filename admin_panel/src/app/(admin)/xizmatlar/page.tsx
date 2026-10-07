@@ -13,7 +13,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, asPage, fetchAll } from "@/lib/api/client";
 import type { ModerationStatus, Service } from "@/lib/api/types";
 import { downloadCsv } from "@/lib/csv";
 import { MODERATION_LABEL, MODERATION_TONE } from "@/lib/domain";
@@ -63,14 +63,12 @@ export default function XizmatlarPage() {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [toDelete, setToDelete] = useState<Service | null>(null);
+  const [toPause, setToPause] = useState<Service | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
   const { data, loading, error, reload } = useAsync(
-    async () => {
-      const raw = await api("/admin/services/", { query: { page_size: 100, search: query || undefined } });
-      return asPage<Service>(raw).results;
-    },
+    async () => fetchAll<Service>("/admin/services/", { search: query || undefined }),
     [query],
     { keepPrevious: true },
   );
@@ -313,7 +311,7 @@ export default function XizmatlarPage() {
                     <td className="px-5 py-4">
                       <button
                         type="button"
-                        onClick={() => void toggleActive(s)}
+                        onClick={() => (s.is_active ? setToPause(s) : void toggleActive(s))}
                         className={`relative h-6 w-11 rounded-full transition ${s.is_active ? "bg-primary/70" : "bg-surface-container-highest"}`}
                         title={s.is_active ? "To'xtatish" : "Yoqish"}
                       >
@@ -502,6 +500,21 @@ export default function XizmatlarPage() {
           const s = toDelete;
           setToDelete(null);
           if (s) void remove(s);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!toPause}
+        title="Xizmat to'xtatilsinmi?"
+        description={toPause ? `${toPause.name} ilovada ko'rinmay qoladi va yangi buyurtma qabul qilinmaydi.` : ""}
+        confirmText="To'xtatish"
+        cancelText="Bekor"
+        variant="warning"
+        onCancel={() => setToPause(null)}
+        onConfirm={() => {
+          const s = toPause;
+          setToPause(null);
+          if (s) void toggleActive(s);
         }}
       />
     </div>

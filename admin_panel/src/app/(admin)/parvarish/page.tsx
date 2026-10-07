@@ -12,7 +12,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, fetchAll } from "@/lib/api/client";
 import type {
   CareClientType,
   CareContract,
@@ -213,24 +213,19 @@ export default function ParvarishPage() {
 
   const { data, loading, error, reload } = useAsync(
     async () =>
-      asPage<CareContract>(
-        await api("/admin/care-contracts/", {
-          query: { page_size: 100, search: query || undefined, client_type: clientType || undefined },
-        }),
-      ).results,
+      fetchAll<CareContract>("/admin/care-contracts/", {
+        search: query || undefined,
+        client_type: clientType || undefined,
+      }),
     [query, clientType],
     { keepPrevious: true },
   );
   const { data: summary, reload: reloadSummary } = useAsync(() => api<CareSummary>("/admin/care-contracts/summary/"), []);
   const { data: workers } = useAsync(
-    async () =>
-      asPage<Employee>(await api("/admin/employees/", { query: { page_size: 100, employment_status: "active" } })).results,
+    async () => fetchAll<Employee>("/admin/employees/", { employment_status: "active" }),
     [],
   );
-  const { data: services } = useAsync(
-    async () => asPage<Service>(await api("/admin/services/", { query: { page_size: 100 } })).results,
-    [],
-  );
+  const { data: services } = useAsync(async () => fetchAll<Service>("/admin/services/"), []);
   const { data: detail, reload: reloadDetail, setData: setDetail } = useAsync(
     async () => (detailId ? api<CareContract>(`/admin/care-contracts/${detailId}/`) : null),
     [detailId],
@@ -576,7 +571,13 @@ export default function ParvarishPage() {
                 </SecondaryButton>
               ) : null}
               {detail.status === "draft" ? (
-                <SecondaryButton icon="delete" className="!text-error" onClick={() => void runAction("delete")}>
+                <SecondaryButton
+                  icon="delete"
+                  className="!text-error"
+                  onClick={() =>
+                    setPrompt({ action: "delete", title: "Qoralamani butunlay o'chirasizmi? Bu amalni qaytarib bo'lmaydi.", required: false, note: "" })
+                  }
+                >
                   O&apos;chirish
                 </SecondaryButton>
               ) : null}

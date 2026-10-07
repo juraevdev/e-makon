@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
+  ConfirmDialog,
   EmptyState,
   Field,
   FilterChip,
@@ -12,7 +13,7 @@ import {
   PrimaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, asPage, fetchAll } from "@/lib/api/client";
 import type { ChatMessage, ChatRoom, SupportTicket, TicketStatus } from "@/lib/api/types";
 import { TICKET_STATUS_LABEL } from "@/lib/domain";
 import { formatDateTime, formatPhone, initials } from "@/lib/format";
@@ -278,10 +279,13 @@ function Tickets() {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const { data, loading, error, reload } = useAsync(async () => {
-    const raw = await api("/admin/support/", { query: { page_size: 50 } });
-    return asPage<SupportTicket>(raw).results;
-  }, []);
+  const { showError, showSuccess } = useToast();
+  const [confirmClose, setConfirmClose] = useState(false);
+
+  const { data, loading, error, reload } = useAsync(
+    async () => fetchAll<SupportTicket>("/admin/support/", {}, 5),
+    [],
+  );
 
   async function sendReply() {
     if (!selected || !reply.trim()) return;
@@ -291,6 +295,8 @@ function Tickets() {
       setSelected(await api<SupportTicket>(`/admin/support/${selected.id}/`));
       setReply("");
       await reload();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Javob yuborilmadi");
     } finally {
       setBusy(false);
     }
@@ -298,8 +304,16 @@ function Tickets() {
 
   async function setStatus(status: TicketStatus) {
     if (!selected) return;
-    setSelected(await api<SupportTicket>(`/admin/support/${selected.id}/`, { method: "PATCH", body: { status } }));
-    await reload();
+    setBusy(true);
+    try {
+      setSelected(await api<SupportTicket>(`/admin/support/${selected.id}/`, { method: "PATCH", body: { status } }));
+      showSuccess(status === "closed" ? "Murojaat yopildi" : "Holat yangilandi");
+      await reload();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Holat o'zgarmadi");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -359,16 +373,41 @@ function Tickets() {
               <PrimaryButton disabled={busy || !reply.trim()} onClick={() => void sendReply()}>
                 Yuborish
               </PrimaryButton>
-              <button type="button" className="rounded-full border border-[#26352c] px-4 py-2 text-sm" onClick={() => void setStatus("resolved")}>
+              <button
+                type="button"
+                disabled={busy}
+                className="rounded-full border border-[#26352c] px-4 py-2 text-sm disabled:opacity-50"
+                onClick={() => void setStatus("resolved")}
+              >
                 Yechilgan
               </button>
-              <button type="button" className="rounded-full border border-[#26352c] px-4 py-2 text-sm" onClick={() => void setStatus("closed")}>
+              <button
+                type="button"
+                disabled={busy || selected.status === "closed"}
+                className="rounded-full border border-[#26352c] px-4 py-2 text-sm disabled:opacity-50"
+                onClick={() => setConfirmClose(true)}
+              >
                 Yopish
               </button>
             </div>
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmDialog
+        open={confirmClose}
+        title="Murojaat yopilsinmi?"
+        description="Yopilgan murojaatga mijoz endi javob yoza olmaydi."
+        confirmText="Yopish"
+        cancelText="Bekor"
+        variant="warning"
+        busy={busy}
+        onCancel={() => setConfirmClose(false)}
+        onConfirm={() => {
+          setConfirmClose(false);
+          void setStatus("closed");
+        }}
+      />
     </>
   );
 }

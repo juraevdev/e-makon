@@ -13,7 +13,7 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api, fetchAll } from "@/lib/api/client";
 import type { Employee, EmployeeCard, EmploymentStatus } from "@/lib/api/types";
 import { downloadCsv } from "@/lib/csv";
 import {
@@ -67,10 +67,7 @@ export default function XodimlarPage() {
   const [statusAction, setStatusAction] = useState<{ status: EmploymentStatus; reason: string } | null>(null);
 
   const { data, loading, error, reload } = useAsync(
-    async () => {
-      const raw = await api("/admin/employees/", { query: { page_size: 100, search: query || undefined } });
-      return asPage<Employee>(raw).results;
-    },
+    async () => fetchAll<Employee>("/admin/employees/", { search: query || undefined }),
     [query],
     { keepPrevious: true },
   );

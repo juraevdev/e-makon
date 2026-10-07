@@ -9,7 +9,14 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { api, clearTokens, getAccessToken, saveTokens } from "@/lib/api/client";
+import {
+  ApiError,
+  api,
+  clearTokens,
+  getAccessToken,
+  logoutRequest,
+  saveTokens,
+} from "@/lib/api/client";
 import type { User } from "@/lib/api/types";
 
 type AuthContextValue = {
@@ -54,8 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => reject(new Error("Auth timeout")), AUTH_BOOT_TIMEOUT_MS);
           }),
         ]);
-      } catch {
-        clearTokens();
+      } catch (err) {
+        const authRejected =
+          (err instanceof ApiError && (err.status === 401 || err.status === 403)) ||
+          (err instanceof Error && err.message === WRONG_ROLE_MESSAGE);
+        if (authRejected) clearTokens();
         if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -95,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    clearTokens();
+    void logoutRequest();
     setUser(null);
     router.replace("/login");
   }, [router]);

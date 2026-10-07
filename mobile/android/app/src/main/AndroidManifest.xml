@@ -9,7 +9,7 @@
         android:label="e-makon"
         android:name="${applicationName}"
         android:icon="@drawable/ic_launcher_foreground"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

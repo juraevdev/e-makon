@@ -28,14 +28,17 @@ def _auth_client(user: User) -> APIClient:
 
 class ProductionPaymentSettingsTests(SimpleTestCase):
     MODULES = ("config.settings.base", "config.settings.production")
+    REQUIRED = {"DJANGO_SECRET_KEY": "x" * 50, "DJANGO_ALLOWED_HOSTS": "api.example.uz"}
+    CONTROLLED = ("PAYMENTS_TEST_MODE", "DJANGO_SECRET_KEY", "DJANGO_ALLOWED_HOSTS")
 
     def _load_production(self, **env_vars):
         import config.settings as package
 
         saved_modules = {name: sys.modules.pop(name) for name in self.MODULES if name in sys.modules}
         saved_attrs = {name: getattr(package, name.rsplit(".", 1)[1], None) for name in self.MODULES}
-        environment = {k: v for k, v in os.environ.items() if k != "PAYMENTS_TEST_MODE"}
-        environment.update(env_vars)
+        environment = {k: v for k, v in os.environ.items() if k not in self.CONTROLLED}
+        environment.update({**self.REQUIRED, **env_vars})
+        environment = {k: v for k, v in environment.items() if v is not None}
         try:
             with mock.patch.dict(os.environ, environment, clear=True), mock.patch(
                 "environ.Env.read_env"
@@ -54,6 +57,26 @@ class ProductionPaymentSettingsTests(SimpleTestCase):
 
     def test_production_test_payments_require_explicit_opt_in(self):
         self.assertTrue(self._load_production(PAYMENTS_TEST_MODE="True").PAYMENTS_TEST_MODE)
+
+    def test_production_refuses_default_secret_key(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        with self.assertRaises(ImproperlyConfigured):
+            self._load_production(DJANGO_SECRET_KEY=None)
+
+    def test_production_refuses_wildcard_hosts(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        with self.assertRaises(ImproperlyConfigured):
+            self._load_production(DJANGO_ALLOWED_HOSTS="*")
+        with self.assertRaises(ImproperlyConfigured):
+            self._load_production(DJANGO_ALLOWED_HOSTS=None)
+
+    def test_production_enables_https_hardening(self):
+        module = self._load_production()
+        self.assertTrue(module.SECURE_SSL_REDIRECT)
+        self.assertGreater(module.SECURE_HSTS_SECONDS, 0)
+        self.assertIn("api.example.uz", module.ALLOWED_HOSTS)
 
 
 @override_settings(PAYME_MERCHANT_ID="", CLICK_SERVICE_ID="", CLICK_MERCHANT_ID="")

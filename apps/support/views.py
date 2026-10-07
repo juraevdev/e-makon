@@ -4,6 +4,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
+from apps.core.exceptions import AppError
 from apps.core.permissions import IsAdmin, IsCustomer
 from apps.core.responses import success_response
 from apps.organizations.mixins import OrganizationQuerysetMixin
@@ -52,9 +53,9 @@ class CustomerSupportTicketViewSet(
         ticket = self.get_object()
         body = (request.data.get("body") or "").strip()
         if not body:
-            from apps.core.exceptions import AppError
-
             raise AppError("Xabar bo'sh.")
+        if len(body) > 4000:
+            raise AppError("Xabar juda uzun.")
         msg = SupportMessage.objects.create(ticket=ticket, sender=request.user, body=body)
         return success_response(
             CustomerSupportMessageSerializer(msg).data,
@@ -62,8 +63,18 @@ class CustomerSupportTicketViewSet(
         )
 
 
-class AdminSupportTicketViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet):
-    queryset = SupportTicket.objects.select_related("customer", "assigned_to").prefetch_related("messages")
+class AdminSupportTicketViewSet(
+    OrganizationQuerysetMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Ticketlarni mijoz ochadi; admin holat/ustuvorlikni o'zgartiradi va javob yozadi."""
+
+    queryset = SupportTicket.objects.select_related("customer", "assigned_to").prefetch_related(
+        "messages__sender"
+    )
     serializer_class = SupportTicketSerializer
     permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
     required_capability = "can_manage_orders"
@@ -74,6 +85,10 @@ class AdminSupportTicketViewSet(OrganizationQuerysetMixin, viewsets.ModelViewSet
     def reply(self, request, pk=None):
         ticket = self.get_object()
         body = (request.data.get("body") or "").strip()
+        if not body:
+            raise AppError("Xabar bo'sh.")
+        if len(body) > 4000:
+            raise AppError("Xabar juda uzun.")
         is_internal = bool(request.data.get("is_internal"))
         msg = SupportMessage.objects.create(
             ticket=ticket,

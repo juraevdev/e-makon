@@ -171,7 +171,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
         <Field label="Ish vaqti">
           <input
             className={inputClass}
-            placeholder="DuвЂ“Sha 08:00вЂ“19:00"
+            placeholder="Du–Sha 08:00–19:00"
             value={form.work_hours}
             onChange={(e) => setForm({ ...form, work_hours: e.target.value })}
           />
@@ -215,7 +215,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
           <p className="mb-3 text-[11px] uppercase tracking-wider text-on-surface-variant">Ilovada ko&apos;rinishi</p>
           <p className="font-bold">{firm.name}</p>
           <p className="text-xs text-on-surface-variant">
-            в… {Number(firm.rating).toFixed(1)} В· {form.work_hours || "Ish vaqti ko'rsatilmagan"}
+            ★ {Number(firm.rating).toFixed(1)} · {form.work_hours || "Ish vaqti ko'rsatilmagan"}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {SOCIALS.filter((s) => form[s.key].trim()).map((s) => (
@@ -270,19 +270,19 @@ export default function FirmaPage() {
   if (!firm) return <LoadingBlock />;
 
   const info: { label: string; value: string }[] = [
-    { label: "Yuridik nomi", value: firm.legal_name || "вЂ”" },
+    { label: "Yuridik nomi", value: firm.legal_name || "—" },
     { label: "Yo'nalish", value: firm.specialty_label || SPECIALTY_LABEL[firm.specialty] || firm.specialty },
     { label: "Holat", value: firm.is_sales_banned ? "Sotuv taqiqlangan" : FIRM_STATUS_LABEL[firm.status] },
-    { label: "Reyting", value: `в… ${Number(firm.rating).toFixed(1)} (${firm.ratings_count} baho)` },
+    { label: "Reyting", value: `★ ${Number(firm.rating).toFixed(1)} (${firm.ratings_count} baho)` },
     { label: "Platforma ulushi", value: `${firm.commission_rate}%` },
     {
       label: "Obuna",
       value:
         firm.subscription_plan === "none"
           ? "Yo'q"
-          : `${firm.subscription_plan === "monthly" ? "Oylik" : "Yillik"} В· $${firm.subscription_fee_usd}`,
+          : `${firm.subscription_plan === "monthly" ? "Oylik" : "Yillik"} · $${firm.subscription_fee_usd}`,
     },
-    { label: "Sinov muddati", value: firm.trial_ends_at ? `${formatDate(firm.trial_ends_at)} gacha` : "вЂ”" },
+    { label: "Sinov muddati", value: firm.trial_ends_at ? `${formatDate(firm.trial_ends_at)} gacha` : "—" },
     { label: "Ogohlantirishlar", value: String(firm.warnings_count) },
     { label: "Platformaga qo'shilgan", value: formatDate(firm.created_at) },
   ];
@@ -376,10 +376,10 @@ export default function FirmaPage() {
             {stats.reviews.map((r) => (
               <div key={r.id} className="px-5 py-3">
                 <p className="text-sm font-medium">
-                  <span className="text-amber-400">{"в…".repeat(r.score)}</span>
-                  <span className="text-on-surface-variant">{"в…".repeat(Math.max(0, 5 - r.score))}</span>
+                  <span className="text-amber-400">{"★".repeat(r.score)}</span>
+                  <span className="text-on-surface-variant">{"★".repeat(Math.max(0, 5 - r.score))}</span>
                   <span className="ml-2">{r.customer_name || "Mijoz"}</span>
-                  {r.order ? <span className="text-on-surface-variant"> В· #{r.order}</span> : null}
+                  {r.order ? <span className="text-on-surface-variant"> · #{r.order}</span> : null}
                 </p>
                 {r.comment ? <p className="text-sm text-on-surface-variant">{r.comment}</p> : null}
                 <p className="text-xs text-on-surface-variant">{formatDateTime(r.created_at)}</p>

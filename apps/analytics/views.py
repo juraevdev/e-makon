@@ -4,13 +4,12 @@ from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.analytics.services import DashboardService
+from apps.analytics.services import DashboardService, analytics_org_id
 from apps.core.permissions import IsAdmin
 from apps.core.responses import success_response
 from apps.orders.models import Order
 from apps.organizations.models import Organization
 from apps.organizations.permissions import RequiresAdminCapability
-from apps.organizations.services import organization_id_for_queryset
 from apps.staff.models import EmployeeProfile
 
 
@@ -69,7 +68,7 @@ class MapPayloadView(APIView):
     required_capability = "can_view_analytics"
 
     def get(self, request):
-        org_id = organization_id_for_queryset(request.user)
+        org_id = analytics_org_id(request.user)
 
         firms_qs = Organization.objects.exclude(
             location_lat__isnull=True, location_lng__isnull=True

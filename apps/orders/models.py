@@ -108,6 +108,24 @@ class Order(TimeStampedModel):
         return self.customer.display_name if self.customer_id else ""
 
 
+class OrderItem(TimeStampedModel):
+    """Buyurtmadagi har bir xizmat va uning hisoblangan narxi (asosiy xizmat ham shu yerda)."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    service = models.ForeignKey(Service, on_delete=models.PROTECT, related_name="order_items")
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "service"], name="uniq_order_item_service"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Order #{self.order_id} — {self.service_id}"
+
+
 class OrderMedia(TimeStampedModel):
     class Kind(models.TextChoices):
         PHOTO = "photo", "Photo"

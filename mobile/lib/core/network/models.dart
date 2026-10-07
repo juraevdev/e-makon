@@ -114,9 +114,10 @@ class UserModel {
     lastName: json['last_name'] as String? ?? '',
     company: json['company'] as String? ?? '',
     email: json['email'] as String? ?? '',
-    address: json['address'] as String? ?? '',
+    // Server: `home_address`, `loyalty_points`; mahalliy kesh: `address`, `points`.
+    address: asStr(json['home_address'] ?? json['address']),
     avatarPath: json['avatar_path'] as String?,
-    points: json['points'] as int? ?? 0,
+    points: asInt(json['loyalty_points'] ?? json['points']),
     rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
     ratingCount: json['rating_count'] as int? ?? 0,
   );
@@ -246,10 +247,14 @@ class OrderModel {
     this.etaAt,
     this.workerName = '',
     this.history = const [],
+    this.serverCanCancel,
   });
 
   final int id;
   final String status;
+
+  /// Server qarori (`can_cancel`): brigada yo'lga chiqqandan keyin bekor qilib bo'lmaydi.
+  final bool? serverCanCancel;
   final String serviceName;
   final DateTime createdAt;
   final String areaSize;
@@ -358,6 +363,7 @@ class OrderModel {
       history: history is List
           ? history.whereType<Map>().map((e) => OrderStageEvent.fromJson(Map<String, dynamic>.from(e))).toList()
           : const [],
+      serverCanCancel: json['can_cancel'] is bool ? json['can_cancel'] as bool : null,
     );
   }
 
@@ -378,6 +384,7 @@ class OrderModel {
     DateTime? etaAt,
     String? workerName,
     List<OrderStageEvent>? history,
+    bool? serverCanCancel,
   }) => OrderModel(
     id: id,
     status: status ?? this.status,
@@ -411,6 +418,7 @@ class OrderModel {
     etaAt: etaAt ?? this.etaAt,
     workerName: workerName ?? this.workerName,
     history: history ?? this.history,
+    serverCanCancel: serverCanCancel ?? this.serverCanCancel,
   );
 
   /// Server javobidagi holat, to'lov va ish bosqichi maydonlarini mahalliy (boyitilgan) buyurtmaga qo'shadi.
@@ -431,6 +439,7 @@ class OrderModel {
     etaAt: server.etaAt,
     workerName: server.workerName,
     history: server.history,
+    serverCanCancel: server.serverCanCancel,
   );
 
   bool get needsPayment => isActive && (paymentStatus == 'unpaid' || paymentStatus == 'rejected');
@@ -452,12 +461,12 @@ class OrderModel {
 
   String get statusLabel => switch (status) {
     'new' => 'Yangi',
-    'in_review' => "Ko'rib chiqilmoqda",
+    'in_review' => 'Kelishilmoqda',
     'contacted' => "Bog'lanildi",
     'completed' => 'Bajarildi',
     'cancelled' => 'Bekor qilindi',
     // legacy / demo aliases → backend labels
-    'accepted' || 'in_progress' => "Ko'rib chiqilmoqda",
+    'accepted' || 'in_progress' => 'Kelishilmoqda',
     'on_way' || 'arrived' => "Bog'lanildi",
     'done' => 'Bajarildi',
     _ => status,
@@ -470,9 +479,9 @@ class OrderModel {
 
   bool get isCancelled => status == 'cancelled';
 
-  bool get canCancel => isActive;
+  bool get canCancel => isActive && (serverCanCancel ?? true);
 
-  /// Backend progress: Yangi → Ko'rib chiqilmoqda → Bog'lanildi → Bajarildi
+  /// Backend progress: Yangi → Kelishilmoqda → Bog'lanildi → Bajarildi
   int get statusStep => switch (status) {
     'new' => 0,
     'in_review' || 'accepted' || 'in_progress' => 1,
@@ -681,6 +690,15 @@ class PartnerReview {
   final double stars;
   final String text;
   final DateTime createdAt;
+
+  factory PartnerReview.fromJson(Map<String, dynamic> json) => PartnerReview(
+    id: asInt(json['id']),
+    partnerId: asInt(json['firm_id']),
+    author: asStr(json['author']).isEmpty ? 'Mijoz' : asStr(json['author']),
+    stars: asDouble(json['score']) ?? 5,
+    text: asStr(json['comment']),
+    createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
+  );
 }
 
 class ChatMessage {

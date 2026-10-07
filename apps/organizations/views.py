@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -22,12 +22,13 @@ from apps.organizations.serializers import (
     InvestorSerializer,
     PartnerFirmSerializer,
 )
+from apps.organizations.permissions import RequiresAdminCapability
 from apps.organizations.services import FirmService, InvestorService, firm_revenue_totals
 
 
 class FirmViewSet(viewsets.ModelViewSet):
     serializer_class = PartnerFirmSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin, RequiresAdminCapability]
     http_method_names = ["get", "post", "patch", "head", "options"]
     search_fields = ("name", "legal_name", "phone", "email", "region", "district")
     filterset_fields = ("status", "specialty", "subscription_plan")
@@ -39,7 +40,7 @@ class FirmViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in self.FIRM_ADMIN_ACTIONS:
-            return [IsAuthenticated(), IsAdmin()]
+            return [IsAuthenticated(), IsAdmin(), RequiresAdminCapability()]
         return [IsAuthenticated(), IsSuperAdmin()]
 
     def _own_firm(self, request) -> Organization:
@@ -65,8 +66,12 @@ class FirmViewSet(viewsets.ModelViewSet):
         return success_response({"ok": True})
 
     def get_queryset(self):
+        completed = Q(orders__status="completed")
         qs = Organization.objects.select_related("owner").annotate(
             orders_count_anno=Count("orders"),
+            completed_count_anno=Count("orders", filter=completed),
+            revenue_anno=Sum("orders__quoted_price", filter=completed),
+            platform_share_anno=Sum("orders__platform_share", filter=completed),
         ).order_by("name", "id")
         user = self.request.user
         if getattr(user, "role", None) == User.Role.SUPERADMIN:

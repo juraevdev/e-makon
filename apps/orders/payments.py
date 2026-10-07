@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import math
+import re
 from decimal import Decimal
 from urllib.parse import urlencode
 
@@ -14,11 +15,27 @@ from apps.orders.finance import FinanceService
 from apps.orders.models import Order, OrderEscrow, OrderPayment
 
 
+_AREA_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([a-zA-Z'ʻ‘`²]*)")
+_AREA_UNITS_M2 = {
+    "sotix": 100.0,
+    "sotih": 100.0,
+    "sotik": 100.0,
+    "sotiq": 100.0,
+    "sot": 100.0,
+    "ga": 10000.0,
+    "gektar": 10000.0,
+    "ha": 10000.0,
+}
+
+
 def _parse_area(raw: str) -> float:
-    try:
-        return float(str(raw or "").strip().replace(",", "."))
-    except ValueError:
+    """Kvadrat metr: "250", "250 m2", "2 sotix", "0,5 ga" kabi yozuvlarni tushunadi."""
+    match = _AREA_RE.search(str(raw or "").strip().lower())
+    if not match:
         return 0.0
+    value = float(match.group(1).replace(",", "."))
+    unit = match.group(2).strip("'ʻ‘`")
+    return value * _AREA_UNITS_M2.get(unit, 1.0)
 
 
 def estimate_for_service(service, area_m2: float) -> int:
@@ -38,10 +55,13 @@ def estimate_for_service(service, area_m2: float) -> int:
     return total
 
 
-def estimate_order_amount(services, area_size: str) -> Decimal | None:
+def estimate_items(services, area_size: str) -> list[tuple[object, Decimal | None]]:
     area = _parse_area(area_size)
-    total = sum(estimate_for_service(s, area) for s in services)
-    return Decimal(total) if total > 0 else None
+    items = []
+    for service in services:
+        amount = estimate_for_service(service, area)
+        items.append((service, Decimal(amount) if amount > 0 else None))
+    return items
 
 
 def _payme_url(order: Order, amount: Decimal) -> str:
@@ -114,11 +134,14 @@ class PaymentService:
         return escrow is not None and escrow.status in PaymentService.PAID_ESCROW
 
     @staticmethod
-    def latest(order: Order) -> OrderPayment | None:
+    def latest(order: Order, *, use_prefetched: bool = False) -> OrderPayment | None:
+        cached = getattr(order, "_prefetched_objects_cache", {}).get("payments")
+        if use_prefetched and cached is not None:
+            return max(cached, key=lambda p: (p.created_at, p.id), default=None)
         return order.payments.order_by("-created_at", "-id").first()
 
     @staticmethod
-    def status(order: Order) -> str:
+    def status(order: Order, *, use_prefetched: bool = False) -> str:
         """not_required | unpaid | checking | rejected | paid | released | refunded"""
         if not PaymentService.requires_payment(order):
             return "not_required"
@@ -130,7 +153,7 @@ class PaymentService:
                 return "released"
             if escrow.status == OrderEscrow.Status.REFUNDED:
                 return "refunded"
-        payment = PaymentService.latest(order)
+        payment = PaymentService.latest(order, use_prefetched=use_prefetched)
         if payment is not None:
             if payment.status == OrderPayment.Status.SUBMITTED:
                 return "checking"

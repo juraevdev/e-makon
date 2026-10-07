@@ -86,6 +86,9 @@ class FinanceService:
                 "note": note or "",
             },
         )
+        if not created and escrow.status != OrderEscrow.Status.AWAITING_PAYMENT:
+            # Money already moved: the held/released/refunded amount is the source of truth.
+            return escrow
         if not created:
             escrow.amount = amount
             escrow.currency = order.currency or escrow.currency

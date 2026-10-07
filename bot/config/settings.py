@@ -7,9 +7,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Always prefer project .env over stale shell env (e.g. leftover test keys).
+# Real environment (docker-compose, systemd) wins over the project .env file.
 _ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_ROOT / ".env", override=True)
+load_dotenv(_ROOT / ".env", override=False)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:

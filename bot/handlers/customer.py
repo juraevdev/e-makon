@@ -26,6 +26,22 @@ from bot.states.flow import AuthStates, OrderStates, ProfileStates, SupportState
 logger = logging.getLogger(__name__)
 router = Router(name="customer")
 
+MEDIA_MAX_FILES = 5
+MEDIA_MAX_BYTES = 10 * 1024 * 1024
+_MEDIA_TYPES = {"photo": ("photo.jpg", "image/jpeg"), "video": ("video.mp4", "video/mp4")}
+
+
+async def _download_media(bot, items: list) -> list[tuple[str, bytes, str]]:
+    files: list[tuple[str, bytes, str]] = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("file_id"):
+            continue
+        filename, content_type = _MEDIA_TYPES.get(item.get("kind"), _MEDIA_TYPES["photo"])
+        tg_file = await bot.get_file(item["file_id"])
+        content = await bot.download_file(tg_file.file_path)
+        files.append((filename, content.read(), content_type))
+    return files
+
 
 def _services(_message: Message | None = None):
     return get_services()
@@ -399,26 +415,22 @@ async def order_media(message: Message, state: FSMContext) -> None:
         await message.answer("Hozir media kutilmayapti.")
         return
 
-    try:
-        if message.photo:
-            file = await message.bot.get_file(message.photo[-1].file_id)
-            content = await message.bot.download_file(file.file_path)
-            raw = content.read()
-            media_item = ("photo.jpg", raw, "image/jpeg")
-        else:
-            file = await message.bot.get_file(message.video.file_id)
-            content = await message.bot.download_file(file.file_path)
-            raw = content.read()
-            if len(raw) > 10 * 1024 * 1024:
-                await message.answer("Fayl juda katta (maks. 10 MB).")
-                return
-            media_item = ("video.mp4", raw, "video/mp4")
-    except Exception:  # noqa: BLE001
-        logger.exception("media_download_failed")
-        await message.answer("Fayl yuklab olinmadi. Qayta urinib ko'ring yoki /skip.")
+    # Only Telegram file_ids go into FSM state (JSON in Redis); bytes are fetched at submit.
+    if message.photo:
+        media_item = {"file_id": message.photo[-1].file_id, "kind": "photo"}
+        size = message.photo[-1].file_size or 0
+    else:
+        media_item = {"file_id": message.video.file_id, "kind": "video"}
+        size = message.video.file_size or 0
+    if size > MEDIA_MAX_BYTES:
+        await message.answer("Fayl juda katta (maks. 10 MB).")
         return
 
     media = list(data.get("media") or [])
+    if len(media) >= MEDIA_MAX_FILES:
+        await message.answer(f"Ko'pi bilan {MEDIA_MAX_FILES} ta fayl yuborish mumkin.")
+        await _ask_intake_step(message, state, fields, index + 1)
+        return
     media.append(media_item)
     await state.update_data(media=media, intake_index=index + 1)
     await message.answer("Media qabul qilindi.")
@@ -522,11 +534,19 @@ async def order_confirm(callback: CallbackQuery, state: FSMContext) -> None:
 
     answers = data.get("answers") or {}
     try:
+        media = await _download_media(callback.bot, data.get("media") or [])
+    except Exception:  # noqa: BLE001
+        logger.exception("media_download_failed")
+        await state.update_data(submit_lock=False)
+        await state.set_state(OrderStates.summary)
+        await callback.message.answer("Fayllarni yuklab bo'lmadi. Qayta urinib ko'ring.")
+        return
+    try:
         order = await orders.submit(
             session=session,
             service_id=int(data["service_id"]),
             fields=answers,
-            media=data.get("media") or [],
+            media=media,
             idempotency_key=data.get("idempotency_key"),
         )
     except APIError as exc:
@@ -538,7 +558,7 @@ async def order_confirm(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.message.answer(
         msg.order_created(order),
-        reply_markup=kb.view_order_keyboard(order["id"]),
+        reply_markup=kb.view_order_keyboard(order["id"], order),
     )
     await callback.message.answer(msg.main_menu_text(), reply_markup=kb.main_menu())
 
@@ -615,12 +635,59 @@ async def cb_order_view(callback: CallbackQuery, state: FSMContext) -> None:
     except APIError as exc:
         await _handle_api_error(callback, exc)
         return
-    can_cancel = order.get("status") not in {"completed", "cancelled"}
+    can_cancel = bool(order.get("can_cancel", order.get("status") not in {"completed", "cancelled"}))
     await callback.message.edit_text(
         msg.order_card(order),
-        reply_markup=kb.order_detail_keyboard(order_id, can_cancel),
+        reply_markup=kb.order_detail_keyboard(order_id, can_cancel, order),
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("order:pay:"))
+async def cb_order_pay(callback: CallbackQuery) -> None:
+    _, _, raw_id, provider = callback.data.split(":")
+    order_id = int(raw_id)
+    auth: AuthService = _services(callback.message)["auth"]
+    session = auth.get_session(callback.from_user.id)
+    if not session:
+        await callback.answer(msg.err_session(), show_alert=True)
+        return
+    orders: OrderFlowService = _services(callback.message)["orders"]
+    try:
+        result = await orders.start_payment(session, order_id, provider)
+    except APIError as exc:
+        await _handle_api_error(callback, exc)
+        return
+    url = (result.get("payment") or {}).get("checkout_url") or ""
+    if not url:
+        await callback.answer("To'lov havolasi hozircha mavjud emas.", show_alert=True)
+        return
+    await callback.message.answer(
+        "To'lov sahifasini oching. To'lov tasdiqlangach buyurtma firmaga yuboriladi.",
+        reply_markup=kb.checkout_keyboard(url, order_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("order:testpay:"))
+async def cb_order_test_pay(callback: CallbackQuery) -> None:
+    order_id = int(callback.data.split(":")[2])
+    auth: AuthService = _services(callback.message)["auth"]
+    session = auth.get_session(callback.from_user.id)
+    if not session:
+        await callback.answer(msg.err_session(), show_alert=True)
+        return
+    orders: OrderFlowService = _services(callback.message)["orders"]
+    try:
+        order = await orders.test_pay(session, order_id)
+    except APIError as exc:
+        await _handle_api_error(callback, exc)
+        return
+    await callback.message.edit_text(
+        msg.order_card(order),
+        reply_markup=kb.order_detail_keyboard(order_id, bool(order.get("can_cancel")), order),
+    )
+    await callback.answer("To'lov qabul qilindi")
 
 
 @router.callback_query(F.data.startswith("order:cancel:"))

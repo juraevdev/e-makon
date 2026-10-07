@@ -147,7 +147,11 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _resend() async {
     try {
-      final data = await context.read<AuthProvider>().requestOtp(widget.phoneDigits);
+      final auth = context.read<AuthProvider>();
+      final data = await auth.requestOtp(
+        widget.phoneDigits,
+        purpose: auth.pendingRegistration != null ? 'register' : 'login',
+      );
       final debug = data['debug_code']?.toString();
       if (kDebugMode && debug != null && debug.length == 6) {
         _debugCode = debug;

@@ -19,15 +19,18 @@ class NotificationDeliveryTests(TestCase):
 
     def test_enqueue_persists_skipped_without_redis(self):
         with patch("apps.notifications.services._redis_client", return_value=None):
-            ok = NotificationService.enqueue(
-                event_type="order.status",
-                user_id=self.user.pk,
-                telegram_id=self.user.telegram_id,
-                entity_type="order",
-                entity_id=1,
-                delivery_key="test:order:1",
-            )
-        self.assertFalse(ok)
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                NotificationService.enqueue(
+                    event_type="order.status",
+                    user_id=self.user.pk,
+                    telegram_id=self.user.telegram_id,
+                    entity_type="order",
+                    entity_id=1,
+                    delivery_key="test:order:1",
+                )
+            self.assertFalse(NotificationDelivery.objects.filter(event_id="test:order:1").exists())
+            for callback in callbacks:
+                callback()
         row = NotificationDelivery.objects.get(event_id="test:order:1")
         self.assertEqual(row.status, "skipped")
         self.assertEqual(row.detail, "no_redis")

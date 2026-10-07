@@ -27,9 +27,10 @@ class _EmakonAppState extends State<EmakonApp> {
   late final MessagesProvider _messages = MessagesProvider();
   late final HomeFeedProvider _feed = HomeFeedProvider();
   late final FavoritesProvider _favorites = FavoritesProvider()..load();
-  late final ReviewsProvider _reviews = ReviewsProvider()..load();
+  late final ReviewsProvider _reviews = ReviewsProvider(_api);
   late final ChatProvider _chat = ChatProvider(_api);
   late final GoRouter _router = createRouter();
+  bool _wasLoggedIn = false;
 
   @override
   void initState() {
@@ -39,6 +40,23 @@ class _EmakonAppState extends State<EmakonApp> {
       _auth.sessionExpired();
       _router.go('/login');
     };
+    _auth.addListener(_onAuthChanged);
+  }
+
+  /// Chiqish yoki sessiya tugashida oldingi foydalanuvchining buyurtma/suhbatlari qolmasin.
+  void _onAuthChanged() {
+    final now = _auth.isLoggedIn;
+    if (_wasLoggedIn && !now) {
+      _orders.reset();
+      _chat.reset();
+    }
+    _wasLoggedIn = now;
+  }
+
+  @override
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    super.dispose();
   }
 
   @override

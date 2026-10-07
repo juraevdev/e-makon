@@ -168,6 +168,86 @@ class OTPBruteForceTests(TestCase):
         self.assertNotIn("554433", output)
 
 
+class TokenLifecycleTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        org = get_or_create_default_organization()
+        self.admin = User.objects.create_user(
+            phone="+998901300001", password="secret123", role=User.Role.ADMIN, organization=org
+        )
+        AdminProfile.objects.create(user=self.admin, organization=org)
+
+    def _login(self) -> dict:
+        resp = self.client.post(
+            "/api/v1/auth/admin/login/",
+            {"phone": "+998901300001", "password": "secret123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return resp.json()["data"]
+
+    def _refresh(self, token: str):
+        return self.client.post("/api/v1/auth/token/refresh/", {"refresh": token}, format="json")
+
+    def test_logout_revokes_refresh_token(self):
+        tokens = self._login()
+        out = self.client.post("/api/v1/auth/logout/", {"refresh": tokens["refresh"]}, format="json")
+        self.assertEqual(out.status_code, 200)
+        self.assertEqual(self._refresh(tokens["refresh"]).status_code, 401)
+
+    def test_rotated_refresh_token_cannot_be_reused(self):
+        tokens = self._login()
+        first = self._refresh(tokens["refresh"])
+        self.assertEqual(first.status_code, 200, first.content)
+        self.assertIn("refresh", first.json())
+        self.assertEqual(self._refresh(tokens["refresh"]).status_code, 401)
+
+    def test_logout_with_garbage_token_is_harmless(self):
+        out = self.client.post("/api/v1/auth/logout/", {"refresh": "not-a-token"}, format="json")
+        self.assertEqual(out.status_code, 200)
+
+
+class AuthThrottleTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client = APIClient()
+
+    @override_settings(API_THROTTLE_RATES={"admin_login": "3/min"})
+    def test_admin_login_is_throttled(self):
+        codes = [
+            self.client.post(
+                "/api/v1/auth/admin/login/",
+                {"phone": "+998901300099", "password": "wrong-pass"},
+                format="json",
+            ).status_code
+            for _ in range(4)
+        ]
+        self.assertEqual(codes[:3], [401, 401, 401])
+        self.assertEqual(codes[3], 429)
+
+    @override_settings(API_THROTTLE_RATES={"otp_verify": "2/min"})
+    def test_otp_verify_is_throttled(self):
+        codes = [
+            self.client.post(
+                "/api/v1/auth/otp/verify/", {"phone": "901300098", "code": "123456"}, format="json"
+            ).status_code
+            for _ in range(3)
+        ]
+        self.assertEqual(codes[2], 429)
+
+    @override_settings(API_THROTTLE_RATES={})
+    def test_disabled_when_no_rate(self):
+        for _ in range(5):
+            resp = self.client.post(
+                "/api/v1/auth/admin/login/",
+                {"phone": "+998901300099", "password": "wrong-pass"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 401)
+
+
 class AdminOrgScopeTests(TestCase):
     def setUp(self):
         self.client = APIClient()

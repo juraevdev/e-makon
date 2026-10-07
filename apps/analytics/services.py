@@ -3,14 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncDate
+from django.conf import settings
+from django.db.models import Count, F, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
 from apps.accounts.models import User
 from apps.catalog.models import Service
-from apps.orders.models import Order
+from apps.core.exceptions import ForbiddenError
+from apps.orders.models import Order, OrderEscrow, OrderPayment, OrderStatusHistory
 from apps.organizations.models import Investor, Organization
 from apps.organizations.services import (
     organization_id_for_queryset,
@@ -77,6 +79,38 @@ def _resolve_period(
     return period if period in PERIOD_DAYS else "month", start, now, days
 
 
+def analytics_org_id(user) -> int | None:
+    """None = platform-wide (superadmin only). An admin without a firm sees nothing."""
+    if user.role == User.Role.SUPERADMIN:
+        return None
+    org_id = organization_id_for_queryset(user)
+    if org_id is None:
+        raise ForbiddenError("Admin firmaga biriktirilmagan.")
+    return org_id
+
+
+def paid_completed_orders():
+    """Completed orders whose money actually reached the platform (escrow held/released)."""
+    completed_at = Subquery(
+        OrderStatusHistory.objects.filter(
+            order=OuterRef("pk"), to_status=Order.Status.COMPLETED
+        )
+        .order_by("-created_at")
+        .values("created_at")[:1]
+    )
+    qs = Order.objects.filter(
+        status=Order.Status.COMPLETED,
+        quoted_price__gt=0,
+        escrow__status__in=[OrderEscrow.Status.HELD, OrderEscrow.Status.RELEASED],
+    ).annotate(completed_at=Coalesce(completed_at, F("updated_at")))
+    if not settings.PAYMENTS_TEST_MODE:
+        qs = qs.exclude(
+            payments__provider=OrderPayment.Provider.TEST,
+            payments__status=OrderPayment.Status.CONFIRMED,
+        )
+    return qs
+
+
 class DashboardService:
     """Admin / superadmin dashboard KPI — panel DashboardData shape."""
 
@@ -102,10 +136,10 @@ class DashboardService:
         active_qs = Order.objects.exclude(
             status__in=[Order.Status.COMPLETED, Order.Status.CANCELLED]
         )
-        revenue_all_qs = Order.objects.filter(
-            status=Order.Status.COMPLETED, quoted_price__isnull=False
+        revenue_all_qs = paid_completed_orders()
+        revenue_period_qs = revenue_all_qs.filter(
+            completed_at__gte=start, completed_at__lte=end
         )
-        revenue_period_qs = revenue_all_qs.filter(created_at__gte=start, created_at__lte=end)
         firms_qs = Organization.objects.all()
         investors_qs = Investor.objects.all()
         services_qs = Service.objects.all()
@@ -115,7 +149,7 @@ class DashboardService:
 
         org_id = None
         if user is not None:
-            org_id = organization_id_for_queryset(user)
+            org_id = analytics_org_id(user)
             if org_id is not None:
                 orders_qs = orders_qs.filter(organization_id=org_id)
                 all_orders = all_orders.filter(organization_id=org_id)
@@ -212,14 +246,19 @@ class DashboardService:
             .annotate(orders=Count("id"), revenue=Sum("quoted_price"))
             .order_by("-orders")
         )
+        firms_by_service: dict[int, list[dict]] = {}
+        for f in (
+            orders_qs.filter(organization__isnull=False)
+            .values("service_id", "organization_id", "organization__name")
+            .annotate(orders=Count("id"))
+            .order_by("-orders")
+        ):
+            bucket = firms_by_service.setdefault(f["service_id"], [])
+            if len(bucket) < 5:
+                bucket.append(f)
         service_usage = []
         for row in service_stats:
-            firm_rows = (
-                orders_qs.filter(service_id=row["service_id"], organization__isnull=False)
-                .values("organization_id", "organization__name")
-                .annotate(orders=Count("id"))
-                .order_by("-orders")[:5]
-            )
+            firm_rows = firms_by_service.get(row["service_id"], [])
             service_usage.append(
                 {
                     "id": row["service_id"],
@@ -242,15 +281,21 @@ class DashboardService:
         top_services = service_usage[:5]
         least_services = list(reversed(service_usage[-5:])) if service_usage else []
 
+        order_counts = {
+            r["organization_id"]: r["n"]
+            for r in orders_qs.values("organization_id").annotate(n=Count("id"))
+        }
+        revenue_by_firm = {
+            r["organization_id"]: r
+            for r in revenue_period_qs.values("organization_id").annotate(
+                rev=Sum("quoted_price"), share=Sum("platform_share")
+            )
+        }
         firm_revenues = []
         for firm in firms_qs.order_by("name")[:50]:
-            firm_orders = orders_qs.filter(organization=firm)
-            rev = firm_orders.filter(
-                status=Order.Status.COMPLETED, quoted_price__isnull=False
-            ).aggregate(total=Sum("quoted_price"))["total"] or Decimal("0")
-            share = firm_orders.filter(
-                status=Order.Status.COMPLETED
-            ).aggregate(total=Sum("platform_share"))["total"]
+            row = revenue_by_firm.get(firm.id, {})
+            rev = row.get("rev") or Decimal("0")
+            share = row.get("share")
             if share is None:
                 share = (
                     rev * Decimal(firm.commission_rate) / Decimal("100")
@@ -260,7 +305,7 @@ class DashboardService:
                     "id": firm.id,
                     "name": firm.name,
                     "status": firm.status,
-                    "orders": firm_orders.count(),
+                    "orders": order_counts.get(firm.id, 0),
                     "revenue": str(rev),
                     "commission_rate": str(firm.commission_rate),
                     "suggested_rate": str(suggested_commission_rate(firm)),

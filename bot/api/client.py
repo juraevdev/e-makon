@@ -110,16 +110,21 @@ class EMakonAPIClient:
             ) from exc
 
         if response.status_code == 401 and refresh_token and on_refreshed:
+            # on_refreshed(access, refresh) persists rotated tokens; (None, None) means the
+            # refresh token is dead (expired/blacklisted) and the session must be dropped.
             try:
-                new_access = await self.refresh(refresh_token)
-            except httpx.RequestError as exc:
-                raise APIError(
-                    "Xizmat vaqtincha ishlamayapti. API server ishlayotganini tekshiring.",
-                    status_code=503,
-                    code="api_unreachable",
-                ) from exc
-            if on_refreshed:
-                await on_refreshed(new_access)
+                tokens = await self.refresh(refresh_token)
+            except APIError as exc:
+                if exc.status_code in (400, 401):
+                    await on_refreshed(None, None)
+                    raise APIError(
+                        "Seansingiz tugagan. Qaytadan tizimga kiring.",
+                        status_code=401,
+                        code="session_expired",
+                    ) from exc
+                raise
+            new_access = tokens["access"]
+            await on_refreshed(new_access, tokens.get("refresh"))
             headers = self._headers(
                 access_token=new_access,
                 idempotency_key=idempotency_key,
@@ -162,11 +167,11 @@ class EMakonAPIClient:
             body["full_name"] = full_name
         return await self.request("POST", "/auth/otp/verify/", json=body)
 
-    async def refresh(self, refresh_token: str) -> str:
-        data = await self.request(
+    async def refresh(self, refresh_token: str) -> dict:
+        """Returns {"access", "refresh"?}; the API rotates refresh tokens."""
+        return await self.request(
             "POST", "/auth/token/refresh/", json={"refresh": refresh_token}
         )
-        return data["access"]
 
     async def telegram_link(
         self, *, access_token: str, telegram_id: int, telegram_username: str = ""
@@ -231,6 +236,22 @@ class EMakonAPIClient:
     async def get_order(self, access_token: str, order_id: int, **kwargs) -> dict:
         return await self.request(
             "GET", f"/orders/{order_id}/", access_token=access_token, **kwargs
+        )
+
+    async def start_payment(
+        self, access_token: str, order_id: int, provider: str, **kwargs
+    ) -> dict:
+        return await self.request(
+            "POST",
+            f"/orders/{order_id}/pay/",
+            access_token=access_token,
+            json={"provider": provider},
+            **kwargs,
+        )
+
+    async def test_pay(self, access_token: str, order_id: int, **kwargs) -> dict:
+        return await self.request(
+            "POST", f"/orders/{order_id}/test-pay/", access_token=access_token, **kwargs
         )
 
     async def cancel_order(self, access_token: str, order_id: int, **kwargs) -> dict:
