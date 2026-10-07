@@ -218,6 +218,9 @@ export type Order = {
   eta_at?: string | null;
   scheduled_date?: string | null;
   time_slot?: string;
+  scheduled_start?: string | null;
+  scheduled_end?: string | null;
+  duration_minutes?: number;
   platform_share: string | null;
   commission_rate_applied: string | null;
   escrow: OrderEscrow | null;
@@ -709,4 +712,33 @@ export type Paginated<T> = {
   next: string | null;
   previous: string | null;
   results: T[];
+};
+
+export type SlotOrder = {
+  id: number;
+  customer_name: string;
+  service_name: string;
+  assigned_worker_name: string;
+  time_slot: string;
+  status: OrderStatus;
+};
+
+export type ScheduleSlot = {
+  start: string;
+  end: string;
+  label: string;
+  busy_count: number;
+  capacity: number;
+  available: boolean;
+  status: "free" | "busy" | "past";
+  orders?: SlotOrder[];
+};
+
+export type DayAvailability = {
+  date: string;
+  capacity: number;
+  work_start: string;
+  work_end: string;
+  slot_minutes: number;
+  slots: ScheduleSlot[];
 };

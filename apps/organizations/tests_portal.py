@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -191,6 +192,7 @@ class ServiceOfferTests(PortalTestBase):
         self.assertNotIn(self.rival.pk, [r["id"] for r in rows])
 
     def test_order_with_firm_uses_firm_offer_and_price(self):
+        day = timezone.localdate() + timedelta(days=3)
         resp = self.api_customer.post(
             "/api/v1/orders/",
             {
@@ -198,7 +200,7 @@ class ServiceOfferTests(PortalTestBase):
                 "firm_id": self.firm.pk,
                 "area_size": "300",
                 "address": "Jizzax",
-                "scheduled_date": "2026-10-05T00:00:00.000",
+                "scheduled_date": f"{day.isoformat()}T00:00:00.000",
                 "time_slot": "09:00 – 12:00",
                 "lat": 40.1158011223,
                 "lng": 67.8422000111,
@@ -210,7 +212,8 @@ class ServiceOfferTests(PortalTestBase):
         self.assertEqual(order.organization_id, self.firm.pk)
         self.assertEqual(order.service_id, self.offer.pk)
         self.assertEqual(order.quoted_price, Decimal("250000"))
-        self.assertEqual(order.scheduled_date, date(2026, 10, 5))
+        self.assertEqual(order.scheduled_date, day)
+        self.assertEqual(order.time_slot, "09:00 – 10:00")
 
     def test_order_for_firm_without_offer_is_rejected(self):
         resp = self.api_customer.post(

@@ -30,10 +30,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const showToast = useCallback(
     (message: string, type: ToastType = "info") => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      setToasts((prev) => [...prev, { id, type, message }]);
+      setToasts((prev) => [...prev.filter((t) => t.message !== message).slice(-3), { id, type, message }]);
       setTimeout(() => {
         removeToast(id);
-      }, 4000);
+      }, type === "error" ? 6000 : 4000);
     },
     [removeToast],
   );
@@ -46,7 +46,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, showSuccess, showError, showInfo, showWarning }}>
       {children}
-      <div className="fixed top-4 right-4 z-[100] flex max-w-sm flex-col gap-2.5 pointer-events-none">
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-3 top-3 z-[100] flex flex-col gap-2.5 sm:left-auto sm:right-4 sm:top-4 sm:w-[380px]"
+      >
         {toasts.map((toast) => {
           const styles = {
             success: "border-primary/50 bg-[#122216] text-[#bdf4ba]",
@@ -69,7 +72,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               role="alert"
             >
               <span className="material-symbols-outlined text-[20px] shrink-0">{icon}</span>
-              <p className="flex-1 font-medium">{toast.message}</p>
+              <p className="min-w-0 flex-1 break-words font-medium leading-snug">{toast.message}</p>
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}

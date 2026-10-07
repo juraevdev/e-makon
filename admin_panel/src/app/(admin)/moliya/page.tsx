@@ -1,9 +1,11 @@
 "use client";
 
-import { EmptyState, LoadingBlock, SecondaryButton, StatCard, StatusPill } from "@/components/ui";
+import { EmptyState, ExcelButton, LoadingBlock, SecondaryButton, StatCard, StatusPill } from "@/components/ui";
+import { PageBar } from "@/components/firm/PageBar";
 import { api } from "@/lib/api/client";
 import type { FirmLedgerSummary, OrderEscrow } from "@/lib/api/types";
 import { ESCROW_LABEL } from "@/lib/domain";
+import { downloadExcel } from "@/lib/excel";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useFirm } from "@/providers/FirmProvider";
@@ -20,26 +22,84 @@ const ESCROW_TONE: Record<OrderEscrow["status"], "success" | "warning" | "error"
 export default function MoliyaPage() {
   const { firm } = useFirm();
 
-  const { data, loading, error, reload } = useAsync(async () => {
-    if (!firm) return null;
-    return api<FirmLedgerSummary>(`/admin/firms/${firm.id}/ledger/`);
-  }, [firm?.id]);
+  const { data, loading, error, reload, updatedAt } = useAsync(
+    async () => {
+      if (!firm) return null;
+      return api<FirmLedgerSummary>(`/admin/firms/${firm.id}/ledger/`);
+    },
+    [firm?.id],
+    { keepPrevious: true },
+  );
 
-  if (!firm || loading) return <LoadingBlock />;
-  if (error) return <p className="p-8 text-error">{error}</p>;
+  if (!firm || (loading && !data)) return <LoadingBlock />;
+  if (error && !data) return <p className="p-8 text-error">{error}</p>;
   if (!data) return null;
+
+  function exportTable() {
+    if (!data) return;
+    downloadExcel("moliya", [
+      {
+        name: "Xulosa",
+        headers: ["Ko'rsatkich", "Summa"],
+        rows: [
+          ["Tizim hisobida ushlangan", Number(data.held_in_escrow)],
+          ["Firmaga o'tkazilgan", Number(data.paid_to_firm)],
+          ["Platforma ulushi", Number(data.platform_fees)],
+          ["Mijozlarga qaytarilgan", Number(data.refunded)],
+          ["Qarz", Number(data.debt)],
+        ],
+      },
+      {
+        name: "To'lovlar",
+        headers: ["Buyurtma", "Holat", "Mijoz to'lagan", "Valyuta", "Platforma ulushi", "Firmaga", "To'langan", "O'tkazilgan"],
+        rows: data.escrows.map((e) => [
+          e.order_id,
+          e.status_label || ESCROW_LABEL[e.status],
+          Number(e.amount),
+          e.currency,
+          Number(e.platform_fee),
+          Number(e.firm_payout),
+          formatDateTime(e.paid_at),
+          formatDateTime(e.released_at),
+        ]),
+      },
+      {
+        name: "Jurnal",
+        headers: ["Sana", "Turi", "Buyurtma", "Debet", "Kredit", "Summa", "Valyuta", "Izoh"],
+        rows: data.ledger.map((l) => [
+          formatDateTime(l.created_at),
+          l.entry_type_label,
+          l.order ?? "",
+          l.debit_label,
+          l.credit_label,
+          Number(l.amount),
+          l.currency,
+          l.note,
+        ]),
+      },
+    ]);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <p className="max-w-3xl text-sm text-on-surface-variant">
-          Mijoz to&apos;lovi avval E-Makon hisobida ushlanadi. Ish yakunlanib, tizim ma&apos;muriyati tasdiqlagach
-          platforma ulushi ({firm.commission_rate}%) ayirilib, qolgan summa firmangizga o&apos;tkaziladi.
-        </p>
-        <SecondaryButton icon="refresh" onClick={() => void reload()}>
-          Yangilash
-        </SecondaryButton>
-      </div>
+      <PageBar
+        title="Moliyaviy holat"
+        updatedAt={updatedAt}
+        description={
+          <>
+            Mijoz to&apos;lovi avval E-Makon hisobida ushlanadi. Ish yakunlanib, tizim ma&apos;muriyati tasdiqlagach
+            platforma ulushi ({firm.commission_rate}%) ayirilib, qolgan summa firmangizga o&apos;tkaziladi.
+          </>
+        }
+        actions={
+          <>
+            <ExcelButton onClick={exportTable} disabled={!data.escrows.length && !data.ledger.length} />
+            <SecondaryButton icon="refresh" onClick={() => void reload()}>
+              Yangilash
+            </SecondaryButton>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -64,7 +124,7 @@ export default function MoliyaPage() {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-sm font-bold">Buyurtmalar bo&apos;yicha to&apos;lovlar</h3>
+        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Buyurtmalar bo&apos;yicha to&apos;lovlar</h3>
         {!data.escrows.length ? (
           <EmptyState icon="receipt_long" title="Hali to'lovlar yo'q" />
         ) : (
@@ -98,7 +158,7 @@ export default function MoliyaPage() {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-sm font-bold">Hisob-kitob jurnali</h3>
+        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Hisob-kitob jurnali</h3>
         {!data.ledger.length ? (
           <EmptyState icon="menu_book" title="Jurnal bo'sh" />
         ) : (

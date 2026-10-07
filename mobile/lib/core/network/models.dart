@@ -1,6 +1,8 @@
 /// Domain models for e-makon.
 library;
 
+import '../constants/api_config.dart';
+
 /// Server raqamlarni int, double yoki (DecimalField) satr ko'rinishida qaytarishi mumkin.
 double? asDouble(dynamic v) {
   if (v is num) return v.toDouble();
@@ -89,6 +91,10 @@ class UserModel {
     );
   }
 
+  bool get hasNetworkAvatar =>
+      avatarPath != null && (avatarPath!.startsWith('http://') || avatarPath!.startsWith('https://'));
+
+  /// Mahalliy kesh (SharedPreferences) uchun; `fromJson` server va kesh kalitlarini ham o'qiydi.
   Map<String, dynamic> toJson() => {
     'id': id,
     'phone': phone,
@@ -98,29 +104,41 @@ class UserModel {
     'last_name': lastName,
     'company': company,
     'email': email,
-    'address': address,
+    'home_address': address,
     'avatar_path': avatarPath,
-    'points': points,
+    'loyalty_points': points,
     'rating': rating,
     'rating_count': ratingCount,
   };
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-    id: json['id'] as int? ?? 0,
-    phone: json['phone'] as String? ?? '',
-    fullName: json['full_name'] as String? ?? '',
-    role: json['role'] as String? ?? 'customer',
-    firstName: json['first_name'] as String? ?? '',
-    lastName: json['last_name'] as String? ?? '',
-    company: json['company'] as String? ?? '',
-    email: json['email'] as String? ?? '',
-    // Server: `home_address`, `loyalty_points`; mahalliy kesh: `address`, `points`.
-    address: asStr(json['home_address'] ?? json['address']),
-    avatarPath: json['avatar_path'] as String?,
-    points: asInt(json['loyalty_points'] ?? json['points']),
-    rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
-    ratingCount: json['rating_count'] as int? ?? 0,
-  );
+  /// Server `/auth/me/`: `loyalty_points`, `avatar` (URL), `home_address` / `formatted_address`.
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    final serverAvatar = asStr(json['avatar']);
+    final localAvatar = asStr(json['avatar_path']);
+    final homeAddress = asStr(json['home_address']);
+    final formatted = asStr(json['formatted_address']);
+    return UserModel(
+      id: asInt(json['id']),
+      phone: asStr(json['phone']),
+      fullName: asStr(json['full_name']),
+      role: json['role'] as String? ?? 'customer',
+      firstName: asStr(json['first_name']),
+      lastName: asStr(json['last_name']),
+      company: asStr(json['company']),
+      email: asStr(json['email']),
+      address: homeAddress.isNotEmpty
+          ? homeAddress
+          : formatted.isNotEmpty
+              ? formatted
+              : asStr(json['address']),
+      avatarPath: serverAvatar.isNotEmpty
+          ? ApiConfig.mediaUrl(serverAvatar)
+          : (localAvatar.isNotEmpty ? localAvatar : null),
+      points: asInt(json['loyalty_points'] ?? json['points']),
+      rating: asDouble(json['rating']) ?? 5.0,
+      ratingCount: asInt(json['rating_count']),
+    );
+  }
 }
 
 class ServiceModel {
@@ -507,7 +525,11 @@ class OrderModel {
     return statusLabel;
   }
 
-  static int pointsForAmount(int amountSom) => (amountSom ~/ 100000) * 10;
+  /// Server sozlamasi (`/loyalty/` → `uzs_per_point`); yuklangach yangilanadi.
+  static int uzsPerPoint = 10000;
+
+  /// Taxminiy ball — haqiqiy ball buyurtma bajarilganda server tomonidan beriladi.
+  static int pointsForAmount(int amountSom) => uzsPerPoint > 0 ? amountSom ~/ uzsPerPoint : 0;
 }
 
 class OrderStageEvent {
@@ -630,6 +652,7 @@ class ChatRoomModel {
   );
 }
 
+/// Bosh sahifa karuseli — superadmin boshqaradigan `/banners/` (placement=home).
 class CarouselItem {
   const CarouselItem({
     required this.id,
@@ -638,6 +661,8 @@ class CarouselItem {
     required this.category,
     required this.icon,
     this.serviceSlug,
+    this.serviceId,
+    this.placement = 'home',
     this.accent = 0xFF2E7D32,
     this.image = '',
   });
@@ -648,21 +673,44 @@ class CarouselItem {
   final String category;
   final String icon;
   final String? serviceSlug;
+  final int? serviceId;
+
+  /// home | promo
+  final String placement;
   final int accent;
   final String image;
 
   bool get hasImage => image.isNotEmpty;
   bool get isNetworkImage => image.startsWith('http://') || image.startsWith('https://');
+  bool get hasService => serviceSlug?.isNotEmpty == true;
 
-  factory CarouselItem.fromJson(Map<String, dynamic> json) => CarouselItem(
-    id: json['id'] as int? ?? 0,
-    title: json['title'] as String? ?? '',
-    subtitle: json['subtitle'] as String? ?? '',
-    category: json['category'] as String? ?? '',
-    icon: json['icon'] as String? ?? 'eco',
-    serviceSlug: json['service_slug'] as String?,
-    accent: json['accent'] as int? ?? 0xFF2E7D32,
-    image: json['image'] as String? ?? json['image_url'] as String? ?? '',
+  factory CarouselItem.fromJson(Map<String, dynamic> json) {
+    final slug = asStr(json['service_slug']);
+    final image = asStr(json['image']);
+    return CarouselItem(
+      id: asInt(json['id']),
+      title: asStr(json['title']),
+      subtitle: asStr(json['subtitle'] ?? json['description']),
+      category: asStr(json['category']),
+      icon: json['icon'] as String? ?? 'eco',
+      serviceSlug: slug.isEmpty ? null : slug,
+      serviceId: json['service_id'] == null ? null : asInt(json['service_id']),
+      placement: json['placement'] as String? ?? 'home',
+      accent: json['accent'] is int ? json['accent'] as int : 0xFF2E7D32,
+      image: ApiConfig.mediaUrl(image.isNotEmpty ? image : asStr(json['image_url'])),
+    );
+  }
+
+  /// `promo` bannerlari "Ommabop takliflar" bo'limida ko'rsatiladi.
+  OfferModel toOffer() => OfferModel(
+    id: id,
+    title: title,
+    subtitle: subtitle,
+    kind: placement,
+    emoji: '✨',
+    accent: accent,
+    image: image,
+    serviceSlug: serviceSlug,
   );
 }
 
@@ -835,6 +883,7 @@ class OfferModel {
     required this.emoji,
     this.accent = 0xFF2E7D32,
     this.image = '',
+    this.serviceSlug,
   });
 
   final int id;
@@ -844,17 +893,19 @@ class OfferModel {
   final String emoji;
   final int accent;
   final String image;
+  final String? serviceSlug;
 
   bool get hasImage => image.isNotEmpty;
 
   factory OfferModel.fromJson(Map<String, dynamic> json) => OfferModel(
-    id: json['id'] as int? ?? 0,
-    title: json['title'] as String? ?? '',
-    subtitle: json['subtitle'] as String? ?? '',
+    id: asInt(json['id']),
+    title: asStr(json['title']),
+    subtitle: asStr(json['subtitle']),
     kind: json['kind'] as String? ?? 'promo',
     emoji: json['emoji'] as String? ?? '✨',
-    accent: json['accent'] as int? ?? 0xFF2E7D32,
-    image: json['image'] as String? ?? json['image_url'] as String? ?? '',
+    accent: json['accent'] is int ? json['accent'] as int : 0xFF2E7D32,
+    image: ApiConfig.mediaUrl(asStr(json['image'] ?? json['image_url'])),
+    serviceSlug: json['service_slug'] as String?,
   );
 }
 
@@ -906,6 +957,51 @@ class AppMessage {
   );
 }
 
+/// Firmaning bir soatlik vaqt oralig'i: `free` — bo'sh (yashil), `busy` — band (qizil), `past` — o'tgan.
+class TimeSlotModel {
+  const TimeSlotModel({
+    required this.start,
+    required this.end,
+    required this.status,
+    this.busyCount = 0,
+    this.capacity = 1,
+  });
+
+  final String start;
+  final String end;
+  final String status;
+  final int busyCount;
+  final int capacity;
+
+  String get label => '$start – $end';
+  bool get isFree => status == 'free';
+  bool get isBusy => status == 'busy';
+
+  factory TimeSlotModel.fromJson(Map<String, dynamic> json) => TimeSlotModel(
+    start: asStr(json['start']),
+    end: asStr(json['end']),
+    status: asStr(json['status']),
+    busyCount: asInt(json['busy_count']),
+    capacity: asInt(json['capacity'], 1),
+  );
+
+  /// Firma tanlanmagan (yoki server yo'q) holat: ish vaqtidagi barcha soatlar, faqat o'tganlari yopiq.
+  static List<TimeSlotModel> workingHours(DateTime day, {int from = 8, int to = 20}) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(day.year, day.month, day.day);
+    String hh(int h) => '${h.toString().padLeft(2, '0')}:00';
+    return [
+      for (var h = from; h < to; h++)
+        TimeSlotModel(
+          start: hh(h),
+          end: hh(h + 1),
+          status: date.isBefore(today) || (date == today && h <= now.hour) ? 'past' : 'free',
+        ),
+    ];
+  }
+}
+
 class BonusService {
   const BonusService({required this.id, required this.title, required this.costPoints, required this.emoji});
 
@@ -913,4 +1009,86 @@ class BonusService {
   final String title;
   final int costPoints;
   final String emoji;
+}
+
+/// Superadmin panelida boshqariladigan mukofot (`/loyalty/` → `rewards`).
+class LoyaltyReward {
+  const LoyaltyReward({required this.id, required this.name, required this.pointsCost, this.icon = ''});
+
+  final int id;
+  final String name;
+  final int pointsCost;
+
+  /// Emoji yoki ikonka kaliti — bo'sh bo'lsa standart belgi ko'rsatiladi.
+  final String icon;
+
+  factory LoyaltyReward.fromJson(Map<String, dynamic> json) => LoyaltyReward(
+    id: asInt(json['id']),
+    name: asStr(json['name']),
+    pointsCost: asInt(json['points_cost']),
+    icon: asStr(json['icon']),
+  );
+
+  factory LoyaltyReward.fromBonus(BonusService b) =>
+      LoyaltyReward(id: b.id, name: b.title, pointsCost: b.costPoints, icon: b.emoji);
+}
+
+/// Ball tarixi (`/loyalty/transactions/`): earn | redeem | expire | adjust.
+class PointTransaction {
+  const PointTransaction({
+    required this.id,
+    required this.kind,
+    required this.kindLabel,
+    required this.points,
+    required this.note,
+    required this.createdAt,
+    this.orderId,
+  });
+
+  final int id;
+  final String kind;
+  final String kindLabel;
+  final int points;
+  final String note;
+  final DateTime createdAt;
+  final int? orderId;
+
+  bool get isPositive => points > 0;
+
+  factory PointTransaction.fromJson(Map<String, dynamic> json) => PointTransaction(
+    id: asInt(json['id']),
+    kind: asStr(json['kind']),
+    kindLabel: asStr(json['kind_label']),
+    points: asInt(json['points']),
+    note: asStr(json['note']),
+    createdAt: DateTime.tryParse(asStr(json['created_at']))?.toLocal() ?? DateTime.now(),
+    orderId: json['order'] == null ? null : asInt(json['order']),
+  );
+}
+
+/// `GET /loyalty/` javobi.
+class LoyaltySummary {
+  const LoyaltySummary({
+    required this.balance,
+    required this.uzsPerPoint,
+    required this.minRedeemPoints,
+    required this.rewards,
+  });
+
+  final int balance;
+  final int uzsPerPoint;
+  final int minRedeemPoints;
+  final List<LoyaltyReward> rewards;
+
+  factory LoyaltySummary.fromJson(Map<String, dynamic> json) {
+    final rewards = json['rewards'];
+    return LoyaltySummary(
+      balance: asInt(json['balance']),
+      uzsPerPoint: asInt(json['uzs_per_point'], 10000),
+      minRedeemPoints: asInt(json['min_redeem_points']),
+      rewards: rewards is List
+          ? rewards.whereType<Map>().map((e) => LoyaltyReward.fromJson(Map<String, dynamic>.from(e))).toList()
+          : const [],
+    );
+  }
 }

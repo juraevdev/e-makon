@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,8 +41,6 @@ class OrderFlowScreen extends StatefulWidget {
 }
 
 class _OrderFlowScreenState extends State<OrderFlowScreen> {
-  static const _slots = ['09:00 – 12:00', '12:00 – 15:00', '15:00 – 18:00'];
-
   int _step = 0;
   final _area = TextEditingController();
   final _address = TextEditingController();
@@ -54,7 +53,11 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   PartnerModel? _partner;
   String? _error;
   DateTime _scheduledDate = DateTime.now().add(const Duration(days: 1));
-  String _timeSlot = _slots.first;
+  TimeSlotModel? _slot;
+  List<TimeSlotModel>? _daySlots;
+  bool _slotsLoading = false;
+  String? _slotsNote;
+  int _slotsRequest = 0;
   double? _lat;
   double? _lng;
 
@@ -165,9 +168,19 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   }
 
   Future<void> _pickImages() async {
-    final files = await ImagePicker().pickMultiImage(imageQuality: 80, maxWidth: 1920, maxHeight: 1920);
-    if (files.isEmpty) return;
+    final List<XFile> files;
+    try {
+      files = await ImagePicker().pickMultiImage(imageQuality: 80, maxWidth: 1920, maxHeight: 1920);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rasm tanlab bo‘lmadi. Galereya ruxsatini tekshiring'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    if (files.isEmpty || !mounted) return;
     setState(() {
+      _error = null;
       _images.addAll(files);
       while (_images.length > 3) {
         _images.removeLast();
@@ -214,7 +227,49 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 60)),
     );
-    if (picked != null) setState(() => _scheduledDate = picked);
+    if (picked == null) return;
+    setState(() => _scheduledDate = picked);
+    _loadSlots();
+  }
+
+  String get _dateParam =>
+      '${_scheduledDate.year.toString().padLeft(4, '0')}-${_scheduledDate.month.toString().padLeft(2, '0')}-${_scheduledDate.day.toString().padLeft(2, '0')}';
+
+  /// Tanlangan firmaning shu kundagi bandligi. Firma yo'q bo'lsa — oddiy ish soatlari.
+  Future<void> _loadSlots() async {
+    final request = ++_slotsRequest;
+    final partner = _partner;
+    setState(() {
+      _slotsLoading = true;
+      _slotsNote = null;
+    });
+    List<TimeSlotModel> slots;
+    String? note;
+    if (partner == null || !partner.fromServer || ApiConfig.useLocalData) {
+      slots = TimeSlotModel.workingHours(_scheduledDate);
+      note = partner == null ? 'Firma operator tomonidan biriktiriladi — vaqtni u tasdiqlaydi' : null;
+    } else {
+      try {
+        final data = await context.read<ApiClient>().get(
+          '/partners/${partner.id}/availability/',
+          auth: false,
+          query: {'date': _dateParam},
+        );
+        final raw = (data is Map ? data['slots'] : null) as List? ?? const [];
+        slots = [for (final s in raw) TimeSlotModel.fromJson(Map<String, dynamic>.from(s as Map))];
+      } catch (_) {
+        slots = TimeSlotModel.workingHours(_scheduledDate);
+        note = 'Firma bandligini yuklab bo‘lmadi — vaqtni firma tasdiqlaydi';
+      }
+    }
+    if (!mounted || request != _slotsRequest) return;
+    setState(() {
+      _daySlots = slots;
+      _slotsNote = note;
+      _slotsLoading = false;
+      final keep = _slot == null ? null : slots.where((s) => s.start == _slot!.start && s.isFree).firstOrNull;
+      _slot = keep;
+    });
   }
 
   bool _validateStep1() {
@@ -228,6 +283,10 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
     }
     if (_notes.text.trim().isEmpty) {
       setState(() => _error = 'Izoh majburiy — bog‘ holatini yozing');
+      return false;
+    }
+    if (_slot == null) {
+      setState(() => _error = 'Bo‘sh (yashil) vaqtni tanlang');
       return false;
     }
     setState(() => _error = null);
@@ -256,9 +315,10 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             partnerName: _partner?.name ?? '',
             firmId: _partner != null && _partner!.fromServer ? _partner!.id : null,
             distanceKm: dist > 0 ? dist : 0,
-            mediaPaths: _images.map((e) => e.path).toList(),
+            media: List.of(_images),
             scheduledDate: _scheduledDate,
-            timeSlot: _timeSlot,
+            timeSlot: _slot?.label ?? '',
+            scheduledStart: _slot?.start,
             lat: _lat,
             lng: _lng,
             partnerLat: _partner?.lat,
@@ -269,11 +329,21 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
         title: 'Buyurtma qabul qilindi',
         body: order.needsPayment
             ? "#${order.id} · To'lovni amalga oshiring"
-            : '#${order.id} · ${_partner?.name ?? 'Hamkor'} · $_timeSlot',
+            : '#${order.id} · ${_partner?.name ?? 'Hamkor'} · ${order.timeSlot}',
       );
       if (!mounted) return;
       context.go(order.needsPayment ? '/order-payment' : '/order-success', extra: order);
     } on ApiException catch (e) {
+      if (e.code != null && e.code!.startsWith('slot_')) {
+        // Shu orada boshqa mijoz vaqtni band qildi — jadvalni yangilab, vaqt tanlashga qaytaramiz.
+        setState(() {
+          _error = e.message;
+          _slot = null;
+          _step = 1;
+        });
+        _loadSlots();
+        return;
+      }
       setState(() => _error = e.message);
     } catch (_) {
       setState(() => _error = 'Buyurtmani yuborishda xatolik');
@@ -294,6 +364,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
         _error = null;
         _step = 1;
       });
+      _loadSlots();
       return;
     }
     if (_step == 1) {
@@ -405,6 +476,112 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             ),
             SizedBox(height: 16 + MediaQuery.paddingOf(context).bottom),
           ],
+        ),
+      ),
+    );
+  }
+
+  static const _freeColor = Color(0xFF43A047);
+  static const _busyColor = Color(0xFFE53935);
+
+  Widget _legendDot(Color color, String text) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      const SizedBox(width: 4),
+      Text(text, style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+    ],
+  );
+
+  Widget _buildSlotPicker(BuildContext context) {
+    final slots = _daySlots;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('Boshlanish vaqti', style: Theme.of(context).textTheme.titleMedium)),
+            _legendDot(_freeColor, 'Bo‘sh'),
+            const SizedBox(width: 10),
+            _legendDot(_busyColor, 'Band'),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Xizmat taxminan 1 soat davom etadi. Ish cho‘zilsa, firma vaqtni uzaytiradi.',
+          style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 8),
+        if (_slotsLoading && slots == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        else if (slots != null)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final slot in slots) _slotTile(slot)],
+          ),
+        if (_slotsNote != null) ...[
+          const SizedBox(height: 6),
+          Text(_slotsNote!, style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+        ],
+      ],
+    );
+  }
+
+  Widget _slotTile(TimeSlotModel slot) {
+    final selected = _slot?.start == slot.start;
+    final color = slot.isFree ? _freeColor : (slot.isBusy ? _busyColor : AppColors.outlineVariant);
+    final caption = slot.isBusy
+        ? 'Band'
+        : !slot.isFree
+            ? 'O‘tgan'
+            : slot.capacity > 1
+                ? 'Bo‘sh ${slot.capacity - slot.busyCount}/${slot.capacity}'
+                : 'Bo‘sh';
+    return Opacity(
+      opacity: slot.isFree ? 1 : 0.75,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: slot.isFree
+            ? () => setState(() {
+                  _slot = slot;
+                  _error = null;
+                })
+            : () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(slot.isBusy
+                        ? '${slot.label} vaqtida firma band — boshqa vaqtni tanlang'
+                        : 'Bu vaqt o‘tib ketgan'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 98,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: color.withValues(alpha: selected ? 0.45 : 0.16),
+            border: Border.all(color: color, width: selected ? 2 : 1),
+          ),
+          child: Column(
+            children: [
+              Text(
+                slot.start,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: slot.isFree || slot.isBusy ? Colors.white : AppColors.onSurfaceVariant,
+                  decoration: slot.isBusy ? TextDecoration.lineThrough : null,
+                ),
+              ),
+              Text(caption, style: TextStyle(fontSize: 11, color: slot.isFree || slot.isBusy ? color : AppColors.outline)),
+            ],
+          ),
         ),
       ),
     );
@@ -586,26 +763,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Text('Vaqt oralig‘i', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final slot in _slots)
-                ChoiceChip(
-                  label: Text(slot),
-                  selected: _timeSlot == slot,
-                  onSelected: (_) => setState(() => _timeSlot = slot),
-                  selectedColor: AppColors.primary.withValues(alpha: 0.28),
-                  labelStyle: TextStyle(
-                    color: _timeSlot == slot ? AppColors.primary : AppColors.onSurface,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-            ],
-          ),
+          _buildSlotPicker(context),
           const SizedBox(height: 12),
           TextField(
             controller: _phone,
@@ -633,9 +791,31 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 for (final img in _images)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(File(img.path), width: 92, height: 92, fit: BoxFit.cover),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: kIsWeb
+                              ? Image.network(img.path, width: 92, height: 92, fit: BoxFit.cover)
+                              : Image.file(File(img.path), width: 92, height: 92, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Material(
+                            color: Colors.black54,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () => setState(() => _images.remove(img)),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 if (_images.length < 3)
@@ -702,7 +882,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 Text('Maydon: ${_area.text} m²'),
                 const SizedBox(height: 6),
               ],
-              Text('Sana: ${DateFormat('d MMM yyyy').format(_scheduledDate)} · $_timeSlot'),
+              Text('Sana: ${DateFormat('d MMM yyyy').format(_scheduledDate)} · ${_slot?.label ?? '—'}'),
               const SizedBox(height: 6),
               Text('Rasmlar: ${_images.length} ta'),
               const SizedBox(height: 6),

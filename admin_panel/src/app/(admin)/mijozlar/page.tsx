@@ -1,12 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  Avatar,
-  DataTable,
   EmptyState,
-  Field,
+  ExcelButton,
   inputClass,
   LoadingBlock,
   Modal,
@@ -15,25 +13,25 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
+import { InfoNote, MiniStat, PageBar } from "@/components/firm/PageBar";
 import { api, asPage, fetchAll } from "@/lib/api/client";
 import type { Order, User } from "@/lib/api/types";
-import { downloadCsv } from "@/lib/csv";
+import { downloadExcel } from "@/lib/excel";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
-import { formatDate, formatMoney, formatPhone, initials, pageNumbers } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatPhone, initials, pageNumbers, relativeTime } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
 import { useToast } from "@/providers/ToastProvider";
 
-const PAGE_SIZE = 15;
-const emptyForm = { phone: "+998", first_name: "", last_name: "", home_address: "" };
+const PAGE_SIZE = 20;
 
 type Segment = "all" | "new" | "returning" | "active" | "inactive";
 
 const SEGMENTS: { id: Segment; label: string; icon: string; hint: string }[] = [
-  { id: "all", label: "Barcha mijozlar", icon: "groups", hint: "Eng yangi qo'shilganlar birinchi" },
+  { id: "all", label: "Barcha mijozlar", icon: "groups", hint: "Firmangizga murojaat qilganlar" },
   { id: "new", label: "Yangi", icon: "fiber_new", hint: "So'nggi 30 kunda kelgan" },
   { id: "returning", label: "Doimiy", icon: "autorenew", hint: "2 va undan ko'p buyurtma" },
-  { id: "active", label: "Eng faol", icon: "local_fire_department", hint: "Buyurtma soni va summasi bo'yicha" },
+  { id: "active", label: "Eng faol", icon: "local_fire_department", hint: "Buyurtma soni va summasi" },
   { id: "inactive", label: "Uzoq kelmagan", icon: "bedtime", hint: "90 kundan beri buyurtma yo'q" },
 ];
 
@@ -43,56 +41,60 @@ const SORTS = [
   { id: "-total_spent_anno", label: "Sarflagan summa ↓" },
   { id: "-last_order_at_anno", label: "Oxirgi buyurtma ↓" },
   { id: "-date_joined", label: "Ro'yxatdan o'tgan ↓" },
+  { id: "full_name", label: "Ism (A–Z)" },
 ];
+
+const customerName = (u: User) => u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" ") || "Ism kiritilmagan";
+const customerAddress = (u: User) => u.formatted_address || u.home_address || [u.region, u.district].filter(Boolean).join(", ");
+
+function loyaltyTier(u: User) {
+  const n = u.orders_count ?? 0;
+  if (n >= 5) return { label: "VIP", cls: "border-amber-400/50 bg-amber-400/15 text-amber-300" };
+  if (n >= 2) return { label: "Doimiy", cls: "border-primary/40 bg-primary/10 text-primary" };
+  if (n === 1) return { label: "1-buyurtma", cls: "border-sky-400/40 bg-sky-400/10 text-sky-300" };
+  return { label: "Buyurtmasiz", cls: "border-[#26352c] bg-[#0e1210] text-on-surface-variant" };
+}
 
 export default function MijozlarPage() {
   const router = useRouter();
-  const { query } = useSearch();
-  const { showSuccess, showError } = useToast();
+  const { query, setQuery } = useSearch();
+  const { showError } = useToast();
   const [page, setPage] = useState(1);
   const [segment, setSegment] = useState<Segment>("all");
   const [ordering, setOrdering] = useState("");
-  const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<User | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  const params = {
-    segment: segment === "all" ? undefined : segment,
-    search: query || undefined,
-    ordering: ordering || undefined,
-  };
+  const params = useMemo(
+    () => ({
+      segment: segment === "all" ? undefined : segment,
+      search: query || undefined,
+      ordering: ordering || undefined,
+    }),
+    [segment, query, ordering],
+  );
 
-  const { data, loading, error, reload } = useAsync(
+  const { data, loading, error, updatedAt } = useAsync(
     async () => asPage<User>(await api("/admin/customers/", { query: { ...params, page, page_size: PAGE_SIZE } })),
-    [page, query, segment, ordering],
+    [page, params],
     { keepPrevious: true },
   );
 
-  const { data: counts, reload: reloadCounts } = useAsync(
+  const { data: counts } = useAsync(
     () => api<Record<Segment, number>>("/admin/customers/segments/", { query: { search: query || undefined } }),
     [query],
+    { keepPrevious: true },
   );
 
-  const { data: history, loading: historyLoading } = useAsync(async () => {
-    if (!detail) return [];
-    return asPage<Order>(await api("/admin/orders/", { query: { customer: detail.id, page_size: 20 } })).results;
-  }, [detail?.id]);
-
-  async function createUser() {
-    setBusy(true);
-    try {
-      await api("/admin/customers/", { method: "POST", body: form });
-      setOpen(false);
-      setForm(emptyForm);
-      showSuccess("Mijoz qo'shildi");
-      await Promise.all([reload(), reloadCounts()]);
-    } catch (err) {
-      showError(err instanceof Error ? err.message : "Saqlanmadi");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { data: history, loading: historyLoading } = useAsync(
+    async () => {
+      if (!detail) return [];
+      return asPage<Order>(
+        await api("/admin/orders/", { query: { customer: detail.id, page_size: 50, ordering: "-created_at" } }),
+      ).results;
+    },
+    [detail?.id],
+  );
 
   async function openChat(u: User) {
     try {
@@ -104,241 +106,369 @@ export default function MijozlarPage() {
   }
 
   async function exportTable() {
+    setExporting(true);
     try {
       const list = await fetchAll<User>("/admin/customers/", params);
-      downloadCsv(
-        `mijozlar-${segment}-${new Date().toISOString().slice(0, 10)}`,
-        ["ID", "F.I.Sh", "Telefon", "Manzil", "Buyurtmalar", "Sarflagan (UZS)", "Birinchi buyurtma", "Oxirgi buyurtma", "Ro'yxatdan o'tgan"],
-        list.map((u) => [
+      downloadExcel(`mijozlar-${segment}`, {
+        name: SEGMENTS.find((s) => s.id === segment)?.label ?? "Mijozlar",
+        headers: [
+          "ID",
+          "F.I.Sh",
+          "Telefon",
+          "Manzil",
+          "Buyurtmalar",
+          "Sarflagan (UZS)",
+          "Birinchi buyurtma",
+          "Oxirgi buyurtma",
+          "Ro'yxatdan o'tgan",
+          "Holat",
+        ],
+        rows: list.map((u) => [
           u.id,
-          u.full_name,
-          u.phone,
-          u.formatted_address || u.home_address,
+          customerName(u),
+          formatPhone(u.phone),
+          customerAddress(u),
           u.orders_count ?? 0,
-          Number(u.total_spent ?? 0),
+          Math.round(Number(u.total_spent ?? 0)),
           u.first_order_at ? formatDate(u.first_order_at) : "",
           u.last_order_at ? formatDate(u.last_order_at) : "",
           formatDate(u.date_joined),
+          u.is_active ? "Faol" : "Bloklangan",
         ]),
-      );
+      });
     } catch (err) {
       showError(err instanceof Error ? err.message : "Eksport bo'lmadi");
+    } finally {
+      setExporting(false);
     }
   }
 
   const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / PAGE_SIZE));
-  const current = SEGMENTS.find((s) => s.id === segment)!;
+  const currentSeg = SEGMENTS.find((s) => s.id === segment) ?? SEGMENTS[0];
+  const rows = data?.results ?? [];
+
+  const historyStats = useMemo(() => {
+    const list = history ?? [];
+    const completed = list.filter((o) => o.status === "completed");
+    const revenue = completed.reduce((s, o) => s + Number(o.quoted_price || 0), 0);
+    return {
+      total: list.length,
+      completed: completed.length,
+      cancelled: list.filter((o) => o.status === "cancelled").length,
+      active: list.filter((o) => !["completed", "cancelled"].includes(o.status)).length,
+      avg: completed.length ? revenue / completed.length : 0,
+    };
+  }, [history]);
+
+  function changeSegment(id: Segment) {
+    setSegment(id);
+    setPage(1);
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <p className="max-w-3xl text-sm text-on-surface-variant">
-          Firmangiz mijozlar bazasi: yangi va oldingi mijozlar, doimiylar va eng faollar. Har bir mijoz bilan alohida suhbat
-          xonasi orqali yozishishingiz mumkin.
-        </p>
-        <div className="flex gap-2">
-          <SecondaryButton icon="download" onClick={() => void exportTable()}>
-            CSV
-          </SecondaryButton>
-          <PrimaryButton icon="person_add" onClick={() => setOpen(true)}>
-            Mijoz qo&apos;shish
-          </PrimaryButton>
-        </div>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
+      <PageBar
+        updatedAt={updatedAt}
+        description="Firmangiz mijozlar bazasi: yangi va doimiy mijozlar, eng faollar va uzoq kelmaganlar. Mijoz kartasida buyurtmalar tarixi va suhbat tugmasi bor."
+        actions={<ExcelButton onClick={() => void exportTable()} disabled={exporting || !data?.count} label={exporting ? "Tayyorlanmoqda..." : "Excel"} />}
+      />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <InfoNote icon="smartphone" tone="info">
+        <b>Mijozlar faqat E-MAKON ilovasi orqali qo&apos;shiladi.</b> Mijoz ilovada ro&apos;yxatdan o&apos;tib, firmangiz xizmatiga
+        buyurtma bergach shu ro&apos;yxatda avtomatik paydo bo&apos;ladi. Firma mijozni qo&apos;lda qo&apos;sha olmaydi.
+      </InfoNote>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {SEGMENTS.map((s) => (
-          <button
+          <MiniStat
             key={s.id}
-            type="button"
-            onClick={() => {
-              setSegment(s.id);
-              setPage(1);
-            }}
-            className={`rounded-2xl border p-4 text-left transition ${
-              segment === s.id ? "border-primary bg-primary/10" : "border-[#26352c] bg-[#141816] hover:border-primary/40"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`material-symbols-outlined ${segment === s.id ? "text-primary" : "text-on-surface-variant"}`}>
-                {s.icon}
-              </span>
-              <span className="text-xl font-bold">{counts?.[s.id] ?? "—"}</span>
-            </div>
-            <p className="mt-2 text-sm font-semibold">{s.label}</p>
-            <p className="text-[11px] text-on-surface-variant">{s.hint}</p>
-          </button>
+            label={s.label}
+            value={counts?.[s.id] ?? "—"}
+            icon={s.icon}
+            hint={s.hint}
+            tone={segment === s.id ? "primary" : "default"}
+            active={segment === s.id}
+            onClick={() => changeSegment(s.id)}
+          />
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-on-surface-variant">
-          <b className="text-on-surface">{current.label}</b> · {data?.count ?? 0} ta
-        </p>
-        <select
-          className="rounded-xl border border-[#26352c] bg-[#121614] px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-          value={ordering}
-          onChange={(e) => {
-            setOrdering(e.target.value);
-            setPage(1);
-          }}
-        >
-          {SORTS.map((s) => (
-            <option key={s.id} value={s.id}>{s.label}</option>
-          ))}
-        </select>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="relative w-full md:max-w-md">
+          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">
+            search
+          </span>
+          <input
+            className={`${inputClass} pl-10`}
+            placeholder="Ism yoki telefon bo'yicha qidirish"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-on-surface-variant">
+            <b className="text-on-surface">{currentSeg.label}</b> · {data?.count ?? 0} ta
+          </p>
+          <div className="w-full sm:w-56">
+            <select
+              className={inputClass}
+              value={ordering}
+              aria-label="Saralash"
+              onChange={(e) => {
+                setOrdering(e.target.value);
+                setPage(1);
+              }}
+            >
+              {SORTS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {loading ? (
-        <LoadingBlock />
-      ) : error ? (
-        <p className="text-error">{error}</p>
-      ) : !data?.results.length ? (
-        <EmptyState icon="group" title="Mijozlar yo'q" description="Bu segmentda hozircha mijoz yo'q." />
-      ) : (
-        <DataTable
-          headers={["", "Mijoz", "Telefon", "Buyurtmalar", "Sarflagan", "Birinchi / oxirgi", "Holat", ""]}
-          footer={
+      <div className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 shadow-lg">
+        {loading ? (
+          <LoadingBlock />
+        ) : error && !data ? (
+          <p className="p-6 text-sm text-error">{error}</p>
+        ) : !rows.length ? (
+          <EmptyState
+            icon="group"
+            title="Mijozlar topilmadi"
+            description={
+              query
+                ? "Qidiruv bo'yicha mijoz topilmadi."
+                : "Bu segmentda hozircha mijoz yo'q. Mijozlar E-MAKON ilovasidan buyurtma berganda paydo bo'ladi."
+            }
+          />
+        ) : (
+          <>
+            <ul className="divide-y divide-[#263b2a]/50 md:hidden">
+              {rows.map((u, idx) => (
+                <li key={u.id}>
+                  <button type="button" onClick={() => setDetail(u)} className="flex w-full items-start gap-3 p-4 text-left">
+                    <CustomerAvatar user={u} rank={segment === "active" && page === 1 ? idx + 1 : null} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="truncate text-base font-semibold text-on-surface">{customerName(u)}</p>
+                        <span className="shrink-0 text-sm font-semibold">{formatMoney(u.total_spent ?? 0)}</span>
+                      </div>
+                      <p className="text-sm text-on-surface-variant">{formatPhone(u.phone)}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <TierPill user={u} />
+                        <span className="text-on-surface-variant">{u.orders_count ?? 0} ta buyurtma</span>
+                        {u.last_order_at ? <span className="text-on-surface-variant">· {relativeTime(u.last_order_at)}</span> : null}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#263b2a] text-xs uppercase tracking-wide text-on-surface-variant">
+                    {["Mijoz", "Telefon", "Buyurtmalar", "Sarflagan", "Oxirgi buyurtma", ""].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-5 py-3 font-semibold">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#263b2a]/40">
+                  {rows.map((u, idx) => (
+                    <tr key={u.id} className="cursor-pointer transition hover:bg-white/5" onClick={() => setDetail(u)}>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <CustomerAvatar user={u} rank={segment === "active" && page === 1 ? idx + 1 : null} />
+                          <div className="min-w-0">
+                            <p className="flex items-center gap-2 font-semibold text-on-surface">
+                              <span className="truncate">{customerName(u)}</span>
+                              {!u.is_active ? <StatusPill variant="error">Bloklangan</StatusPill> : null}
+                            </p>
+                            <p className="max-w-[260px] truncate text-xs text-on-surface-variant">{customerAddress(u) || "Manzil kiritilmagan"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-on-surface-variant">{formatPhone(u.phone)}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{u.orders_count ?? 0}</span>
+                          <TierPill user={u} />
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 font-semibold">{formatMoney(u.total_spent ?? 0)}</td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-on-surface-variant">
+                        {u.last_order_at ? (
+                          <>
+                            <p>{formatDate(u.last_order_at)}</p>
+                            <p className="text-xs">{relativeTime(u.last_order_at)}</p>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void openChat(u);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">chat</span>
+                          Yozish
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Pagination
               current={page}
               pages={pageNumbers(page, totalPages)}
               onPageChange={setPage}
               info={
                 <>
-                  Jami <strong className="text-primary">{data.count}</strong> ta mijoz
+                  Jami <strong className="text-primary">{data?.count ?? 0}</strong> ta mijoz · {page}/{totalPages} sahifa
                 </>
               }
             />
-          }
-        >
-          {data.results.map((u, idx) => {
-            const rank = segment === "active" && page === 1 ? idx + 1 : null;
-            return (
-              <tr key={u.id} className="cursor-pointer border-b border-[#26352c]/30 hover:bg-white/5" onClick={() => setDetail(u)}>
-                <td className="px-4 py-3 text-center">
-                  <div className="relative inline-block">
-                    <Avatar initials={initials(u.full_name || u.phone)} tone={u.is_active ? "primary" : "error"} />
-                    {rank && rank <= 3 ? (
-                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-black">
-                        {rank}
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-white">{u.full_name || "Ism kiritilmagan"}</p>
-                  <p className="max-w-[240px] truncate text-xs text-on-surface-variant">{u.formatted_address || u.home_address || "—"}</p>
-                </td>
-                <td className="px-4 py-3 font-mono text-[13px] text-on-surface-variant">{formatPhone(u.phone)}</td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full border border-primary/25 bg-[#173822]/80 px-3 py-1 text-[12px] font-semibold text-primary">
-                    {u.orders_count ?? 0} ta
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-[13px] font-semibold">{formatMoney(u.total_spent ?? 0)}</td>
-                <td className="hidden whitespace-nowrap px-4 py-3 text-xs text-on-surface-variant xl:table-cell">
-                  {formatDate(u.first_order_at)} / {formatDate(u.last_order_at)}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusPill variant={u.is_active ? "success" : "error"}>{u.is_active ? "Faol" : "Bloklangan"}</StatusPill>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void openChat(u);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1 text-xs text-primary hover:bg-primary/10"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">chat</span>
-                    Yozish
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </DataTable>
-      )}
+          </>
+        )}
+      </div>
 
-      <Modal open={open} title="Yangi mijoz" onClose={() => setOpen(false)}>
-        <div className="space-y-3">
-          <Field label="Telefon" required>
-            <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </Field>
-          <Field label="Ism">
-            <input className={inputClass} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
-          </Field>
-          <Field label="Familiya">
-            <input className={inputClass} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
-          </Field>
-          <Field label="Manzil">
-            <input className={inputClass} value={form.home_address} onChange={(e) => setForm({ ...form, home_address: e.target.value })} />
-          </Field>
-          <PrimaryButton disabled={busy || form.phone.length < 9} onClick={() => void createUser()}>
-            Saqlash
-          </PrimaryButton>
-        </div>
-      </Modal>
-
-      <Modal open={!!detail} title={detail?.full_name || "Mijoz kartasi"} onClose={() => setDetail(null)} wide>
+      <Modal
+        open={!!detail}
+        size="lg"
+        title={detail ? customerName(detail) : "Mijoz kartasi"}
+        description={detail ? `${formatPhone(detail.phone)} · ilovada ${formatDate(detail.date_joined)} dan beri` : undefined}
+        onClose={() => setDetail(null)}
+        footer={
+          detail ? (
+            <>
+              <SecondaryButton onClick={() => setDetail(null)}>Yopish</SecondaryButton>
+              <a
+                href={`tel:${detail.phone}`}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#26352c] bg-[#151c18] px-4 py-2.5 text-sm font-medium text-on-surface hover:bg-[#1f2922]"
+              >
+                <span className="material-symbols-outlined text-[18px]">call</span>
+                Qo&apos;ng&apos;iroq
+              </a>
+              <PrimaryButton icon="chat" onClick={() => void openChat(detail)}>
+                Suhbat ochish
+              </PrimaryButton>
+            </>
+          ) : null
+        }
+      >
         {detail ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+          <div className="space-y-5 text-sm">
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-lg font-bold text-white">
+                {initials(customerName(detail))}
+              </span>
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <TierPill user={detail} />
+                  <StatusPill variant={detail.is_active ? "success" : "error"}>{detail.is_active ? "Faol" : "Bloklangan"}</StatusPill>
+                </div>
+                <p className="break-words text-on-surface-variant">{customerAddress(detail) || "Manzil kiritilmagan"}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 ["Buyurtmalar", `${detail.orders_count ?? 0} ta`],
                 ["Sarflagan", formatMoney(detail.total_spent ?? 0)],
                 ["Birinchi buyurtma", formatDate(detail.first_order_at)],
                 ["Oxirgi buyurtma", formatDate(detail.last_order_at)],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
-                  <p className="text-[11px] text-on-surface-variant">{label}</p>
-                  <p className="font-bold">{value}</p>
+                <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
+                  <p className="text-xs text-on-surface-variant">{label}</p>
+                  <p className="truncate text-base font-bold">{value}</p>
                 </div>
               ))}
             </div>
-            <div className="space-y-1 text-sm">
-              <p>
-                Telefon:{" "}
-                <a className="text-primary hover:underline" href={`tel:${detail.phone}`}>
-                  {formatPhone(detail.phone)}
-                </a>
-              </p>
-              <p>Manzil: {detail.formatted_address || detail.home_address || "—"}</p>
-              <p>Hudud: {[detail.region, detail.district].filter(Boolean).join(", ") || "—"}</p>
-              <p>Ro&apos;yxatdan o&apos;tgan: {formatDate(detail.date_joined)}</p>
-            </div>
+
             <div>
-              <p className="mb-2 text-sm font-semibold">Firmangizdagi buyurtmalari</p>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-base font-semibold">Firmangizdagi buyurtmalari</h3>
+                {history?.length ? (
+                  <p className="text-xs text-on-surface-variant">
+                    {historyStats.completed} bajarilgan · {historyStats.active} jarayonda · {historyStats.cancelled} bekor
+                    {historyStats.avg ? ` · o'rtacha chek ${formatMoney(historyStats.avg)}` : ""}
+                  </p>
+                ) : null}
+              </div>
               {historyLoading ? (
                 <LoadingBlock />
               ) : history?.length ? (
-                <div className="max-h-72 space-y-2 overflow-y-auto">
+                <ol className="relative max-h-80 space-y-3 overflow-y-auto border-l border-[#26352c] pl-4 pr-1">
                   {history.map((o) => (
-                    <div key={o.id} className="flex items-center justify-between rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2 text-xs">
-                      <div>
-                        <p className="font-semibold">#{o.id} · {o.service_name}</p>
-                        <p className="text-on-surface-variant">{formatDate(o.created_at)}</p>
+                    <li key={o.id} className="relative">
+                      <span
+                        className={`absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-[#151917] ${
+                          o.status === "completed" ? "bg-primary" : o.status === "cancelled" ? "bg-error" : "bg-amber-400"
+                        }`}
+                      />
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            #{o.id} · {o.service_name}
+                          </p>
+                          <p className="truncate text-xs text-on-surface-variant">
+                            {formatDateTime(o.created_at)}
+                            {o.assigned_worker_name ? ` · ${o.assigned_worker_name}` : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{o.work_stage_label || ORDER_STATUS_LABEL[o.status]}</StatusPill>
+                          <p className="mt-1 text-xs font-semibold">{formatMoney(o.quoted_price)}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{o.work_stage_label || ORDER_STATUS_LABEL[o.status]}</StatusPill>
-                        <p className="mt-1 font-semibold">{formatMoney(o.quoted_price)}</p>
-                      </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ol>
               ) : (
-                <p className="text-xs text-on-surface-variant">Hali buyurtma bermagan.</p>
+                <p className="text-sm text-on-surface-variant">Firmangizga hali buyurtma bermagan.</p>
               )}
-            </div>
-            <div className="flex justify-end">
-              <PrimaryButton icon="chat" onClick={() => void openChat(detail)}>
-                Suhbat xonasini ochish
-              </PrimaryButton>
             </div>
           </div>
         ) : null}
       </Modal>
     </div>
   );
+}
+
+function CustomerAvatar({ user, rank }: { user: User; rank: number | null }) {
+  return (
+    <span className="relative inline-flex shrink-0">
+      <span
+        className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold ${
+          user.is_active ? "border-primary-container/50 bg-[#1b382b] text-primary" : "border-error/40 bg-[#381617] text-error"
+        }`}
+      >
+        {initials(customerName(user))}
+      </span>
+      {rank && rank <= 3 ? (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-black">
+          {rank}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function TierPill({ user }: { user: User }) {
+  const tier = loyaltyTier(user);
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tier.cls}`}>{tier.label}</span>;
 }

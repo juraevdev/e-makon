@@ -14,27 +14,40 @@ export function formatPhone(phone: string) {
   return phone;
 }
 
+const UZ_MONTHS = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
 export function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("uz-UZ", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(d);
+  return `${pad2(d.getDate())} ${UZ_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("uz-UZ", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
+  const year = d.getFullYear() !== new Date().getFullYear() ? ` ${d.getFullYear()}` : "";
+  return `${pad2(d.getDate())} ${UZ_MONTHS[d.getMonth()]}${year}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+export function formatTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** HTML hisobotlarga foydalanuvchi matnini xavfsiz qo'yish uchun. */
+export function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export function initials(name: string) {

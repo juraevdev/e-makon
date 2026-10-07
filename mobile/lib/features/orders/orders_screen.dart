@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
+import '../../core/utils/live_refresh.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/widgets.dart';
 import '../home/catalog_provider.dart';
@@ -17,7 +18,7 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
+class _OrdersScreenState extends State<OrdersScreen> with LiveRefresh {
   String _filter = 'all';
 
   @override
@@ -27,6 +28,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
       context.read<OrdersProvider>().load();
     });
   }
+
+  /// Firma/superadmin o'zgartirgan holat tez ko'rinsin.
+  @override
+  Duration get liveInterval => const Duration(seconds: 5);
+
+  @override
+  Future<void> liveRefresh() => context.read<OrdersProvider>().load(silent: true);
 
   Color _statusColor(String status, SeasonTheme season) => switch (status) {
         'completed' || 'done' => season.accent,
@@ -165,7 +173,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             onRetry: () => context.read<OrdersProvider>().load(),
                           )
                     : orders.isEmpty
-                        ? _EmptyOrders(onBrowse: () => context.go('/home'), accent: accent)
+                        ? RefreshIndicator(
+                            color: accent,
+                            onRefresh: () => context.read<OrdersProvider>().load(),
+                            child: LayoutBuilder(
+                              builder: (_, box) => SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minHeight: box.maxHeight),
+                                  child: _EmptyOrders(onBrowse: () => context.go('/home'), accent: accent),
+                                ),
+                              ),
+                            ),
+                          )
                         : RefreshIndicator(
                             color: accent,
                             onRefresh: () => context.read<OrdersProvider>().load(),

@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/data/demo_content.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
@@ -17,6 +17,8 @@ import '../../core/widgets/motion.dart';
 import '../../core/widgets/widgets.dart';
 import '../auth/auth_provider.dart';
 import '../favorites/favorites_provider.dart';
+import '../loyalty/loyalty_provider.dart';
+import '../loyalty/loyalty_sheet.dart';
 import 'catalog_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,7 +28,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
   final _page = PageController(viewportFraction: 0.9);
   final _search = TextEditingController();
   int _carouselIndex = 0;
@@ -40,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _search.addListener(() => setState(() => _query = _search.text.trim().toLowerCase()));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -62,19 +63,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) _refresh();
-  }
-
+  /// Ilova qayta ochilganda katalog/bannerlar `EmakonApp` da yangilanadi; bu — qo'lda tortib yangilash.
   Future<void> _refresh() async {
     final api = context.read<ApiClient>();
-    await Future.wait([context.read<CatalogProvider>().load(), context.read<HomeFeedProvider>().load(api)]);
+    final loyalty = context.read<LoyaltyProvider>();
+    await Future.wait([
+      context.read<CatalogProvider>().load(silent: true),
+      context.read<HomeFeedProvider>().load(api, silent: true, withLocation: false),
+      if (context.read<AuthProvider>().isLoggedIn) loyalty.load(silent: true),
+    ]);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _carouselTimer?.cancel();
     _page.dispose();
     _search.dispose();
@@ -82,6 +83,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   void _openCarousel(CarouselItem item) {
+    // Superadmin bannerni xizmatga bog'lagan bo'lsa — to'g'ridan-to'g'ri o'sha xizmat sahifasi.
+    if (item.hasService) {
+      context.push('/service/${item.serviceSlug}');
+      return;
+    }
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -149,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.build(context);
     final displayName = context.select<AuthProvider, String>((a) => a.user?.displayName ?? 'e-makon');
     final points = context.select<AuthProvider, int>((a) => a.user?.points ?? 0);
+    final uzsPerPoint = context.select<LoyaltyProvider, int>((l) => l.uzsPerPoint);
     final allServices = context.select<CatalogProvider, List<ServiceModel>>((c) => c.services);
     final catalogError = context.select<CatalogProvider, String?>((c) => c.error);
     final catalogLoading = context.select<CatalogProvider, bool>((c) => c.loading);
@@ -204,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             color: AppColors.primary,
             onRefresh: _refresh,
             child: CustomScrollView(
+              scrollCacheExtent: const ScrollCacheExtent.pixels(420),
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
@@ -243,7 +251,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                             ],
                           ),
                         ),
-                        _PointsChip(points: points, accent: season.accent),
+                        PressableScale(
+                          onTap: () => showLoyaltySheet(context),
+                          child: _PointsChip(points: points, accent: season.accent),
+                        ),
                         const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => context.go('/messages'),
@@ -356,6 +367,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
+                                            if (item.category.isNotEmpty)
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                               decoration: BoxDecoration(
@@ -430,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                     child: PressableScale(
-                      onTap: () => _showBonuses(context),
+                      onTap: () => showLoyaltySheet(context),
                       child: GlassCard(
                         borderRadius: 18,
                         child: Row(
@@ -456,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                 children: [
                                   Text('Ballaringiz: $points', style: Theme.of(context).textTheme.titleMedium),
                                   Text(
-                                    'Har 100 000 so‘m → ${DemoContent.pointsPer100k} ball',
+                                    'Har ${ServiceModel.formatMoney(uzsPerPoint)} so‘m → 1 ball · mukofotlar',
                                     style: Theme.of(context).textTheme.labelSmall,
                                   ),
                                 ],
@@ -738,7 +750,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: PressableScale(
                           onTap: () {
-                            if (services.isNotEmpty) context.push('/service/${services.first.slug}');
+                            final slug = o.serviceSlug;
+                            if (slug != null && slug.isNotEmpty) {
+                              context.push('/service/$slug');
+                            } else if (services.isNotEmpty) {
+                              context.push('/service/${services.first.slug}');
+                            }
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -821,88 +838,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  void _showBonuses(BuildContext context) {
-    final auth = context.read<AuthProvider>();
-    final rewardsFuture = auth.loadRewards();
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: AppColors.surfaceContainer,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) {
-        final pointsNow = ctx.watch<AuthProvider>().user?.points ?? 0;
-        return Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 28 + MediaQuery.paddingOf(ctx).bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Bonus xizmatlar', style: Theme.of(ctx).textTheme.headlineMedium),
-              const SizedBox(height: 4),
-              Text('Balans: $pointsNow ball', style: const TextStyle(color: AppColors.primary)),
-              const SizedBox(height: 16),
-              FutureBuilder<List<BonusService>>(
-                future: rewardsFuture,
-                builder: (ctx, snap) {
-                  if (snap.connectionState != ConnectionState.done) {
-                    return const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (snap.hasError) {
-                    final err = snap.error;
-                    return Text(
-                      err is ApiException ? err.message : 'Mukofotlarni yuklab bo‘lmadi',
-                      style: const TextStyle(color: AppColors.onSurfaceVariant),
-                    );
-                  }
-                  final rewards = snap.data ?? const <BonusService>[];
-                  if (rewards.isEmpty) {
-                    return const Text('Hozircha mukofotlar yo‘q', style: TextStyle(color: AppColors.onSurfaceVariant));
-                  }
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final b in rewards)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Text(b.emoji, style: const TextStyle(fontSize: 26)),
-                          title: Text(b.title),
-                          subtitle: Text('${b.costPoints} ball'),
-                          trailing: FilledButton(
-                            onPressed: pointsNow >= b.costPoints
-                                ? () async {
-                                    String message;
-                                    try {
-                                      await auth.redeemBonus(b);
-                                      message = '${b.title} ochildi!';
-                                    } on ApiException catch (e) {
-                                      message = e.message;
-                                    }
-                                    if (ctx.mounted) Navigator.pop(ctx);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-                                      );
-                                    }
-                                  }
-                                : null,
-                            style: FilledButton.styleFrom(minimumSize: const Size(76, 40)),
-                            child: const Text('Olish'),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _ServicePriceLine extends StatelessWidget {

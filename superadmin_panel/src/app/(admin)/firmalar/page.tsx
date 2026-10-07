@@ -4,20 +4,27 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   EmptyState,
+  ExcelButton,
   Field,
   inputClass,
+  LiveBadge,
   LoadingBlock,
   Modal,
   PageHeader,
   PrimaryButton,
+  SecondaryButton,
   StatusPill,
+  TabBar,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 import type { PartnerFirm } from "@/lib/api/types";
 import { SPECIALTY_LABEL } from "@/lib/domain";
-import { formatMoney, formatPhone } from "@/lib/format";
+import { downloadExcel } from "@/lib/excel";
+import { formatDate, formatMoney, formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
+import { fetchAllPages } from "@/components/people/api";
+import { SearchBox } from "@/components/people/form";
 
 const SPECIALTIES = Object.keys(SPECIALTY_LABEL);
 
@@ -56,6 +63,15 @@ function Stars({ rating }: { rating: string | number }) {
   );
 }
 
+const STATUS_LABEL: Record<PartnerFirm["status"], string> = {
+  active: "Faol",
+  pending: "Sinov",
+  suspended: "Blok",
+  ended: "Tugatilgan",
+};
+
+const TAB_ORDER: TabId[] = ["asosiy", "moliya", "obuna", "joy"];
+
 function subFee(plan: string, units: number) {
   const u = Math.max(units || 1, 1);
   if (plan === "monthly") return u * 9;
@@ -73,21 +89,76 @@ export default function FirmalarPage() {
   const [form, setSetForm] = useState(emptyForm);
   const setForm = (patch: Partial<typeof emptyForm>) => setSetForm((f) => ({ ...f, ...patch }));
 
-  const { data, loading, error, reload } = useAsync(async () => {
-    const raw = await api("/admin/firms/", {
-      query: { page_size: 100, search: query || undefined },
-    });
-    return asPage<PartnerFirm>(raw);
-  }, [query]);
+  const { data, loading, error, reload, updatedAt } = useAsync(
+    () => fetchAllPages<PartnerFirm>("/admin/firms/", { search: query || undefined }),
+    [query],
+    { keepPrevious: true },
+  );
 
   const firms = useMemo(() => {
-    const list = data?.results ?? [];
-    if (filter === "active") return list.filter((f) => f.status === "active");
-    if (filter === "ended") return list.filter((f) => f.status === "ended");
-    if (filter === "pending") return list.filter((f) => f.status === "pending");
-    if (filter === "suspended") return list.filter((f) => f.status === "suspended");
-    return list;
+    const list = data ?? [];
+    return filter === "all" ? list : list.filter((f) => f.status === filter);
   }, [data, filter]);
+
+  function exportExcel() {
+    downloadExcel("firmalar", {
+      name: "Firmalar",
+      headers: [
+        "ID",
+        "Nomi",
+        "Yuridik nomi",
+        "Telefon",
+        "Email",
+        "Mutaxassislik",
+        "Viloyat",
+        "Tuman",
+        "Manzil",
+        "Holat",
+        "Reyting",
+        "Baholar",
+        "Buyurtmalar",
+        "Aylanma (UZS)",
+        "Stavka (%)",
+        "Kampaniya ulushi (UZS)",
+        "Qarz (UZS)",
+        "To'lanmagan jarima (UZS)",
+        "Ogohlantirishlar",
+        "Savdo taqiqi",
+        "Obuna",
+        "O'rinlar",
+        "Obuna narxi ($)",
+        "Sinov tugashi",
+        "Qo'shilgan",
+      ],
+      rows: firms.map((f) => [
+        f.id,
+        f.name,
+        f.legal_name,
+        formatPhone(f.phone),
+        f.email,
+        f.specialty_label || SPECIALTY_LABEL[f.specialty] || f.specialty,
+        f.region,
+        f.district,
+        f.address,
+        STATUS_LABEL[f.status] ?? f.status,
+        Number(f.rating) || 0,
+        f.ratings_count || 0,
+        f.orders_count ?? 0,
+        Number(f.revenue) || 0,
+        Number(f.commission_rate) || 0,
+        Number(f.platform_share) || 0,
+        Number(f.debt_amount) || 0,
+        Number(f.unpaid_fines) || 0,
+        f.warnings_count || 0,
+        f.is_sales_banned ? "Ha" : "Yo'q",
+        f.subscription_plan === "monthly" ? "Oylik" : f.subscription_plan === "yearly" ? "Yillik" : "Yo'q",
+        f.subscription_units,
+        Number(f.subscription_fee_usd) || 0,
+        f.trial_ends_at ? formatDate(f.trial_ends_at) : "",
+        formatDate(f.created_at),
+      ]),
+    });
+  }
 
   const units = Number(form.subscription_units) || 1;
   const fee = subFee(form.subscription_plan, units);
@@ -152,57 +223,57 @@ export default function FirmalarPage() {
     }
   }
 
-  const all = data?.results ?? [];
+  const all = data ?? [];
   const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: "asosiy", label: "Asosiy", icon: "badge" },
     { id: "moliya", label: "Moliya", icon: "payments" },
     { id: "obuna", label: "Obuna", icon: "card_membership" },
     { id: "joy", label: "Joylashuv", icon: "location_on" },
   ];
+  const tabIndex = TAB_ORDER.indexOf(tab);
 
   return (
-    <div className="flex-1 px-4 py-6 md:px-8">
+    <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">
       <PageHeader
         title="Xizmat ko'rsatuvchi firmalar"
         description="Reyting, qarz/daromad, obuna ($9/oy · $90/yil), blok, jarima va savdo taqiqi."
+        actions={
+          <>
+            <LiveBadge updatedAt={updatedAt || undefined} />
+            <ExcelButton onClick={exportExcel} disabled={!firms.length} />
+            <PrimaryButton
+              icon="add_business"
+              onClick={() => {
+                setTab("asosiy");
+                setFormError("");
+                setOpen(true);
+              }}
+            >
+              Yangi firma
+            </PrimaryButton>
+          </>
+        }
       />
 
-      <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-primary-container/30 bg-[#141916]/90 p-2">
-        {[
-          { id: "all" as const, label: "Barchasi", count: all.length },
-          { id: "active" as const, label: "Faol", count: all.filter((f) => f.status === "active").length },
-          { id: "pending" as const, label: "Sinov", count: all.filter((f) => f.status === "pending").length },
-          { id: "suspended" as const, label: "Blok", count: all.filter((f) => f.status === "suspended").length },
-          { id: "ended" as const, label: "Tugatilgan", count: all.filter((f) => f.status === "ended").length },
-        ].map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={`rounded-xl px-3.5 py-2 text-sm ${
-              filter === f.id ? "border border-primary/40 bg-primary-container/25 font-semibold text-primary" : "text-on-surface-variant"
-            }`}
-          >
-            {f.label} <span className="ml-1 text-xs opacity-70">{f.count}</span>
-          </button>
-        ))}
-        <div className="ml-auto">
-          <PrimaryButton
-            icon="add_business"
-            onClick={() => {
-              setTab("asosiy");
-              setFormError("");
-              setOpen(true);
-            }}
-          >
-            Yangi firma
-          </PrimaryButton>
-        </div>
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4 xl:flex-row xl:items-center">
+        <TabBar
+          className="xl:shrink-0"
+          value={filter}
+          onChange={setFilter}
+          tabs={[
+            { id: "all", label: "Barchasi", count: all.length },
+            { id: "active", label: "Faol", count: all.filter((f) => f.status === "active").length },
+            { id: "pending", label: "Sinov", count: all.filter((f) => f.status === "pending").length },
+            { id: "suspended", label: "Blok", count: all.filter((f) => f.status === "suspended").length },
+            { id: "ended", label: "Tugatilgan", count: all.filter((f) => f.status === "ended").length },
+          ]}
+        />
+        <SearchBox placeholder="Nomi, telefon, hudud..." className="xl:flex-1" />
       </div>
 
-      {loading ? (
+      {loading && !data ? (
         <LoadingBlock />
-      ) : error ? (
+      ) : error && !data ? (
         <p className="text-error">{error}</p>
       ) : !firms.length ? (
         <EmptyState icon="storefront" title="Firmalar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo&apos;shish</PrimaryButton>} />
@@ -227,13 +298,7 @@ export default function FirmalarPage() {
                     }
                     pulse={f.status === "active"}
                   >
-                    {f.status === "active"
-                      ? "Faol"
-                      : f.status === "suspended"
-                        ? "Blok"
-                        : f.status === "ended"
-                          ? "Tugatilgan"
-                          : "Sinov"}
+                    {STATUS_LABEL[f.status] ?? "Sinov"}
                   </StatusPill>
                 </div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -287,26 +352,49 @@ export default function FirmalarPage() {
         </div>
       )}
 
-      <Modal open={open} title="Yangi firma — kampaniya ma'lumotlari" onClose={() => setOpen(false)} wide>
-        <div className="mb-4 flex flex-wrap gap-1 rounded-xl border border-[#26352c] bg-[#0d100f] p-1">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm transition ${
-                tab === t.id
-                  ? "bg-primary-container/30 font-semibold text-primary"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <Modal
+        open={open}
+        size="lg"
+        title="Yangi firma"
+        description="Kampaniya ma'lumotlari, moliya, obuna va joylashuv"
+        onClose={() => setOpen(false)}
+        footer={
+          <>
+            <div className="flex gap-2 sm:mr-auto">
+              <SecondaryButton
+                icon="arrow_back"
+                disabled={tabIndex === 0}
+                onClick={() => setTab(TAB_ORDER[Math.max(0, tabIndex - 1)])}
+                className="flex-1 justify-center sm:flex-none"
+              >
+                Orqaga
+              </SecondaryButton>
+              <SecondaryButton
+                disabled={tabIndex === TAB_ORDER.length - 1}
+                onClick={() => setTab(TAB_ORDER[Math.min(TAB_ORDER.length - 1, tabIndex + 1)])}
+                className="flex-1 justify-center sm:flex-none"
+              >
+                Oldinga
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </SecondaryButton>
+            </div>
+            <SecondaryButton onClick={() => setOpen(false)} className="justify-center">
+              Bekor qilish
+            </SecondaryButton>
+            <PrimaryButton icon="add_business" disabled={busy} onClick={() => void createFirm()} className="justify-center">
+              {busy ? "Saqlanmoqda..." : "Firmani saqlash"}
+            </PrimaryButton>
+          </>
+        }
+      >
+        <TabBar className="mb-5" value={tab} onChange={setTab} tabs={tabs} />
 
-        {formError ? <p className="mb-3 text-sm text-error">{formError}</p> : null}
+        {formError ? (
+          <p className="mb-4 flex items-center gap-2 rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-sm text-error">
+            <span className="material-symbols-outlined text-[18px]">error</span>
+            {formError}
+          </p>
+        ) : null}
 
         {tab === "asosiy" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -438,39 +526,6 @@ export default function FirmalarPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#26352c] pt-4">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={tab === "asosiy"}
-              onClick={() => {
-                const order: TabId[] = ["asosiy", "moliya", "obuna", "joy"];
-                const i = order.indexOf(tab);
-                if (i > 0) setTab(order[i - 1]);
-              }}
-              className="inline-flex items-center gap-1 rounded-xl border border-[#26352c] px-3 py-2 text-sm text-on-surface-variant disabled:opacity-40"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              Orqaga
-            </button>
-            <button
-              type="button"
-              disabled={tab === "joy"}
-              onClick={() => {
-                const order: TabId[] = ["asosiy", "moliya", "obuna", "joy"];
-                const i = order.indexOf(tab);
-                if (i < order.length - 1) setTab(order[i + 1]);
-              }}
-              className="inline-flex items-center gap-1 rounded-xl border border-[#26352c] px-3 py-2 text-sm text-on-surface-variant disabled:opacity-40"
-            >
-              Oldinga
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </button>
-          </div>
-          <PrimaryButton disabled={busy} onClick={() => void createFirm()}>
-            {busy ? "Saqlanmoqda..." : "Firmanni saqlash"}
-          </PrimaryButton>
-        </div>
       </Modal>
     </div>
   );

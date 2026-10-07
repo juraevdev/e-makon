@@ -1,422 +1,468 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import {
+  Avatar,
   Breadcrumbs,
-  ConfirmDialog,
   DataTable,
   EmptyState,
-  Field,
-  FilterChip,
-  inputClass,
-  Modal,
+  ExcelButton,
+  LiveBadge,
   Pagination,
   PrimaryButton,
   SecondaryButton,
   StatusPill,
+  TabBar,
   TableSkeleton,
 } from "@/components/ui";
-import { api, ApiError, asPage } from "@/lib/api/client";
-import type { Employee } from "@/lib/api/types";
+import { downloadExcel } from "@/lib/excel";
 import { SPECIALTY_LABEL } from "@/lib/domain";
-import { formatDate, formatPhone, pageNumbers } from "@/lib/format";
+import { formatDate, formatPhone, initials, pageNumbers } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
-import { useToast } from "@/providers/ToastProvider";
+import { fetchAllPages, useFirmOptions } from "@/components/people/api";
+import { EmployeeFormModal } from "@/components/people/EmployeeFormModal";
+import { EMPLOYMENT_META, EmployeeStatusDialog, employmentStatus } from "@/components/people/EmployeeStatusDialog";
+import { ErrorPanel, MiniStat, SearchBox, SelectFilter, ViewToggle } from "@/components/people/form";
+import type { EmployeeFull, EmploymentStatus } from "@/components/people/types";
 
-const SPECIALTIES = [
-  { id: "all", label: "Barcha mutaxassisliklar" },
-  { id: "general", label: "Umumiy bog'bon" },
-  { id: "landscape", label: "Landshaft dizayneri" },
-  { id: "garden_care", label: "Bog' parvarishi" },
-  { id: "ornamental", label: "Manzarali o'simliklar" },
-  { id: "irrigation", label: "Sug'orish mutaxassisi" },
-  { id: "pest_control", label: "Dorilash mutaxassisi" },
-];
+const PAGE_SIZE = 15;
+type StatusFilter = "all" | EmploymentStatus;
+
+type RowProps = {
+  emp: EmployeeFull;
+  firm: string;
+  onEdit: () => void;
+  onStatus: () => void;
+};
+
+function specialtyOf(emp: EmployeeFull) {
+  return emp.specialty_label || SPECIALTY_LABEL[emp.specialty] || emp.specialty;
+}
+
+function StatusBadge({ emp }: { emp: EmployeeFull }) {
+  const s = employmentStatus(emp);
+  return (
+    <StatusPill variant={EMPLOYMENT_META[s].tone} pulse={s === "active"}>
+      {EMPLOYMENT_META[s].label}
+    </StatusPill>
+  );
+}
+
+function FirmCell({ emp, firm }: { emp: EmployeeFull; firm: string }) {
+  const id = emp.user.organization_id;
+  if (id === null || id === undefined) return <span className="text-on-surface-variant">Biriktirilmagan</span>;
+  return (
+    <Link href={`/firmalar/${id}`} className="inline-flex max-w-full items-center gap-1 text-primary hover:underline">
+      <span className="material-symbols-outlined text-[14px]">storefront</span>
+      <span className="truncate">{firm}</span>
+    </Link>
+  );
+}
+
+function Actions({ onEdit, onStatus }: Pick<RowProps, "onEdit" | "onStatus">) {
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-primary/50 hover:text-primary"
+      >
+        <span className="material-symbols-outlined text-[15px]">edit</span>
+        Tahrirlash
+      </button>
+      <button
+        type="button"
+        onClick={onStatus}
+        className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-amber-500/50 hover:text-amber-300"
+      >
+        <span className="material-symbols-outlined text-[15px]">swap_horiz</span>
+        Holat
+      </button>
+    </div>
+  );
+}
+
+function EmployeeRow({ emp, firm, onEdit, onStatus }: RowProps) {
+  return (
+    <tr className="transition-colors hover:bg-[#18211b]/50">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            <Avatar initials={initials(emp.user.full_name || emp.user.phone)} tone={emp.is_active ? "primary" : "neutral"} />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{emp.user.full_name || "Ism kiritilmagan"}</p>
+            <p className="font-mono text-xs text-on-surface-variant">{formatPhone(emp.user.phone)}</p>
+          </div>
+        </div>
+      </td>
+      <td className="max-w-[180px] px-4 py-3 text-xs">
+        <FirmCell emp={emp} firm={firm} />
+      </td>
+      <td className="px-4 py-3 text-xs">
+        <p className="font-medium text-on-surface">{emp.position || "—"}</p>
+        <p className="text-on-surface-variant">{specialtyOf(emp)}</p>
+      </td>
+      <td className="whitespace-nowrap px-4 py-3 text-xs">
+        <span className="font-semibold text-sky-300">{emp.active_orders ?? 0}</span>
+        <span className="text-on-surface-variant"> faol · </span>
+        <span className="font-semibold text-primary">{emp.completed_orders ?? 0}</span>
+        <span className="text-on-surface-variant"> bajarilgan</span>
+      </td>
+      <td className="px-4 py-3 text-xs font-semibold text-amber-300">★ {Number(emp.rating || 0).toFixed(1)}</td>
+      <td className="px-4 py-3">
+        <StatusBadge emp={emp} />
+      </td>
+      <td className="whitespace-nowrap px-4 py-3 text-xs text-on-surface-variant">{formatDate(emp.hired_at || emp.created_at)}</td>
+      <td className="whitespace-nowrap px-4 py-3">
+        <Actions onEdit={onEdit} onStatus={onStatus} />
+      </td>
+    </tr>
+  );
+}
+
+function EmployeeCard({ emp, firm, onEdit, onStatus }: RowProps) {
+  return (
+    <div
+      className={`flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-[#151a18] to-[#101412] p-5 transition hover:border-primary/50 ${
+        emp.is_active ? "border-primary-container/35" : "border-[#3a2a2b]"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="shrink-0">
+          <Avatar initials={initials(emp.user.full_name || emp.user.phone)} tone={emp.is_active ? "primary" : "neutral"} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-bold text-on-surface">{emp.user.full_name || "Ism kiritilmagan"}</h3>
+          <p className="truncate text-xs text-on-surface-variant">
+            {emp.position ? `${emp.position} · ` : ""}
+            {specialtyOf(emp)}
+          </p>
+        </div>
+        <StatusBadge emp={emp} />
+      </div>
+      <div className="space-y-1.5 text-xs">
+        <p className="flex items-center gap-2 font-mono text-on-surface-variant">
+          <span className="material-symbols-outlined text-[16px] text-primary">call</span>
+          {formatPhone(emp.user.phone)}
+        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <FirmCell emp={emp} firm={firm} />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/5 bg-black/10 p-2 text-center text-xs">
+        <div>
+          <p className="text-on-surface-variant">Reyting</p>
+          <p className="font-bold text-amber-300">★ {Number(emp.rating || 0).toFixed(1)}</p>
+        </div>
+        <div>
+          <p className="text-on-surface-variant">Faol</p>
+          <p className="font-bold text-sky-300">{emp.active_orders ?? 0}</p>
+        </div>
+        <div>
+          <p className="text-on-surface-variant">Bajarilgan</p>
+          <p className="font-bold text-primary">{emp.completed_orders ?? 0}</p>
+        </div>
+      </div>
+      {emp.skills?.length ? (
+        <div className="flex flex-wrap gap-1">
+          {emp.skills.slice(0, 4).map((s) => (
+            <span key={s} className="rounded-md border border-[#26352c] bg-[#0d100f] px-1.5 py-0.5 text-[10px] text-on-surface-variant">
+              {s}
+            </span>
+          ))}
+          {emp.skills.length > 4 ? <span className="text-[10px] text-on-surface-variant">+{emp.skills.length - 4}</span> : null}
+        </div>
+      ) : null}
+      <div className="mt-auto border-t border-white/5 pt-3">
+        <Actions onEdit={onEdit} onStatus={onStatus} />
+      </div>
+    </div>
+  );
+}
 
 export default function XodimlarPage() {
   const { query } = useSearch();
-  const { showSuccess, showError } = useToast();
+  const { firms, firmName } = useFirmOptions();
 
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [specialtyFilter, setSpecialtyFilter] = useState<string>("all");
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [specialty, setSpecialty] = useState("all");
+  const [firmFilter, setFirmFilter] = useState("all");
+  const [view, setView] = useState<"grid" | "table">("table");
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Employee | null>(null);
-  const [form, setForm] = useState({
-    phone: "",
-    full_name: "",
-    password: "",
-    specialty: "general",
-    notes: "",
-  });
-  const [busy, setBusy] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const [editing, setEditing] = useState<EmployeeFull | null>(null);
+  const [statusTarget, setStatusTarget] = useState<EmployeeFull | null>(null);
 
-  // Deactivate confirm dialog
-  const [toggleTarget, setToggleTarget] = useState<Employee | null>(null);
-  const [busyToggle, setBusyToggle] = useState(false);
-
-  const { data, loading, error, reload } = useAsync(async () => {
-    const raw = await api("/admin/employees/", {
-      query: {
-        page,
-        page_size: 15,
+  const { data, loading, error, reload, updatedAt } = useAsync(
+    () =>
+      fetchAllPages<EmployeeFull>("/admin/employees/", {
         search: query || undefined,
-        is_active: statusFilter === "all" ? undefined : statusFilter === "active",
-        specialty: specialtyFilter === "all" ? undefined : specialtyFilter,
-      },
-    });
-    return asPage<Employee>(raw);
-  }, [page, statusFilter, specialtyFilter, query]);
+        specialty: specialty === "all" ? undefined : specialty,
+      }),
+    [query, specialty],
+    { keepPrevious: true },
+  );
+  const all = useMemo(() => data ?? [], [data]);
 
-  const employees = data?.results ?? [];
-  const totalCount = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / 15));
+  const firmScoped = useMemo(
+    () => (firmFilter === "all" ? all : all.filter((e) => String(e.user.organization_id ?? "") === firmFilter)),
+    [all, firmFilter],
+  );
+
+  const counts = useMemo(() => {
+    const c: Record<StatusFilter, number> = { all: firmScoped.length, active: 0, on_leave: 0, dismissed: 0 };
+    for (const e of firmScoped) c[employmentStatus(e)]++;
+    return c;
+  }, [firmScoped]);
+
+  const filtered = useMemo(
+    () => (status === "all" ? firmScoped : firmScoped.filter((e) => employmentStatus(e) === status)),
+    [firmScoped, status],
+  );
+
+  const avgRating = useMemo(() => {
+    const rated = firmScoped.filter((e) => Number(e.rating) > 0);
+    if (!rated.length) return "—";
+    return (rated.reduce((s, e) => s + Number(e.rating), 0) / rated.length).toFixed(1);
+  }, [firmScoped]);
+
+  const firmsWithStaff = useMemo(() => {
+    const ids = new Map<number, number>();
+    for (const e of all) {
+      const id = e.user.organization_id;
+      if (id !== null && id !== undefined) ids.set(id, (ids.get(id) ?? 0) + 1);
+    }
+    return ids;
+  }, [all]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const hasFilters = status !== "all" || specialty !== "all" || firmFilter !== "all" || !!query;
 
   function openCreate() {
     setEditing(null);
-    setForm({
-      phone: "+998",
-      full_name: "",
-      password: "",
-      specialty: "general",
-      notes: "",
-    });
-    setModalOpen(true);
+    setFormKey((k) => k + 1);
+    setFormOpen(true);
   }
 
-  function openEdit(emp: Employee) {
+  function openEdit(emp: EmployeeFull) {
     setEditing(emp);
-    setForm({
-      phone: emp.user.phone,
-      full_name: emp.user.full_name || "",
-      password: "",
-      specialty: emp.specialty,
-      notes: emp.notes || "",
+    setFormKey((k) => k + 1);
+    setFormOpen(true);
+  }
+
+  function pickStatus(s: StatusFilter) {
+    setStatus(s);
+    setPage(1);
+  }
+
+  function exportExcel() {
+    downloadExcel("xodimlar", {
+      name: "Xodimlar",
+      headers: [
+        "ID",
+        "F.I.Sh.",
+        "Telefon",
+        "Firma",
+        "Lavozim",
+        "Mutaxassislik",
+        "Holat",
+        "Reyting",
+        "Faol buyurtma",
+        "Bajarilgan",
+        "Ishga olingan",
+        "Tug'ilgan sana",
+        "Manzil",
+        "Favqulodda tel.",
+        "Ko'nikmalar",
+        "Izoh",
+      ],
+      rows: filtered.map((e) => [
+        e.id,
+        e.user.full_name || "",
+        formatPhone(e.user.phone),
+        firmName(e.user.organization_id),
+        e.position || "",
+        specialtyOf(e),
+        EMPLOYMENT_META[employmentStatus(e)].label,
+        Number(e.rating || 0),
+        e.active_orders ?? 0,
+        e.completed_orders ?? 0,
+        e.hired_at ? formatDate(e.hired_at) : "",
+        e.birth_date ? formatDate(e.birth_date) : "",
+        e.address || "",
+        e.emergency_phone ? formatPhone(e.emergency_phone) : "",
+        (e.skills ?? []).join(", "),
+        e.notes || "",
+      ]),
     });
-    setModalOpen(true);
   }
 
-  async function handleSave() {
-    if (!form.phone.trim()) {
-      showError("Telefon raqam kiritilishi shart");
-      return;
-    }
-    if (!editing && !form.password.trim()) {
-      showError("Yangi xodim uchun parol kiritilishi shart");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const payload: Record<string, unknown> = {
-        phone: form.phone.trim(),
-        full_name: form.full_name.trim(),
-        specialty: form.specialty,
-        notes: form.notes.trim(),
-      };
-      if (form.password.trim()) {
-        payload.password = form.password.trim();
-      }
-
-      if (editing) {
-        await api(`/admin/employees/${editing.id}/`, {
-          method: "PATCH",
-          body: payload,
-        });
-        showSuccess(`"${form.full_name || form.phone}" xodim ma'lumotlari yangilandi`);
-      } else {
-        await api("/admin/employees/", {
-          method: "POST",
-          body: payload,
-        });
-        showSuccess(`"${form.full_name || form.phone}" xodimi tizimga qo'shildi`);
-      }
-
-      setModalOpen(false);
-      await reload();
-    } catch (e) {
-      showError(e instanceof ApiError || e instanceof Error ? e.message : "Saqlashda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleToggleStatus() {
-    if (!toggleTarget) return;
-    setBusyToggle(true);
-    const nextStatus = !toggleTarget.is_active;
-    try {
-      // is_active is read-only on the serializer; employment status drives it server-side.
-      await api(`/admin/employees/${toggleTarget.id}/set-status/`, {
-        method: "POST",
-        body: { status: nextStatus ? "active" : "on_leave" },
-      });
-      showSuccess(
-        nextStatus
-          ? `"${toggleTarget.user.full_name || toggleTarget.user.phone}" faollashtirildi`
-          : `"${toggleTarget.user.full_name || toggleTarget.user.phone}" deaktiv qilindi`,
-      );
-      setToggleTarget(null);
-      await reload();
-    } catch (e) {
-      showError(e instanceof Error ? e.message : "Holatni o'zgartirib bo'lmadi");
-    } finally {
-      setBusyToggle(false);
-    }
-  }
+  const rowProps = (e: EmployeeFull): RowProps => ({
+    emp: e,
+    firm: firmName(e.user.organization_id),
+    onEdit: () => openEdit(e),
+    onStatus: () => setStatusTarget(e),
+  });
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-[#26352c]/40">
-        <div>
+    <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#26352c]/40 pb-4 sm:flex-row sm:items-center">
+        <div className="min-w-0">
           <Breadcrumbs items={[{ label: "Bosh sahifa", href: "/" }, { label: "Xodimlar" }]} />
-          <h2 className="text-xl font-bold text-white tracking-tight">Xodimlar boshqaruvi</h2>
-          <p className="text-xs text-on-surface-variant mt-0.5">
-            Buyurtmalarni joyida bajaruvchi mutaxassislar va ularning operatsion holati
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-white md:text-2xl">Xodimlar boshqaruvi</h2>
+            <LiveBadge updatedAt={updatedAt || undefined} />
+          </div>
+          <p className="mt-0.5 text-xs text-on-surface-variant md:text-sm">
+            Barcha firmalardagi mutaxassislar, ularning holati va ish yuklamasi
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <ExcelButton onClick={exportExcel} disabled={!filtered.length} />
           <PrimaryButton icon="person_add" onClick={openCreate}>
             Yangi xodim
           </PrimaryButton>
         </div>
       </div>
 
-      {/* Filter Row */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: "all" as const, label: "Barchasi" },
-            { id: "active" as const, label: "Faol" },
-            { id: "inactive" as const, label: "Nofaol" },
-          ].map((f) => (
-            <FilterChip
-              key={f.id}
-              label={f.label}
-              active={statusFilter === f.id}
-              onClick={() => {
-                setStatusFilter(f.id);
-                setPage(1);
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            className="rounded-xl border border-[#26352c] bg-[#121614] px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-            value={specialtyFilter}
-            onChange={(e) => {
-              setSpecialtyFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            {SPECIALTIES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MiniStat icon="groups" label="Jami xodimlar" value={counts.all} hint={`${firmsWithStaff.size} ta firmada`} active={status === "all"} onClick={() => pickStatus("all")} />
+        <MiniStat icon="engineering" label="Ishda" value={counts.active} hint={`O'rtacha reyting ★ ${avgRating}`} active={status === "active"} onClick={() => pickStatus("active")} />
+        <MiniStat icon="beach_access" label="Ta'tilda" value={counts.on_leave} tone="amber" active={status === "on_leave"} onClick={() => pickStatus("on_leave")} />
+        <MiniStat icon="person_off" label="Ishdan bo'shagan" value={counts.dismissed} tone="error" active={status === "dismissed"} onClick={() => pickStatus("dismissed")} />
       </div>
 
-      {/* Employees Table */}
-      {loading && !data ? (
-        <TableSkeleton rows={6} cols={6} />
-      ) : error ? (
-        <div className="rounded-2xl border border-error/40 bg-[#291113] p-6 text-center">
-          <span className="material-symbols-outlined text-error text-3xl mb-2">error</span>
-          <p className="text-sm font-semibold text-white">Xodimlarni yuklab bo&apos;lmadi</p>
-          <p className="text-xs text-on-surface-variant mt-1">{error}</p>
-          <div className="mt-4">
-            <SecondaryButton icon="refresh" onClick={() => void reload()}>
-              Qayta urinish
-            </SecondaryButton>
+      <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <SearchBox placeholder="Ism, telefon yoki lavozim..." className="lg:flex-1" />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex">
+            <SelectFilter
+              label="Firma"
+              icon="storefront"
+              value={firmFilter}
+              onChange={(v) => {
+                setFirmFilter(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "all", label: "Barcha firmalar" },
+                ...firms.map((f) => ({
+                  value: String(f.id),
+                  label: firmsWithStaff.get(f.id) ? `${f.name} (${firmsWithStaff.get(f.id)})` : f.name,
+                })),
+              ]}
+              className="lg:w-60"
+            />
+            <SelectFilter
+              label="Mutaxassislik"
+              icon="category"
+              value={specialty}
+              onChange={(v) => {
+                setSpecialty(v);
+                setPage(1);
+              }}
+              options={[{ value: "all", label: "Barcha mutaxassisliklar" }, ...Object.entries(SPECIALTY_LABEL).map(([value, label]) => ({ value, label }))]}
+              className="lg:w-56"
+            />
           </div>
+          <ViewToggle value={view} onChange={setView} />
         </div>
-      ) : employees.length === 0 ? (
+        <TabBar
+          value={status}
+          onChange={pickStatus}
+          tabs={[
+            { id: "all", label: "Barchasi", icon: "list", count: counts.all },
+            { id: "active", label: "Ishda", icon: "check_circle", count: counts.active },
+            { id: "on_leave", label: "Ta'tilda", icon: "beach_access", count: counts.on_leave },
+            { id: "dismissed", label: "Bo'shagan", icon: "person_off", count: counts.dismissed },
+          ]}
+        />
+      </div>
+
+      {loading && !data ? (
+        <TableSkeleton rows={6} cols={7} />
+      ) : error && !data ? (
+        <ErrorPanel title="Xodimlarni yuklab bo'lmadi" message={error} onRetry={() => void reload()} />
+      ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-card-border bg-[#141816]">
           <EmptyState
             icon="engineering"
-            title="Xodimlar topilmadi"
-            description="Tanlangan filtrlar bo'yicha hech qanday xodim mavjud emas."
-            action={<PrimaryButton icon="person_add" onClick={openCreate}>Yangi xodim qo&apos;shish</PrimaryButton>}
+            title={hasFilters ? "Mos xodim topilmadi" : "Hali xodim yo'q"}
+            description={hasFilters ? "Qidiruv yoki filtrlarni o'zgartirib ko'ring." : "Birinchi xodimni qo'shing."}
+            action={
+              hasFilters ? (
+                <SecondaryButton
+                  icon="filter_alt_off"
+                  onClick={() => {
+                    setStatus("all");
+                    setSpecialty("all");
+                    setFirmFilter("all");
+                    setPage(1);
+                  }}
+                >
+                  Filtrlarni tozalash
+                </SecondaryButton>
+              ) : (
+                <PrimaryButton icon="person_add" onClick={openCreate}>
+                  Yangi xodim qo&apos;shish
+                </PrimaryButton>
+              )
+            }
           />
         </div>
       ) : (
-        <div className="rounded-2xl border border-card-border bg-[#141816] overflow-hidden shadow-sm">
-          <DataTable
-            headers={["Ism / Familiya", "Telefon", "Mutaxassislik", "Reyting", "Holat", "Qo'shilgan sana", "Amallar"]}
-            footer={
-              <Pagination
-                current={page}
-                pages={pageNumbers(page, totalPages)}
-                onPageChange={setPage}
-                info={
-                  <>
-                    Jami <strong className="text-primary">{totalCount}</strong> ta xodim
-                  </>
-                }
-              />
-            }
-          >
-            {employees.map((emp) => (
-              <tr key={emp.id} className="border-b border-[#26352c]/30 hover:bg-[#18211b]/50 transition-colors">
-                <td className="px-4 py-3.5 text-xs font-semibold text-white">
-                  {emp.user.full_name || "Ism kiritilmagan"}
-                </td>
-                <td className="px-4 py-3.5 text-xs text-on-surface-variant font-mono">
-                  {formatPhone(emp.user.phone)}
-                </td>
-                <td className="px-4 py-3.5 text-xs text-on-surface">
-                  {SPECIALTY_LABEL[emp.specialty] || emp.specialty}
-                </td>
-                <td className="px-4 py-3.5 text-xs text-amber-400 font-semibold">
-                  ★ {emp.rating || "0.0"}
-                </td>
-                <td className="px-4 py-3.5 text-xs">
-                  <StatusPill variant={emp.is_active ? "success" : "neutral"}>
-                    {emp.is_active ? "Faol" : "Nofaol"}
-                  </StatusPill>
-                </td>
-                <td className="px-4 py-3.5 text-xs text-on-surface-variant whitespace-nowrap">
-                  {formatDate(emp.created_at)}
-                </td>
-                <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(emp)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1 text-xs font-medium text-on-surface hover:border-primary/50 hover:text-primary transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">edit</span>
-                      Tahrirlash
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setToggleTarget(emp)}
-                      className={`inline-flex items-center rounded-lg border px-2 py-1 text-xs font-semibold transition-all ${
-                        emp.is_active
-                          ? "border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                          : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
-                      }`}
-                      title={emp.is_active ? "Deaktiv qilish" : "Faollashtirish"}
-                    >
-                      {emp.is_active ? "Deaktiv" : "Faollashtirish"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
+        <>
+          <div className={view === "table" ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:hidden" : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"}>
+            {visible.map((e) => (
+              <EmployeeCard key={e.id} {...rowProps(e)} />
             ))}
-          </DataTable>
-        </div>
-      )}
-
-      {/* Create / Edit Modal */}
-      <Modal
-        open={modalOpen}
-        title={editing ? `Xodimni tahrirlash: ${editing.user.full_name || editing.user.phone}` : "Yangi xodim qo'shish"}
-        onClose={() => setModalOpen(false)}
-      >
-        <div className="space-y-4">
-          <Field label="To'liq ismi" required>
-            <input
-              type="text"
-              placeholder="Masalan: Ali Valiyev"
-              className={inputClass}
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            />
-          </Field>
-
-          <Field label="Telefon raqami" required>
-            <input
-              type="text"
-              placeholder="+998901234567"
-              className={inputClass}
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-          </Field>
-
-          <Field label={editing ? "Yangi parol (o'zgartirish shart bo'lmasa bo'sh qoldiring)" : "Parol"} required={!editing}>
-            <input
-              type="password"
-              placeholder="••••••••"
-              className={inputClass}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </Field>
-
-          <Field label="Mutaxassislik" required>
-            <select
-              className={inputClass}
-              value={form.specialty}
-              onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-            >
-              {SPECIALTIES.filter((s) => s.id !== "all").map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Qo'shimcha izoh">
-            <textarea
-              rows={2}
-              placeholder="Xodim malakasi, sertifikatlari haqida qisqacha..."
-              className={inputClass}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-          </Field>
-
-          <div className="mt-6 flex justify-end gap-3 pt-3 border-t border-[#26352c]/40">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-xl border border-[#26352c] px-4 py-2 text-xs font-medium text-on-surface-variant hover:text-white"
-            >
-              Bekor qilish
-            </button>
-            <PrimaryButton disabled={busy} onClick={() => void handleSave()}>
-              {busy ? "Saqlanmoqda..." : "Saqlash"}
-            </PrimaryButton>
           </div>
-        </div>
-      </Modal>
-
-      {/* Toggle Status Confirmation Dialog */}
-      {toggleTarget && (
-        <ConfirmDialog
-          open={!!toggleTarget}
-          variant={toggleTarget.is_active ? "warning" : "primary"}
-          title={toggleTarget.is_active ? "Xodimni deaktiv qilish" : "Xodimni faollashtirish"}
-          description={
-            toggleTarget.is_active ? (
-              <>
-                <strong>{toggleTarget.user.full_name || toggleTarget.user.phone}</strong> deaktiv qilinadi
-                va yangi operatsiyalarga tayinlanmaydi.
-              </>
-            ) : (
-              <>
-                <strong>{toggleTarget.user.full_name || toggleTarget.user.phone}</strong> faollashtiriladi
-                va yangi buyurtmalarga tayinlanishi mumkin bo&apos;ladi.
-              </>
-            )
-          }
-          confirmText={toggleTarget.is_active ? "Deaktiv qilish" : "Faollashtirish"}
-          cancelText="Bekor qilish"
-          busy={busyToggle}
-          onConfirm={() => void handleToggleStatus()}
-          onCancel={() => setToggleTarget(null)}
-        />
+          {view === "table" ? (
+            <div className="hidden md:block">
+              <DataTable headers={["Xodim", "Firma", "Lavozim", "Buyurtmalar", "Reyting", "Holat", "Ishga olingan", ""]}>
+                {visible.map((e) => (
+                  <EmployeeRow key={e.id} {...rowProps(e)} />
+                ))}
+              </DataTable>
+            </div>
+          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-[#26352c]">
+            <Pagination
+              current={current}
+              pages={pageNumbers(current, totalPages)}
+              onPageChange={setPage}
+              info={
+                <>
+                  <strong className="text-primary">{filtered.length}</strong> ta xodim
+                  {filtered.length !== all.length ? ` (yuklangan ${all.length})` : ""}
+                </>
+              }
+            />
+          </div>
+        </>
       )}
+
+      <EmployeeFormModal
+        key={`form-${formKey}`}
+        open={formOpen}
+        employee={editing}
+        firmName={firmName}
+        onClose={() => setFormOpen(false)}
+        onSaved={reload}
+      />
+      <EmployeeStatusDialog
+        key={`status-${statusTarget?.id ?? 0}`}
+        employee={statusTarget}
+        onClose={() => setStatusTarget(null)}
+        onSaved={reload}
+      />
     </div>
   );
 }

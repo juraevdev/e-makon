@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/live_refresh.dart';
 import '../../core/widgets/partner_sheet.dart';
 import 'chat_provider.dart';
 
@@ -20,12 +19,12 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with LiveRefresh {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  Timer? _timer;
   bool _opening = true;
   bool _sending = false;
+  bool _live = false;
   String? _error;
 
   @override
@@ -36,11 +35,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
+
+  /// Firma/operator javobi tez ko'rinsin: `?after=<oxirgi id>` bilan faqat yangilari olinadi.
+  @override
+  Duration get liveInterval => const Duration(milliseconds: 2500);
+
+  @override
+  bool get liveEnabled => _live;
+
+  @override
+  Future<void> liveRefresh() => _poll();
 
   Future<void> _open() async {
     setState(() {
@@ -50,10 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final chat = context.read<ChatProvider>();
     try {
       await chat.open(widget.partner);
-      _timer?.cancel();
-      if (!chat.isDemo(widget.partner.id)) {
-        _timer = Timer.periodic(const Duration(seconds: 4), (_) => _poll());
-      }
+      _live = !chat.isDemo(widget.partner.id);
     } on ApiException catch (e) {
       _error = e.statusCode == 401 || e.statusCode == 403
           ? 'Firma bilan yozishish uchun mijoz sifatida tizimga kiring.'

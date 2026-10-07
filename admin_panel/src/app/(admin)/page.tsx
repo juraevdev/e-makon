@@ -14,7 +14,7 @@ import {
 import { api, fetchAll } from "@/lib/api/client";
 import type { DashboardData, Order, OrderStatus, PartnerFirm } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
-import { formatMoney, formatPhone, initials } from "@/lib/format";
+import { escapeHtml, formatMoney, formatPhone, initials } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useFirm } from "@/providers/FirmProvider";
 
@@ -103,15 +103,6 @@ function ServiceUsageList({
       </div>
     </Card>
   );
-}
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 async function downloadPdfReport(firm: PartnerFirm | null, query: Record<string, string>) {
@@ -314,7 +305,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
-                <h2 className="text-xl font-semibold text-on-surface">Buyurtmalar dinamikasi</h2>
+                <h2 className="text-lg font-semibold text-on-surface">Buyurtmalar dinamikasi</h2>
               </div>
               <PrimaryButton
                 icon="picture_as_pdf"
@@ -387,7 +378,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between border-b border-surface-variant/40 p-6">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-xl text-primary">receipt_long</span>
-            <h2 className="text-xl font-semibold text-on-surface">So&apos;nggi buyurtmalar</h2>
+            <h2 className="text-lg font-semibold text-on-surface">So&apos;nggi buyurtmalar</h2>
           </div>
           <Link href="/buyurtmalar" className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
             Barchasini ko&apos;rish

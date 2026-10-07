@@ -2,41 +2,33 @@
 
 import { useMemo, useState } from "react";
 import {
+  ConfirmDialog,
   EmptyState,
+  ExcelButton,
   Field,
   FilterChip,
   inputClass,
+  LiveBadge,
   LoadingBlock,
-  Modal,
   PrimaryButton,
   SecondaryButton,
   StatusPill,
+  TabBar,
 } from "@/components/ui";
-import { api, asPage } from "@/lib/api/client";
+import { CatalogTypeFormModal } from "@/components/catalog/CatalogTypeFormModal";
+import { fetchAll, todayStamp } from "@/components/catalog/fetchAll";
+import { priceOf, RejectServiceModal, ServicePreviewModal } from "@/components/catalog/ModerationModals";
+import { ServiceThumb } from "@/components/catalog/ServiceThumb";
+import { api } from "@/lib/api/client";
 import type { ModerationStatus, Service } from "@/lib/api/types";
-import { downloadCsv } from "@/lib/csv";
 import { MODERATION_LABEL, MODERATION_TONE } from "@/lib/domain";
-import { formatDateTime, formatMoney, slugify } from "@/lib/format";
+import { downloadExcel } from "@/lib/excel";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
 import { useToast } from "@/providers/ToastProvider";
 
 type Tab = "queue" | "offers" | "catalog";
-
-const emptyForm = {
-  name: "",
-  slug: "",
-  emoji: "🌿",
-  icon: "eco",
-  category: "Parvarish",
-  short_description: "",
-  duration: "O'rtacha vaqt: 1.5 - 2 soat",
-  hero_image_url: "",
-  sort_order: "0",
-  is_active: true,
-};
-
-const priceOf = (s: Service) => Number(s.price ?? s.price_from ?? 0);
 
 const normalizeName = (name: string) =>
   name
@@ -55,31 +47,81 @@ function similarityScore(a: string, b: string) {
   return stems(x).some((w) => ys.includes(w)) ? 1 : 0;
 }
 
+const time = (v?: string | null) => (v ? new Date(v).getTime() : 0);
+
 export default function XizmatlarPage() {
   const { query } = useSearch();
   const { showSuccess, showError } = useToast();
   const [tab, setTab] = useState<Tab>("queue");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [firm, setFirm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<number | null>(null);
   const [offerFilter, setOfferFilter] = useState<"all" | ModerationStatus>("all");
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Service | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [busy, setBusy] = useState(false);
-  const [rejecting, setRejecting] = useState<{ service: Service; note: string } | null>(null);
+  const [preview, setPreview] = useState<Service | null>(null);
+  const [rejecting, setRejecting] = useState<Service | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState<Service | null>(null);
   const [mergeTarget, setMergeTarget] = useState<Record<number, string>>({});
 
-  const { data, loading, error, reload } = useAsync(
-    async () => asPage<Service>(await api("/admin/services/", { query: { page_size: 100, search: query || undefined } })).results,
-    [query],
+  const { data, loading, error, reload, updatedAt } = useAsync(
+    () => fetchAll<Service>("/admin/services/"),
+    [],
     { keepPrevious: true },
   );
 
-  const all = useMemo(() => data ?? [], [data]);
-  const catalog = all.filter((s) => s.is_catalog_type);
-  const offers = all.filter((s) => !s.is_catalog_type);
-  const queue = offers.filter((s) => s.moderation_status === "pending");
-  const visibleOffers = offerFilter === "all" ? offers : offers.filter((s) => s.moderation_status === offerFilter);
+  const all = useMemo(() => data?.results ?? [], [data]);
+  const catalog = useMemo(
+    () => all.filter((s) => s.is_catalog_type).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id),
+    [all],
+  );
+  const offers = useMemo(() => all.filter((s) => !s.is_catalog_type), [all]);
+  const queue = useMemo(
+    () => offers.filter((s) => s.moderation_status === "pending").sort((a, b) => time(a.updated_at) - time(b.updated_at)),
+    [offers],
+  );
+  const catalogById = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
+
+  const categoryOf = (s: Service) => s.category || (s.base_service ? catalogById.get(s.base_service)?.category : "") || "";
+  const categories = useMemo(
+    () => [...new Set(all.map((s) => s.category || "").filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [all],
+  );
+  const firms = useMemo(() => {
+    const map = new Map<string, string>();
+    offers.forEach((s) => {
+      if (s.organization_id) map.set(String(s.organization_id), s.organization_name || `Firma #${s.organization_id}`);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [offers]);
+
+  const needle = normalizeName(search);
+  const globalNeedle = normalizeName(query || "");
+  const matches = (s: Service) => {
+    const hay = normalizeName(
+      [s.name, s.slug, s.organization_name, s.base_service_name, categoryOf(s), s.short_description].filter(Boolean).join(" "),
+    );
+    return (!needle || hay.includes(needle)) && (!globalNeedle || hay.includes(globalNeedle));
+  };
+  const commonFilter = (s: Service) =>
+    matches(s) &&
+    (!category || categoryOf(s) === category) &&
+    (!firm || String(s.organization_id ?? "") === firm) &&
+    (typeFilter === null || s.base_service === typeFilter);
+
+  const visibleQueue = queue.filter(commonFilter);
+  const offersBase = offers.filter(commonFilter);
+  const visibleOffers = offerFilter === "all" ? offersBase : offersBase.filter((s) => s.moderation_status === offerFilter);
+  const catalogBase = catalog.filter((s) => matches(s) && (!category || categoryOf(s) === category));
+  const visibleCatalog =
+    activeFilter === "all" ? catalogBase : catalogBase.filter((s) => (activeFilter === "active" ? s.is_active : !s.is_active));
+
   const siblings = (s: Service) =>
     offers.filter((o) => o.id !== s.id && o.base_service && o.base_service === s.base_service && o.moderation_status === "approved");
+  const peerPrices = (s: Service) => siblings(s).map(priceOf).filter(Boolean);
   const similarTypes = (s: Service) =>
     catalog
       .map((c) => ({ c, score: similarityScore(c.name, s.name) }))
@@ -89,19 +131,30 @@ export default function XizmatlarPage() {
   const samePending = (s: Service) =>
     queue.filter((o) => o.id !== s.id && o.is_type_proposal && similarityScore(o.name, s.name) >= 2);
 
+  const filtersActive = Boolean(search || category || firm || typeFilter !== null);
+  function clearFilters() {
+    setSearch("");
+    setCategory("");
+    setFirm("");
+    setTypeFilter(null);
+  }
+
   async function moderate(s: Service, action: "approve" | "reject", note = "") {
     setBusy(true);
     try {
       const body: Record<string, unknown> = { note };
-      const target = mergeTarget[s.id] ?? (s.is_type_proposal ? similarTypes(s).find((c) => similarityScore(c.name, s.name) === 3)?.id : undefined);
+      const target =
+        mergeTarget[s.id] ??
+        (s.is_type_proposal ? similarTypes(s).find((c) => similarityScore(c.name, s.name) === 3)?.id : undefined);
       if (action === "approve" && s.is_type_proposal && target) body.base_service = Number(target);
       const saved = await api<Service>(`/admin/services/${s.id}/${action}/`, { method: "POST", body });
       showSuccess(
         action === "approve"
           ? `"${s.name}" tasdiqlandi — ilovada "${saved?.base_service_name || s.name}" ichida ko'rinadi`
-          : "Rad etildi, firmaga xabar yuborildi",
+          : "Rad etildi, firmaga sabab bilan xabar yuborildi",
       );
       setRejecting(null);
+      setPreview(null);
       await reload();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Xatolik");
@@ -113,145 +166,227 @@ export default function XizmatlarPage() {
   async function toggleActive(s: Service) {
     try {
       await api(`/admin/services/${s.id}/`, { method: "PATCH", body: { is_active: !s.is_active } });
+      showSuccess(s.is_active ? `"${s.name}" ilovadan yashirildi` : `"${s.name}" ilovada ko'rinadi`);
       await reload();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Xatolik");
     }
   }
 
-  function openForm(s: Service | null) {
-    setEditing(s);
-    setForm(
-      s
-        ? {
-            name: s.name,
-            slug: s.slug,
-            emoji: s.emoji || "🌿",
-            icon: s.icon || "eco",
-            category: s.category,
-            short_description: s.short_description,
-            duration: s.duration,
-            hero_image_url: s.hero_image_url,
-            sort_order: String(s.sort_order ?? 0),
-            is_active: s.is_active,
-          }
-        : emptyForm,
-    );
-    setOpen(true);
-  }
-
-  async function saveCatalog() {
+  async function confirmDelete() {
+    if (!deleting) return;
     setBusy(true);
     try {
-      const payload = { ...form, slug: form.slug || slugify(form.name), sort_order: Number(form.sort_order) || 0 };
-      if (editing) await api(`/admin/services/${editing.id}/`, { method: "PATCH", body: payload });
-      else await api("/admin/services/", { method: "POST", body: payload });
-      setOpen(false);
-      showSuccess("Katalog turi saqlandi");
+      await api(`/admin/services/${deleting.id}/`, { method: "DELETE" });
+      showSuccess(`"${deleting.name}" katalogdan o'chirildi`);
+      setDeleting(null);
       await reload();
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Saqlanmadi");
+      showError(err instanceof Error ? err.message : "O'chirib bo'lmadi");
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeCatalog(s: Service) {
-    if (!confirm(`${s.name} katalogdan o'chirilsinmi? Unga bog'langan firma takliflari ham ta'sirlanadi.`)) return;
-    try {
-      await api(`/admin/services/${s.id}/`, { method: "DELETE" });
-      await reload();
-    } catch (err) {
-      showError(err instanceof Error ? err.message : "O'chirib bo'lmadi");
-    }
+  function openForm(s: Service | null) {
+    setEditing(s);
+    setFormOpen(true);
   }
 
-  function exportOffers() {
-    downloadCsv(
-      `firma-xizmatlari-${new Date().toISOString().slice(0, 10)}`,
-      ["ID", "Firma", "Xizmat", "Katalog turi", "Narx (UZS)", "Holat", "Faol", "Yangilangan"],
-      visibleOffers.map((s) => [
+  function exportExcel() {
+    if (tab === "catalog") {
+      downloadExcel(`katalog-turlari-${todayStamp()}`, {
+        name: "Katalog turlari",
+        headers: ["ID", "Nomi", "Slug", "Toifa", "Firma takliflari", "Min narx (UZS)", "Max narx (UZS)", "Faol", "Tartib", "Yangilangan"],
+        rows: visibleCatalog.map((s) => [
+          s.id,
+          s.name,
+          s.slug,
+          categoryOf(s),
+          s.offers_count ?? 0,
+          s.offers_count ? s.price_min ?? 0 : "",
+          s.offers_count ? s.price_max ?? 0 : "",
+          s.is_active ? "Ha" : "Yo'q",
+          s.sort_order ?? 0,
+          formatDateTime(s.updated_at),
+        ]),
+      });
+      return;
+    }
+    const rows = tab === "queue" ? visibleQueue : visibleOffers;
+    downloadExcel(`${tab === "queue" ? "tekshiruv-navbati" : "firma-xizmatlari"}-${todayStamp()}`, {
+      name: tab === "queue" ? "Tekshiruv navbati" : "Firma takliflari",
+      headers: ["ID", "Firma", "Xizmat", "Katalog turi", "Toifa", "Narx (UZS)", "Holat", "Izoh", "Ilovada", "Yuborilgan", "Yangilangan"],
+      rows: rows.map((s) => [
         s.id,
-        s.organization_name,
+        s.organization_name || "",
         s.name,
-        s.base_service_name || "Yangi tur",
+        s.base_service_name || "Yangi tur taklifi",
+        categoryOf(s),
         priceOf(s),
         s.moderation_status ? MODERATION_LABEL[s.moderation_status] : "",
+        s.moderation_note || "",
         s.is_active ? "Ha" : "Yo'q",
-        s.updated_at ? formatDateTime(s.updated_at) : "",
+        formatDateTime(s.created_at),
+        formatDateTime(s.updated_at),
       ]),
-    );
+    });
   }
 
+  const exportCount = tab === "catalog" ? visibleCatalog.length : tab === "queue" ? visibleQueue.length : visibleOffers.length;
+  const offerCount = (f: "all" | ModerationStatus) => (f === "all" ? offersBase.length : offersBase.filter((s) => s.moderation_status === f).length);
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+    <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-8">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         <p className="max-w-3xl text-sm text-on-surface-variant">
           Firmalar o&apos;z xizmatlarini <b className="text-on-surface">aniq, o&apos;zgarmas narx</b> bilan qo&apos;shadi. Har bir yangi xizmat
           yoki narx o&apos;zgarishi shu yerda tekshiriladi; tasdiqlangach mijoz ilovasida firma narxlari yonma-yon chiqadi.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveBadge updatedAt={updatedAt} />
+          <ExcelButton onClick={exportExcel} disabled={!exportCount} />
           {tab === "catalog" ? (
             <PrimaryButton icon="add" onClick={() => openForm(null)}>
               Katalog turi
             </PrimaryButton>
-          ) : (
-            <SecondaryButton icon="download" onClick={exportOffers}>
-              CSV
-            </SecondaryButton>
-          )}
+          ) : null}
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <FilterChip label="Tekshiruv navbati" icon="fact_check" count={queue.length} active={tab === "queue"} onClick={() => setTab("queue")} />
-        <FilterChip label="Firma takliflari" icon="storefront" count={offers.length} active={tab === "offers"} onClick={() => setTab("offers")} />
-        <FilterChip label="Katalog turlari" icon="category" count={catalog.length} active={tab === "catalog"} onClick={() => setTab("catalog")} />
+      <TabBar<Tab>
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: "queue", label: "Tekshiruv navbati", icon: "fact_check", count: queue.length },
+          { id: "offers", label: "Firma takliflari", icon: "storefront", count: offers.length },
+          { id: "catalog", label: "Katalog turlari", icon: "category", count: catalog.length },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#26352c] bg-[#121614] p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div className="relative sm:col-span-2 lg:col-span-1">
+          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
+            search
+          </span>
+          <input
+            className={`${inputClass} pl-10`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={tab === "catalog" ? "Katalog turi nomi..." : "Xizmat, firma yoki tur bo'yicha qidirish..."}
+          />
+        </div>
+        <select className={inputClass} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Toifa">
+          <option value="">Barcha toifalar</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {tab === "catalog" ? (
+          <select
+            className={inputClass}
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value as typeof activeFilter)}
+            aria-label="Holat"
+          >
+            <option value="all">Barcha holatlar</option>
+            <option value="active">Faol</option>
+            <option value="inactive">To&apos;xtatilgan</option>
+          </select>
+        ) : (
+          <select className={inputClass} value={firm} onChange={(e) => setFirm(e.target.value)} aria-label="Firma">
+            <option value="">Barcha firmalar</option>
+            {firms.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
+        <SecondaryButton icon="filter_alt_off" disabled={!filtersActive} onClick={clearFilters} className="justify-center">
+          Tozalash
+        </SecondaryButton>
+        {typeFilter !== null && tab !== "catalog" ? (
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              Tur: {catalogById.get(typeFilter)?.name ?? `#${typeFilter}`}
+              <button type="button" onClick={() => setTypeFilter(null)} aria-label="Tur filtrini olib tashlash">
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </span>
+          </div>
+        ) : null}
       </div>
 
-      {loading ? (
+      {data?.truncated ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          Jami {data.count} ta xizmatdan {data.results.length} tasi yuklandi. Aniqroq natija uchun qidiruvdan foydalaning.
+        </p>
+      ) : null}
+
+      {loading && !data ? (
         <LoadingBlock />
-      ) : error ? (
-        <p className="text-error">{error}</p>
+      ) : error && !data ? (
+        <div className="rounded-2xl border border-error/30 bg-error/5 p-6 text-center">
+          <p className="mb-3 text-error">{error}</p>
+          <SecondaryButton icon="refresh" onClick={() => void reload()}>
+            Qayta urinish
+          </SecondaryButton>
+        </div>
       ) : tab === "queue" ? (
-        !queue.length ? (
+        !visibleQueue.length ? (
           <div className="rounded-2xl border border-[#26352c] bg-[#151917]">
-            <EmptyState icon="task_alt" title="Navbat bo'sh" description="Tekshiruvni kutayotgan firma xizmati yo'q." />
+            {queue.length ? (
+              <EmptyState
+                icon="search_off"
+                title="Filtr bo'yicha topilmadi"
+                description="Navbatda xizmatlar bor, lekin tanlangan filtrga mos kelmaydi."
+                action={<SecondaryButton onClick={clearFilters}>Filtrni tozalash</SecondaryButton>}
+              />
+            ) : (
+              <EmptyState icon="task_alt" title="Navbat bo'sh" description="Tekshiruvni kutayotgan firma xizmati yo'q. Yangi xizmat kelsa shu yerda avtomatik paydo bo'ladi." />
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {queue.map((s) => {
-              const peers = siblings(s);
-              const prices = peers.map(priceOf).filter(Boolean);
+            {visibleQueue.map((s) => {
+              const prices = peerPrices(s);
               const similar = s.is_type_proposal ? similarTypes(s) : [];
               const exact = similar.find((c) => similarityScore(c.name, s.name) === 3);
               const twins = s.is_type_proposal ? samePending(s) : [];
               const target = mergeTarget[s.id] ?? (exact ? String(exact.id) : "");
+              const resubmitted = Boolean(s.moderated_at);
               return (
-                <div key={s.id} className="rounded-2xl border border-amber-500/30 bg-[#151917] p-5">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="flex gap-3">
-                      {s.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.image} alt="" className="h-16 w-20 shrink-0 rounded-xl border border-[#26352c] object-cover" />
-                      ) : null}
-                      <div>
-                        <p className="text-xs text-on-surface-variant">{s.organization_name}</p>
-                        <p className="text-lg font-bold">
-                          {s.emoji} {s.name}
-                        </p>
-                        <p className="text-xs text-on-surface-variant">
-                          Katalog turi: {s.base_service_name || <span className="text-amber-300">yangi tur taklifi</span>}
-                        </p>
+                <article key={s.id} className="flex flex-col rounded-2xl border border-amber-500/30 bg-[#151917] p-4 sm:p-5">
+                  <div className="mb-3 flex items-start gap-3">
+                    <button type="button" onClick={() => setPreview(s)} className="shrink-0" aria-label="Ko'rish">
+                      <ServiceThumb service={s} className="h-16 w-20" />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-xs text-on-surface-variant">{s.organization_name || "Firma"}</p>
+                        <StatusPill variant={resubmitted ? "info" : "warning"} pulse>
+                          {resubmitted ? "Qayta yuborilgan" : "Yangi"}
+                        </StatusPill>
                       </div>
+                      <button type="button" onClick={() => setPreview(s)} className="mt-0.5 block text-left text-lg font-bold leading-snug hover:text-primary">
+                        {s.emoji} {s.name}
+                      </button>
+                      <p className="text-xs text-on-surface-variant">
+                        Katalog turi: {s.base_service_name || <span className="text-amber-300">yangi tur taklifi</span>}
+                        {categoryOf(s) ? ` · ${categoryOf(s)}` : ""}
+                      </p>
                     </div>
-                    <p className="text-xl font-bold text-primary">{formatMoney(priceOf(s))}</p>
+                    <p className="shrink-0 text-right text-lg font-bold text-primary sm:text-xl">{formatMoney(priceOf(s))}</p>
                   </div>
-                  <p className="mb-2 text-sm text-on-surface-variant">{s.short_description || "Tavsif yo'q"}</p>
-                  {s.description ? <p className="mb-2 whitespace-pre-line text-xs text-on-surface-variant">{s.description}</p> : null}
-                  <p className="mb-3 text-xs text-on-surface-variant">{s.duration}</p>
+                  <p className="mb-2 line-clamp-3 text-sm text-on-surface-variant">{s.short_description || s.description || "Tavsif yo'q"}</p>
+                  <p className="mb-3 text-xs text-on-surface-variant">
+                    {s.duration ? `${s.duration} · ` : ""}Yuborilgan: {formatDateTime(s.updated_at || s.created_at)}
+                  </p>
                   {s.is_type_proposal ? (
-                    <div className="mb-3 rounded-lg border border-[#26352c] bg-[#0e1210] p-3 text-xs">
+                    <div className="mb-3 rounded-xl border border-[#26352c] bg-[#0e1210] p-3 text-xs">
                       <Field label="Tasdiqlanganda ilovada qayerda chiqadi">
                         <select
                           className={inputClass}
@@ -259,20 +394,18 @@ export default function XizmatlarPage() {
                           onChange={(e) => setMergeTarget((m) => ({ ...m, [s.id]: e.target.value }))}
                         >
                           <option value="">Yangi katalog turi: &quot;{s.name}&quot;</option>
-                          {(similar.length ? similar : catalog).map((c) => (
+                          {similar.map((c) => (
                             <option key={c.id} value={c.id}>
-                              Mavjud turga qo&apos;shish: {c.emoji} {c.name} ({c.offers_count ?? 0} ta firma)
+                              O&apos;xshash turga qo&apos;shish: {c.emoji} {c.name} ({c.offers_count ?? 0} ta firma)
                             </option>
                           ))}
-                          {similar.length
-                            ? catalog
-                                .filter((c) => !similar.includes(c))
-                                .map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    Mavjud turga qo&apos;shish: {c.emoji} {c.name}
-                                  </option>
-                                ))
-                            : null}
+                          {catalog
+                            .filter((c) => !similar.includes(c))
+                            .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                Mavjud turga qo&apos;shish: {c.emoji} {c.name}
+                              </option>
+                            ))}
                         </select>
                       </Field>
                       {similar.length ? (
@@ -290,175 +423,261 @@ export default function XizmatlarPage() {
                     </div>
                   ) : null}
                   {prices.length ? (
-                    <p className="mb-3 rounded-lg bg-[#0e1210] px-3 py-2 text-xs text-on-surface-variant">
+                    <p className="mb-3 rounded-xl bg-[#0e1210] px-3 py-2 text-xs text-on-surface-variant">
                       Shu turdagi {prices.length} ta firma narxi: {formatMoney(Math.min(...prices))} – {formatMoney(Math.max(...prices))}
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
+                  <div className="mt-auto flex flex-wrap gap-2 border-t border-[#26352c]/60 pt-3">
                     <PrimaryButton icon="check" disabled={busy} onClick={() => void moderate(s, "approve")}>
                       Tasdiqlash
                     </PrimaryButton>
-                    <SecondaryButton icon="close" onClick={() => setRejecting({ service: s, note: "" })}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setRejecting(s)}
+                      className="inline-flex items-center gap-2 rounded-full border border-error/40 px-4 py-2.5 text-sm font-semibold text-error hover:bg-error/10 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
                       Rad etish
+                    </button>
+                    <SecondaryButton icon="visibility" onClick={() => setPreview(s)} className="sm:ml-auto">
+                      Ko&apos;rish
                     </SecondaryButton>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )
       ) : tab === "offers" ? (
         <>
-          <div className="mb-4 flex gap-2">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {(["all", "approved", "pending", "rejected"] as const).map((f) => (
               <FilterChip
                 key={f}
                 label={f === "all" ? "Barchasi" : MODERATION_LABEL[f]}
+                count={offerCount(f)}
                 active={offerFilter === f}
                 onClick={() => setOfferFilter(f)}
               />
             ))}
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-[#26352c] bg-[#151917]">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-[#26352c] text-xs uppercase text-on-surface-variant">
-                  {["Firma", "Xizmat", "Katalog turi", "Narx", "Holat", "Ilovada", ""].map((h) => (
-                    <th key={h} className="px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#26352c]/50">
-                {visibleOffers.map((s) => (
-                  <tr key={s.id} className="hover:bg-white/5">
-                    <td className="px-4 py-3 font-semibold">{s.organization_name}</td>
-                    <td className="px-4 py-3">{s.name}</td>
-                    <td className="px-4 py-3 text-on-surface-variant">{s.base_service_name || "Yangi tur"}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-bold">{formatMoney(priceOf(s))}</td>
-                    <td className="px-4 py-3">
-                      {s.moderation_status ? (
-                        <StatusPill variant={MODERATION_TONE[s.moderation_status]}>{MODERATION_LABEL[s.moderation_status]}</StatusPill>
-                      ) : null}
-                      {s.moderation_note ? <p className="mt-1 max-w-[200px] text-xs text-on-surface-variant">{s.moderation_note}</p> : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button type="button" onClick={() => void toggleActive(s)} className="text-xs text-primary hover:underline">
-                        {s.is_active ? "Faol" : "O'chiq"}
-                      </button>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {s.moderation_status !== "approved" ? (
-                        <button type="button" className="mr-2 text-xs text-primary hover:underline" onClick={() => void moderate(s, "approve")}>
-                          Tasdiqlash
-                        </button>
-                      ) : null}
-                      {s.moderation_status !== "rejected" ? (
-                        <button type="button" className="text-xs text-error hover:underline" onClick={() => setRejecting({ service: s, note: "" })}>
-                          Rad etish
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!visibleOffers.length ? <EmptyState icon="storefront" title="Takliflar yo'q" /> : null}
+          <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
+            {!visibleOffers.length ? (
+              <EmptyState
+                icon="storefront"
+                title={offers.length ? "Filtr bo'yicha takliflar topilmadi" : "Firma takliflari yo'q"}
+                description={offers.length ? "Qidiruv yoki filtrlarni o'zgartirib ko'ring." : "Firmalar xizmat qo'shganda shu yerda ko'rinadi."}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#26352c] text-xs uppercase text-on-surface-variant">
+                      {["Xizmat", "Firma", "Katalog turi", "Narx", "Holat", "Ilovada", ""].map((h) => (
+                        <th key={h} className="px-4 py-3 font-semibold">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#26352c]/50">
+                    {visibleOffers.map((s) => (
+                      <tr key={s.id} className="hover:bg-white/5">
+                        <td className="px-4 py-3">
+                          <button type="button" onClick={() => setPreview(s)} className="flex items-center gap-3 text-left">
+                            <ServiceThumb service={s} className="h-10 w-12" />
+                            <span className="min-w-0">
+                              <span className="block font-semibold hover:text-primary">{s.name}</span>
+                              <span className="block text-xs text-on-surface-variant">{categoryOf(s) || "—"}</span>
+                            </span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 font-semibold">{s.organization_name || "—"}</td>
+                        <td className="px-4 py-3 text-on-surface-variant">{s.base_service_name || <span className="text-amber-300">Yangi tur</span>}</td>
+                        <td className="whitespace-nowrap px-4 py-3 font-bold">{formatMoney(priceOf(s))}</td>
+                        <td className="px-4 py-3">
+                          {s.moderation_status ? (
+                            <StatusPill variant={MODERATION_TONE[s.moderation_status]}>{MODERATION_LABEL[s.moderation_status]}</StatusPill>
+                          ) : null}
+                          {s.moderation_note ? <p className="mt-1 line-clamp-2 max-w-[220px] text-xs text-on-surface-variant">{s.moderation_note}</p> : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => void toggleActive(s)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                              s.is_active ? "border-primary/40 text-primary" : "border-[#26352c] text-on-surface-variant"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[14px]">{s.is_active ? "visibility" : "visibility_off"}</span>
+                            {s.is_active ? "Faol" : "O'chiq"}
+                          </button>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          {s.moderation_status !== "approved" ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="mr-3 text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                              onClick={() => void moderate(s, "approve")}
+                            >
+                              Tasdiqlash
+                            </button>
+                          ) : null}
+                          {s.moderation_status !== "rejected" ? (
+                            <button type="button" className="mr-3 text-xs font-semibold text-error hover:underline" onClick={() => setRejecting(s)}>
+                              Rad etish
+                            </button>
+                          ) : null}
+                          <button type="button" className="text-xs text-on-surface-variant hover:text-on-surface" onClick={() => setPreview(s)}>
+                            Ko&apos;rish
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
+      ) : !visibleCatalog.length ? (
+        <div className="rounded-2xl border border-[#26352c] bg-[#151917]">
+          <EmptyState
+            icon="category"
+            title={catalog.length ? "Filtr bo'yicha tur topilmadi" : "Katalog bo'sh"}
+            description={catalog.length ? "Qidiruv yoki toifani o'zgartiring." : "Birinchi katalog turini qo'shing — firmalar narxlarini shu turga taklif qiladi."}
+            action={
+              <PrimaryButton icon="add" onClick={() => openForm(null)}>
+                Katalog turi
+              </PrimaryButton>
+            }
+          />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {catalog.map((s) => (
-            <div key={s.id} className="flex flex-col justify-between rounded-2xl border border-[#26352c] bg-[#111414] p-5">
-              <div>
-                <div className="mb-3 flex items-start justify-between">
-                  {s.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.image} alt="" className="h-11 w-14 rounded-xl object-cover" />
-                  ) : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-container/20 text-primary">
-                      <span className="material-symbols-outlined">{s.icon || "eco"}</span>
-                    </span>
-                  )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {visibleCatalog.map((s) => (
+            <article key={s.id} className="flex flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#111414]">
+              <div className="relative aspect-[16/9] bg-[#0d100f]">
+                {s.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.image} alt={s.name} loading="lazy" className={`h-full w-full object-cover ${s.is_active ? "" : "opacity-50 grayscale"}`} />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-primary">
+                    <span className="material-symbols-outlined text-[44px]">{s.icon || "eco"}</span>
+                  </div>
+                )}
+                <div className="absolute right-3 top-3">
                   <StatusPill variant={s.is_active ? "success" : "neutral"}>{s.is_active ? "Faol" : "To'xtatilgan"}</StatusPill>
                 </div>
-                <p className="font-bold">{s.emoji} {s.name}</p>
-                <p className="mb-3 line-clamp-2 text-xs text-on-surface-variant">{s.short_description}</p>
-                <p className="text-xs text-on-surface-variant">
-                  {s.offers_count ?? 0} ta firma taklifi
-                  {s.offers_count ? ` · ${formatMoney(s.price_min)} – ${formatMoney(s.price_max)}` : ""}
+                {categoryOf(s) ? (
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white">
+                    {categoryOf(s)}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex flex-1 flex-col p-4">
+                <p className="font-bold">
+                  {s.emoji} {s.name}
                 </p>
-              </div>
-              <div className="mt-4 flex gap-2 border-t border-[#26352c]/50 pt-3">
-                <SecondaryButton icon="edit" className="flex-1" onClick={() => openForm(s)}>
-                  Tahrirlash
-                </SecondaryButton>
-                <button type="button" onClick={() => void removeCatalog(s)} className="rounded-lg p-2 text-on-surface-variant hover:text-error">
-                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                <p className="mb-3 line-clamp-2 text-xs text-on-surface-variant">{s.short_description || "Tavsif yo'q"}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearFilters();
+                    setTypeFilter(s.id);
+                    setOfferFilter("all");
+                    setTab("offers");
+                  }}
+                  className="mt-auto flex items-center justify-between rounded-xl bg-[#0e1210] px-3 py-2 text-left text-xs text-on-surface-variant hover:text-on-surface"
+                >
+                  <span>
+                    <b className="text-on-surface">{s.offers_count ?? 0}</b> ta firma taklifi
+                    {s.offers_count ? ` · ${formatMoney(s.price_min)} – ${formatMoney(s.price_max)}` : ""}
+                  </span>
+                  <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
+                <div className="mt-3 flex gap-2 border-t border-[#26352c]/50 pt-3">
+                  <SecondaryButton icon="edit" className="flex-1 justify-center" onClick={() => openForm(s)}>
+                    Tahrirlash
+                  </SecondaryButton>
+                  <button
+                    type="button"
+                    title={s.is_active ? "Ilovadan yashirish" : "Ilovada ko'rsatish"}
+                    onClick={() => void toggleActive(s)}
+                    className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-primary"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{s.is_active ? "visibility_off" : "visibility"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    title="O'chirish"
+                    onClick={() => setDeleting(s)}
+                    className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:border-error/40 hover:text-error"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
 
-      <Modal open={!!rejecting} title="Xizmatni rad etish" onClose={() => setRejecting(null)}>
-        {rejecting ? (
-          <div className="space-y-3">
-            <p className="text-sm text-on-surface-variant">
-              {rejecting.service.organization_name} · {rejecting.service.name} · {formatMoney(priceOf(rejecting.service))}
-            </p>
-            <Field label="Sabab (firmaga yuboriladi)" required>
-              <textarea rows={3} className={inputClass} value={rejecting.note} onChange={(e) => setRejecting({ ...rejecting, note: e.target.value })} />
-            </Field>
-            <PrimaryButton disabled={busy || !rejecting.note.trim()} onClick={() => void moderate(rejecting.service, "reject", rejecting.note)}>
-              Rad etish
-            </PrimaryButton>
-          </div>
-        ) : null}
-      </Modal>
+      <ServicePreviewModal
+        service={preview}
+        peerPrices={preview ? peerPrices(preview) : []}
+        busy={busy}
+        onClose={() => setPreview(null)}
+        onApprove={(s) => void moderate(s, "approve")}
+        onReject={(s) => {
+          setPreview(null);
+          setRejecting(s);
+        }}
+      />
 
-      <Modal open={open} title={editing ? "Katalog turini tahrirlash" : "Yangi katalog turi"} onClose={() => setOpen(false)} wide>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Nomi" required>
-            <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </Field>
-          <Field label="Slug">
-            <input className={inputClass} value={form.slug} placeholder="auto" onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-          </Field>
-          <Field label="Ikonka">
-            <input className={inputClass} value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} />
-          </Field>
-          <Field label="Emoji">
-            <input className={inputClass} value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} />
-          </Field>
-          <Field label="Toifa">
-            <input className={inputClass} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-          </Field>
-          <Field label="Tartib raqami">
-            <input className={inputClass} inputMode="numeric" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
-          </Field>
-          <Field label="Davomiylik">
-            <input className={inputClass} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
-          </Field>
-          <Field label="Rasm URL">
-            <input className={inputClass} value={form.hero_image_url} onChange={(e) => setForm({ ...form, hero_image_url: e.target.value })} />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Qisqa tavsif">
-              <textarea rows={3} className={inputClass} value={form.short_description} onChange={(e) => setForm({ ...form, short_description: e.target.value })} />
-            </Field>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
-            Faol (mobil katalogda ko&apos;rinsin)
-          </label>
-        </div>
-        <div className="mt-5 flex justify-end">
-          <PrimaryButton disabled={busy || !form.name} onClick={() => void saveCatalog()}>
-            Saqlash
-          </PrimaryButton>
-        </div>
-      </Modal>
+      <RejectServiceModal
+        key={rejecting?.id ?? "none"}
+        service={rejecting}
+        busy={busy}
+        onClose={() => setRejecting(null)}
+        onConfirm={(s, note) => void moderate(s, "reject", note)}
+      />
+
+      {formOpen ? (
+        <CatalogTypeFormModal
+          key={editing?.id ?? "new"}
+          editing={editing}
+          categories={categories}
+          onClose={() => setFormOpen(false)}
+          onSaved={() => {
+            setFormOpen(false);
+            void reload();
+          }}
+        />
+      ) : null}
+
+      <ConfirmDialog
+        open={!!deleting}
+        variant="danger"
+        busy={busy}
+        title="Katalog turini o'chirish"
+        confirmText="O'chirish"
+        description={
+          deleting ? (
+            <>
+              <b className="text-on-surface">{deleting.name}</b> katalogdan o&apos;chiriladi.
+              {deleting.offers_count ? ` Unga bog'langan ${deleting.offers_count} ta firma taklifi turdan ajraladi.` : ""} Bu amalni
+              qaytarib bo&apos;lmaydi — vaqtincha yashirish uchun &quot;To&apos;xtatish&quot;dan foydalaning.
+            </>
+          ) : (
+            ""
+          )
+        }
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

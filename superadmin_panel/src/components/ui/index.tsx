@@ -7,8 +7,12 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Skeleton, StatRowSkeleton, TableSkeleton } from "./Skeleton";
 import { ShelvedModule } from "./ShelvedModule";
+import { ScheduleBoard } from "./ScheduleBoard";
+import { Modal } from "./Modal";
 
 export {
+  Modal,
+  ScheduleBoard,
   StatCard,
   StatusPill,
   PageHeader,
@@ -260,61 +264,128 @@ export function LoadingBlock({ label = "Yuklanmoqda..." }: { label?: string }) {
   );
 }
 
-export function Modal({
-  open,
-  title,
-  onClose,
-  children,
-  wide,
-}: {
-  open: boolean;
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-  wide?: boolean;
-}) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-4 sm:items-center">
-      <button type="button" className="absolute inset-0" aria-label="Yopish" onClick={onClose} />
-      <div
-        className={`relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-[#26352c] bg-[#151917] p-6 shadow-2xl ${
-          wide ? "max-w-3xl" : "max-w-lg"
-        }`}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-on-surface">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export function Field({
   label,
   children,
   required,
+  hint,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
   required?: boolean;
+  hint?: ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
+    <label className={`flex min-w-0 flex-col gap-1.5 text-sm ${className}`}>
       <span className="font-medium text-on-surface-variant">
         {label}
         {required ? <span className="ml-0.5 text-error">*</span> : null}
       </span>
       {children}
+      {hint ? <span className="text-xs text-on-surface-variant/80">{hint}</span> : null}
     </label>
+  );
+}
+
+export type TabItem<T extends string = string> = {
+  id: T;
+  label: string;
+  icon?: string;
+  count?: number | string;
+};
+
+/** Mobil ekranda gorizontal suriladigan, kichrayib qolmaydigan tab bar. */
+export function TabBar<T extends string>({
+  tabs,
+  value,
+  onChange,
+  className = "",
+}: {
+  tabs: TabItem<T>[];
+  value: T;
+  onChange: (id: T) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] ${className}`}>
+      <div role="tablist" className="inline-flex min-w-full gap-1 rounded-2xl border border-[#26352c] bg-[#0f1311] p-1 sm:min-w-0">
+        {tabs.map((tab) => {
+          const active = tab.id === value;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onChange(tab.id)}
+              className={`inline-flex flex-1 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:flex-none ${
+                active
+                  ? "bg-[#1f3324] text-primary shadow-[0_0_12px_rgba(46,125,50,0.25)]"
+                  : "text-on-surface-variant hover:bg-[#161d19] hover:text-on-surface"
+              }`}
+            >
+              {tab.icon ? <span className="material-symbols-outlined text-[18px]">{tab.icon}</span> : null}
+              <span>{tab.label}</span>
+              {tab.count !== undefined ? (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    active ? "bg-primary/20 text-primary-fixed" : "bg-surface-container-highest text-on-surface-variant"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function ExcelButton({
+  onClick,
+  disabled,
+  label = "Excel",
+  className = "",
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title="Excel (.xlsx) faylga yuklab olish"
+      className={`inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40 ${className}`}
+    >
+      <span className="material-symbols-outlined text-[18px]">table_view</span>
+      {label}
+    </button>
+  );
+}
+
+/** "Jonli" ko'rsatkichi: ma'lumot fon rejimida avtomatik yangilanayotganini bildiradi. */
+export function LiveBadge({ updatedAt, className = "" }: { updatedAt?: number; className?: string }) {
+  const time = updatedAt
+    ? new Date(updatedAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : null;
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ${className}`}
+      title="Ma'lumotlar har bir necha soniyada avtomatik yangilanadi"
+    >
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+      </span>
+      Jonli{time ? ` · ${time}` : ""}
+    </span>
   );
 }
 

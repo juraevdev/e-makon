@@ -5,589 +5,567 @@ import { useMemo, useState } from "react";
 import {
   ConfirmDialog,
   EmptyState,
-  Field,
-  FilterChip,
+  ExcelButton,
   inputClass,
+  LiveBadge,
   LoadingBlock,
-  Modal,
-  PrimaryButton,
+  Pagination,
+  ScheduleBoard,
   SecondaryButton,
   StatusPill,
+  TabBar,
 } from "@/components/ui";
-import { api, ApiError, fetchPages } from "@/lib/api/client";
-import type { Order, OrderEscrow, OrderStatus, PaymentStatus } from "@/lib/api/types";
-import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, WORK_STAGES } from "@/lib/domain";
-import { formatDate, formatDateTime, formatMoney, formatPhone, initials } from "@/lib/format";
+import { fetchAll, todayStamp } from "@/components/catalog/fetchAll";
+import { fakeEntry, fakeReason, isFakeOrder } from "@/components/orders/fake";
+import { OrderDetailModal, PAYMENT_LABEL, PAYMENT_TONE } from "@/components/orders/OrderDetailModal";
+import { api, asPage } from "@/lib/api/client";
+import type { Order, OrderStatus, PartnerFirm, PaymentStatus, Service, User } from "@/lib/api/types";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/domain";
+import { downloadExcel } from "@/lib/excel";
+import { formatDate, formatDateTime, formatMoney, formatPhone, initials, pageNumbers } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
+import { useToast } from "@/providers/ToastProvider";
 
-const FILTERS: {
-  id: "all" | "payment" | "active" | "completed" | "cancelled";
-  label: string;
-  status?: OrderStatus[];
-  payment?: PaymentStatus[];
-}[] = [
-  { id: "all", label: "Barchasi" },
-  { id: "payment", label: "To'lov tekshiruvi", payment: ["checking"] },
-  { id: "active", label: "Faol", status: ["new", "in_review", "contacted"] },
-  { id: "completed", label: "Tugallangan", status: ["completed"] },
-  { id: "cancelled", label: "Bekor qilingan", status: ["cancelled"] },
+type TabId = "all" | "payment" | "active" | "completed" | "cancelled" | "fake";
+type Period = "all" | "today" | "7" | "30";
+
+const TABS: { id: TabId; label: string; icon: string; match: (o: Order) => boolean }[] = [
+  { id: "all", label: "Barchasi", icon: "receipt_long", match: () => true },
+  { id: "payment", label: "To'lov tekshiruvi", icon: "price_check", match: (o) => (["checking"] as PaymentStatus[]).includes(o.payment_status) },
+  { id: "active", label: "Faol", icon: "autorenew", match: (o) => (["new", "in_review", "contacted"] as OrderStatus[]).includes(o.status) },
+  { id: "completed", label: "Tugallangan", icon: "task_alt", match: (o) => o.status === "completed" },
+  { id: "cancelled", label: "Bekor qilingan", icon: "cancel", match: (o) => o.status === "cancelled" },
+  { id: "fake", label: "Soxta zayavkalar", icon: "report", match: isFakeOrder },
 ];
 
-const ESCROW_LABEL: Record<OrderEscrow["status"], string> = {
-  awaiting_payment: "To'lov kutilmoqda",
-  held: "E-Makonda ushlab turilgan",
-  released: "Firmaga o'tkazilgan",
-  refunded: "Userga qaytarilgan",
-  disputed: "Nizoli",
-  frozen: "Muzlatilgan",
-};
+const PERIODS: { id: Period; label: string; days?: number }[] = [
+  { id: "all", label: "Barcha vaqt" },
+  { id: "today", label: "Bugun" },
+  { id: "7", label: "Oxirgi 7 kun", days: 7 },
+  { id: "30", label: "Oxirgi 30 kun", days: 30 },
+];
 
-const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  not_required: "Talab qilinmaydi",
-  unpaid: "To'lanmagan",
-  checking: "Tekshirilmoqda",
-  rejected: "Rad etilgan",
-  paid: "Tizim hisobida",
-  released: "Firmaga o'tkazilgan",
-  refunded: "Qaytarilgan",
-};
+const PAGE_SIZE = 25;
 
-const PAYMENT_TONE: Record<PaymentStatus, "success" | "warning" | "error" | "neutral" | "info"> = {
-  not_required: "neutral",
-  unpaid: "warning",
-  checking: "info",
-  rejected: "error",
-  paid: "success",
-  released: "success",
-  refunded: "neutral",
-};
+const catalogIdOf = (o: Order) => o.service?.base_service ?? o.service_id;
 
-const ORDER_PAGES = 5;
+function scheduleLabel(o: Order) {
+  if (!o.scheduled_date) return "";
+  const t = o.scheduled_start ? `${o.scheduled_start}${o.scheduled_end ? `–${o.scheduled_end}` : ""}` : o.time_slot || "";
+  return `${formatDate(o.scheduled_date)}${t ? ` · ${t}` : ""}`;
+}
 
-type PendingFinance = {
-  action: string;
-  title: string;
-  description: string;
-  variant: "danger" | "primary" | "warning";
-  body?: Record<string, unknown>;
-};
+type BlockTarget = { customerId: number; name: string; phone: string; orderId: number; unblock: boolean };
 
 export default function BuyurtmalarPage() {
   const { query } = useSearch();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
-  const [selected, setSelected] = useState<Order | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [financeErr, setFinanceErr] = useState("");
-  const [financeNote, setFinanceNote] = useState("");
-  const [pending, setPending] = useState<PendingFinance | null>(null);
-  const [fine, setFine] = useState("100000");
-  const [banDays, setBanDays] = useState("7");
-  const [blockUser, setBlockUser] = useState(false);
+  const { showSuccess, showError } = useToast();
+  const [tab, setTab] = useState<TabId>("all");
+  const [firmFilter, setFirmFilter] = useState("");
+  const [catalogFilter, setCatalogFilter] = useState("");
+  const [period, setPeriod] = useState<Period>("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [fresh, setFresh] = useState<{ order: Order; at: number } | null>(null);
+  const [scheduleFirm, setScheduleFirm] = useState<number | null>(null);
+  const [blockTarget, setBlockTarget] = useState<BlockTarget | null>(null);
+  const [blockBusy, setBlockBusy] = useState(false);
 
-  const { data, loading, error, reload } = useAsync(
-    async () => fetchPages<Order>("/admin/orders/", { search: query || undefined }, ORDER_PAGES),
-    [query],
+  const { data, loading, error, reload, updatedAt, refreshing } = useAsync(
+    () =>
+      fetchAll<Order>(
+        "/admin/orders/",
+        { organization: firmFilter || undefined, search: query || undefined, ordering: "-created_at" },
+        5,
+      ),
+    [firmFilter, query],
+    { keepPrevious: true, live: 10000 },
   );
 
-  function askFinance(next: PendingFinance) {
-    setFinanceErr("");
-    setPending(next);
-  }
+  const { data: firms } = useAsync(
+    async () => asPage<PartnerFirm>(await api("/admin/firms/", { query: { page_size: 100 } })).results,
+    [],
+    { live: false },
+  );
 
-  function confirmFinance() {
-    if (!pending) return;
-    let body = pending.body ?? {};
-    if (pending.action === "punish_firm") {
-      const fineAmount = Number(fine);
-      const days = Number(banDays);
-      if (!Number.isFinite(fineAmount) || fineAmount < 0 || !Number.isInteger(days) || days < 0 || days > 365) {
-        setFinanceErr("Jarima 0 yoki musbat, taqiq 0–365 kun bo'lsin");
-        setPending(null);
-        return;
+  const { data: catalog } = useAsync(
+    async () =>
+      (await fetchAll<Service>("/admin/services/", { roots: 1 }, 3)).results
+        .filter((s) => s.is_catalog_type)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+    { live: false },
+  );
+
+  const { data: blockedIds, reload: reloadBlocked } = useAsync(
+    async () => {
+      try {
+        const res = await fetchAll<User>("/admin/customers/", { is_active: "false" }, 3);
+        return res.results.map((u) => u.id);
+      } catch {
+        return [] as number[];
       }
-      body = { ...body, fine_amount: fineAmount, sales_ban_days: days };
-    }
-    if (pending.action === "punish_user") body = { ...body, block: blockUser };
-    const action = pending.action;
-    setPending(null);
-    void financeAction(action, body);
+    },
+    [],
+    { keepPrevious: true, live: 30000 },
+  );
+  const blocked = useMemo(() => new Set(blockedIds ?? []), [blockedIds]);
+  const catalogName = useMemo(() => new Map((catalog ?? []).map((c) => [c.id, c.name])), [catalog]);
+
+  const all = useMemo(() => data?.results ?? [], [data]);
+  const now = updatedAt;
+
+  const base = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const days = PERIODS.find((p) => p.id === period)?.days;
+    const todayKey = now ? new Date(now).toDateString() : "";
+    return all.filter((o) => {
+      if (catalogFilter && String(catalogIdOf(o)) !== catalogFilter) return false;
+      if (period === "today" && new Date(o.created_at).toDateString() !== todayKey) return false;
+      if (days && now - new Date(o.created_at).getTime() > days * 86400000) return false;
+      if (needle) {
+        const hay = `#${o.id} ${o.id} ${o.customer_name} ${o.customer_phone} ${o.phone_number} ${o.firm_name} ${o.service_name} ${o.address}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [all, catalogFilter, period, search, now]);
+
+  const counts = useMemo(() => Object.fromEntries(TABS.map((t) => [t.id, base.filter(t.match).length])) as Record<TabId, number>, [base]);
+  const list = useMemo(() => base.filter(TABS.find((t) => t.id === tab)!.match), [base, tab]);
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const pageRows = list.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
+  const todayKey = now ? new Date(now).toDateString() : "";
+  const today = all.filter((o) => new Date(o.created_at).toDateString() === todayKey);
+  const activeCount = all.filter((o) => ["new", "in_review", "contacted"].includes(o.status)).length;
+  const todayRevenue = today.filter((o) => o.quoted_price).reduce((sum, o) => sum + Number(o.quoted_price), 0);
+  const fakeTotal = all.filter(isFakeOrder).length;
+
+  const boardFirm = scheduleFirm ?? (firmFilter ? Number(firmFilter) : null) ?? firms?.[0]?.id ?? null;
+  const filtersActive = Boolean(firmFilter || catalogFilter || period !== "all" || search);
+
+  const listItem = selectedId === null ? null : all.find((o) => o.id === selectedId) ?? null;
+  const selected =
+    selectedId === null
+      ? null
+      : fresh && fresh.order.id === selectedId && (!listItem || fresh.at >= updatedAt)
+        ? fresh.order
+        : listItem ?? (fresh?.order.id === selectedId ? fresh.order : null);
+
+  function changeFilter<T>(setter: (v: T) => void) {
+    return (v: T) => {
+      setter(v);
+      setPage(1);
+    };
   }
 
-  const orders = useMemo(() => {
-    const list = data?.results ?? [];
-    const conf = FILTERS.find((f) => f.id === filter);
-    if (conf?.payment) return list.filter((o) => conf.payment!.includes(o.payment_status));
-    if (!conf?.status) return list;
-    return list.filter((o) => conf.status!.includes(o.status));
-  }, [data, filter]);
+  function clearFilters() {
+    setFirmFilter("");
+    setCatalogFilter("");
+    setPeriod("all");
+    setSearch("");
+    setPage(1);
+  }
 
-  const today = (data?.results ?? []).filter((o) => {
-    const d = new Date(o.created_at);
-    const now = new Date();
-    return d.toDateString() === now.toDateString();
-  });
-  const active = (data?.results ?? []).filter((o) =>
-    ["new", "in_review", "contacted"].includes(o.status),
-  );
-  const todayRevenue = today
-    .filter((o) => o.quoted_price)
-    .reduce((sum, o) => sum + Number(o.quoted_price), 0);
-
-  async function financeAction(action: string, body: Record<string, unknown> = {}) {
-    if (!selected) return;
-    setBusy(true);
-    setFinanceErr("");
-    try {
-      const res = await api<{ order: Order; escrow: OrderEscrow | null }>(
-        `/admin/orders/${selected.id}/finance/${action}/`,
-        { method: "POST", body: { note: financeNote, ...body } },
-      );
-      setSelected(res.order);
-      setFinanceNote("");
-      await reload();
-    } catch (e) {
-      setFinanceErr(e instanceof ApiError || e instanceof Error ? e.message : "Xato");
-    } finally {
-      setBusy(false);
+  async function openById(id: number) {
+    if (all.some((o) => o.id === id)) {
+      setSelectedId(id);
+      return;
     }
+    try {
+      const order = await api<Order>(`/admin/orders/${id}/`);
+      setFresh({ order, at: Date.now() });
+      setSelectedId(id);
+    } catch (e) {
+      showError(e instanceof Error ? e.message : "Buyurtma topilmadi");
+    }
+  }
+
+  function askBlock(o: Order, unblock: boolean) {
+    if (!o.customer_id) {
+      showError("Mijoz aniqlanmadi");
+      return;
+    }
+    setBlockTarget({
+      customerId: o.customer_id,
+      name: o.customer_name || "Mijoz",
+      phone: o.customer_phone || o.phone_number,
+      orderId: o.id,
+      unblock,
+    });
+  }
+
+  async function confirmBlock() {
+    if (!blockTarget) return;
+    setBlockBusy(true);
+    try {
+      await api(`/admin/customers/${blockTarget.customerId}/${blockTarget.unblock ? "unblock" : "block"}/`, { method: "POST" });
+      showSuccess(
+        blockTarget.unblock
+          ? `${blockTarget.name} blokdan chiqarildi`
+          : `${blockTarget.name} bloklandi — endi ilovaga kira olmaydi va buyurtma bera olmaydi`,
+      );
+      setBlockTarget(null);
+      await reloadBlocked();
+    } catch (e) {
+      showError(e instanceof Error ? e.message : "Bajarilmadi");
+    } finally {
+      setBlockBusy(false);
+    }
+  }
+
+  function exportExcel() {
+    downloadExcel(`buyurtmalar-${todayStamp()}`, {
+      name: TABS.find((t) => t.id === tab)?.label ?? "Buyurtmalar",
+      headers: [
+        "ID",
+        "Mijoz",
+        "Telefon",
+        "Firma",
+        "Xizmat",
+        "Katalog turi",
+        "Holat",
+        "Ish bosqichi",
+        "To'lov",
+        "Reja (sana · vaqt)",
+        "Narx (UZS)",
+        "Platforma ulushi",
+        "Manzil",
+        "Yaratilgan",
+        "Soxta",
+        "Soxta sababi",
+        "Mijoz bloklangan",
+      ],
+      rows: list.map((o) => [
+        o.id,
+        o.customer_name || "",
+        o.phone_number || o.customer_phone || "",
+        o.firm_name || "",
+        o.service_name || "",
+        catalogName.get(catalogIdOf(o)) ?? o.service?.base_service_name ?? "",
+        ORDER_STATUS_LABEL[o.status] ?? o.status,
+        o.work_stage_label || "",
+        PAYMENT_LABEL[o.payment_status] ?? o.payment_status,
+        scheduleLabel(o),
+        o.quoted_price ? Number(o.quoted_price) : "",
+        o.platform_share ? Number(o.platform_share) : "",
+        o.address || "",
+        formatDateTime(o.created_at),
+        isFakeOrder(o) ? "Ha" : "",
+        isFakeOrder(o) ? fakeReason(o) : "",
+        blocked.has(o.customer_id) ? "Ha" : "",
+      ]),
+    });
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-[1440px] flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-2 shadow-lg backdrop-blur-md sm:flex-row">
-        <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:w-auto sm:pb-0">
-          {FILTERS.map((f) => (
-            <FilterChip key={f.id} label={f.label} active={filter === f.id} onClick={() => setFilter(f.id)} />
-          ))}
+    <div className="mx-auto flex h-full w-full max-w-[1440px] flex-col gap-5 overflow-y-auto px-4 py-6 md:px-8">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveBadge updatedAt={updatedAt} />
+          {refreshing ? <span className="text-xs text-on-surface-variant">Yangilanmoqda...</span> : null}
+          {data?.truncated ? (
+            <span className="text-xs text-amber-200">
+              Oxirgi {data.results.length} ta (jami {data.count}) buyurtma yuklandi — firma yoki qidiruv bilan toraytiring
+            </span>
+          ) : null}
         </div>
-        <SecondaryButton icon="refresh" onClick={() => void reload()}>
-          Yangilash
-        </SecondaryButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelButton onClick={exportExcel} disabled={!list.length} label={`Excel (${list.length})`} />
+          <SecondaryButton icon="refresh" onClick={() => void reload()}>
+            Yangilash
+          </SecondaryButton>
+        </div>
       </div>
 
-      {data && data.count > data.results.length ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
-          Oxirgi {data.results.length} ta buyurtma ko&apos;rsatilmoqda (jami {data.count}). Eskilarini qidiruv orqali toping.
-        </p>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Bugungi buyurtmalar", value: String(today.length), suffix: "ta", icon: "shopping_bag" },
-          { label: "Jarayondagi", value: String(active.length), suffix: "faol", icon: "autorenew" },
-          { label: "Bugungi kelishilgan narx", value: formatMoney(todayRevenue), suffix: "", icon: "payments" },
+          { label: "Bugungi buyurtmalar", value: String(today.length), suffix: "ta", icon: "shopping_bag", tone: "text-primary" },
+          { label: "Jarayondagi", value: String(activeCount), suffix: "faol", icon: "autorenew", tone: "text-primary" },
+          { label: "Bugungi kelishilgan narx", value: formatMoney(todayRevenue), suffix: "", icon: "payments", tone: "text-primary" },
+          { label: "Soxta zayavkalar", value: String(fakeTotal), suffix: "ta", icon: "report", tone: "text-error", tab: "fake" as TabId },
         ].map((card) => (
-          <div
+          <button
             key={card.label}
-            className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-5 shadow-lg"
+            type="button"
+            disabled={!card.tab}
+            onClick={() => card.tab && changeFilter(setTab)(card.tab)}
+            className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-[#131b15]/90 p-4 text-left shadow-lg sm:p-5 ${
+              card.tab ? (fakeTotal ? "border-error/40 hover:bg-error/5" : "border-[#263b2a] hover:bg-white/5") : "cursor-default border-[#263b2a]"
+            }`}
           >
-            <div className="flex items-start justify-between">
-              <p className="text-sm text-on-surface-variant">{card.label}</p>
-              <span className="material-symbols-outlined text-primary">{card.icon}</span>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-on-surface-variant sm:text-sm">{card.label}</p>
+              <span className={`material-symbols-outlined ${card.tone}`}>{card.icon}</span>
             </div>
-            <p className="mt-3 text-2xl font-bold">
+            <p className="mt-3 text-xl font-bold sm:text-2xl">
               {card.value}
               {card.suffix ? <span className="ml-1 text-sm font-normal text-on-surface-variant">{card.suffix}</span> : null}
             </p>
-          </div>
+          </button>
         ))}
       </div>
 
+      <TabBar<TabId>
+        value={tab}
+        onChange={changeFilter(setTab)}
+        tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon, count: counts[t.id] }))}
+      />
+
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
+        <div className="relative sm:col-span-2 xl:col-span-1">
+          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
+            search
+          </span>
+          <input
+            className={`${inputClass} pl-10`}
+            value={search}
+            onChange={(e) => changeFilter(setSearch)(e.target.value)}
+            placeholder="#ID, mijoz, telefon, manzil..."
+          />
+        </div>
+        <select className={inputClass} value={firmFilter} onChange={(e) => changeFilter(setFirmFilter)(e.target.value)} aria-label="Firma">
+          <option value="">Barcha firmalar</option>
+          {(firms ?? []).map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        <select className={inputClass} value={catalogFilter} onChange={(e) => changeFilter(setCatalogFilter)(e.target.value)} aria-label="Katalog turi">
+          <option value="">Barcha katalog turlari</option>
+          {(catalog ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.emoji ? `${c.emoji} ` : ""}
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select className={inputClass} value={period} onChange={(e) => changeFilter(setPeriod)(e.target.value as Period)} aria-label="Davr">
+          {PERIODS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <SecondaryButton icon="filter_alt_off" disabled={!filtersActive} onClick={clearFilters} className="justify-center">
+          Tozalash
+        </SecondaryButton>
+      </div>
+
+      {tab === "fake" ? (
+        <p className="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-on-surface">
+          <span className="font-semibold text-error">Soxta zayavkalar</span> — firma bekor qilib, izohni &quot;SOXTA&quot; bilan boshlagan
+          buyurtmalar. Mijoz qayta-qayta soxta buyurtma bersa, uni bloklang: bloklangan mijoz ilovaga kira olmaydi.
+        </p>
+      ) : null}
+
       <div className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 shadow-lg">
-        {loading ? (
+        {loading && !data ? (
           <LoadingBlock />
-        ) : error ? (
-          <p className="p-6 text-error">{error}</p>
-        ) : !orders.length ? (
-          <EmptyState icon="receipt_long" title="Buyurtmalar yo'q" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-[#263b2a] text-xs uppercase text-on-surface-variant">
-                  {["#", "Mijoz", "Firma", "Sana", "Manzil", "Narx", "Ulush", "To'lov", "Holat"].map((h) => (
-                    <th key={h} className="px-5 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#263b2a]/40">
-                {orders.map((o) => (
-                  <tr
-                    key={o.id}
-                    onClick={() => {
-                      setSelected(o);
-                      setFinanceErr("");
-                      setFinanceNote("");
-                    }}
-                    className="cursor-pointer transition hover:bg-white/5"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container/30 text-xs font-bold text-primary">
-                          {initials(o.customer_name || o.customer_phone)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-primary">#{o.id}</div>
-                          <div className="text-xs text-on-surface-variant">{formatPhone(o.phone_number || o.customer_phone)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">{o.customer_name || "—"}</td>
-                    <td className="px-5 py-4">
-                      {o.firm_id ? (
-                        <Link
-                          href={`/firmalar/${o.firm_id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-primary hover:underline"
-                        >
-                          {o.firm_name || "Firma"}
-                        </Link>
-                      ) : (
-                        <span className="text-on-surface-variant">Tayinlanmagan</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-on-surface-variant">{formatDate(o.created_at)}</td>
-                    <td className="max-w-[180px] truncate px-5 py-4 text-on-surface-variant">{o.address || "—"}</td>
-                    <td className="px-5 py-4 font-semibold">{formatMoney(o.quoted_price, o.currency)}</td>
-                    <td className="px-5 py-4 text-primary">{formatMoney(o.platform_share)}</td>
-                    <td className="px-5 py-4 text-xs">
-                      <StatusPill variant={PAYMENT_TONE[o.payment_status] ?? "neutral"}>
-                        {PAYMENT_LABEL[o.payment_status] ?? o.payment_status}
-                        {o.payment && o.payment_status !== "not_required" ? ` · ${o.payment.provider_label}` : ""}
-                      </StatusPill>
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{ORDER_STATUS_LABEL[o.status]}</StatusPill>
-                      {o.work_stage_label ? (
-                        <p className="mt-1 whitespace-nowrap text-[11px] text-on-surface-variant">
-                          {o.work_stage_label}
-                          {o.eta_minutes && o.work_stage === "on_the_way" ? ` · ~${o.eta_minutes} daq` : ""}
-                        </p>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : error && !data ? (
+          <div className="p-6 text-center">
+            <p className="mb-3 text-error">{error}</p>
+            <SecondaryButton icon="refresh" onClick={() => void reload()}>
+              Qayta urinish
+            </SecondaryButton>
           </div>
+        ) : !list.length ? (
+          <EmptyState
+            icon={tab === "fake" ? "verified_user" : "receipt_long"}
+            title={tab === "fake" ? "Soxta zayavkalar yo'q" : "Buyurtmalar topilmadi"}
+            description={filtersActive ? "Filtrlarni o'zgartirib ko'ring." : undefined}
+            action={filtersActive ? <SecondaryButton onClick={clearFilters}>Filtrni tozalash</SecondaryButton> : undefined}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1080px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#263b2a] text-xs uppercase text-on-surface-variant">
+                    {["#", "Mijoz", "Firma", "Xizmat", "Reja", "Narx", "To'lov", "Holat", ""].map((h, i) => (
+                      <th key={`${h}-${i}`} className="px-4 py-3 font-semibold">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#263b2a]/40">
+                  {pageRows.map((o) => {
+                    const fake = fakeEntry(o);
+                    const isBlocked = blocked.has(o.customer_id);
+                    const typeName = catalogName.get(catalogIdOf(o));
+                    return (
+                      <tr
+                        key={o.id}
+                        onClick={() => setSelectedId(o.id)}
+                        className={`cursor-pointer transition hover:bg-white/5 ${fake ? "bg-error/[0.06] shadow-[inset_3px_0_0_0_rgba(255,107,107,0.8)]" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container/30 text-xs font-bold text-primary">
+                              {initials(o.customer_name || o.customer_phone || "?")}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-primary">#{o.id}</div>
+                              <div className="whitespace-nowrap text-xs text-on-surface-variant">{formatDateTime(o.created_at)}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{o.customer_name || "—"}</div>
+                          <div className="whitespace-nowrap text-xs text-on-surface-variant">{formatPhone(o.phone_number || o.customer_phone || "")}</div>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {fake ? (
+                              <span
+                                title={fakeReason(o) || "Soxta zayavka"}
+                                className="rounded-full border border-error/50 bg-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-error"
+                              >
+                                Soxta
+                              </span>
+                            ) : null}
+                            {isBlocked ? (
+                              <span className="rounded-full border border-error/30 px-2 py-0.5 text-[10px] font-semibold text-error">Bloklangan</span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {o.firm_id ? (
+                            <Link href={`/firmalar/${o.firm_id}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
+                              {o.firm_name || "Firma"}
+                            </Link>
+                          ) : (
+                            <span className="text-on-surface-variant">Tayinlanmagan</span>
+                          )}
+                        </td>
+                        <td className="max-w-[220px] px-4 py-3">
+                          <div className="truncate font-medium">{o.service_name}</div>
+                          {typeName && typeName !== o.service_name ? (
+                            <div className="truncate text-xs text-on-surface-variant">{typeName}</div>
+                          ) : null}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-on-surface-variant">{scheduleLabel(o) || "—"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold">
+                          {formatMoney(o.quoted_price, o.currency)}
+                          {o.platform_share ? <div className="text-xs font-normal text-primary">{formatMoney(o.platform_share)}</div> : null}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <StatusPill variant={PAYMENT_TONE[o.payment_status] ?? "neutral"}>
+                            {PAYMENT_LABEL[o.payment_status] ?? o.payment_status}
+                            {o.payment && o.payment_status !== "not_required" ? ` · ${o.payment.provider_label}` : ""}
+                          </StatusPill>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{ORDER_STATUS_LABEL[o.status]}</StatusPill>
+                          {o.work_stage_label ? (
+                            <p className="mt-1 whitespace-nowrap text-[11px] text-on-surface-variant">
+                              {o.work_stage_label}
+                              {o.eta_minutes && o.work_stage === "on_the_way" ? ` · ~${o.eta_minutes} daq` : ""}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {fake ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askBlock(o, isBlocked);
+                              }}
+                              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                                isBlocked
+                                  ? "border-[#26352c] text-on-surface-variant hover:text-on-surface"
+                                  : "border-error/50 bg-error/10 text-error hover:bg-error/20"
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">{isBlocked ? "lock_open" : "block"}</span>
+                              {isBlocked ? "Blokdan chiqarish" : "Mijozni bloklash"}
+                            </button>
+                          ) : (
+                            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">chevron_right</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              info={`${list.length} ta buyurtmadan ${(current - 1) * PAGE_SIZE + 1}–${Math.min(current * PAGE_SIZE, list.length)}`}
+              pages={pageNumbers(current, totalPages)}
+              current={current}
+              onPageChange={(p) => setPage(Math.min(Math.max(1, p), totalPages))}
+            />
+          </>
         )}
       </div>
 
-      <Modal open={!!selected} title={selected ? `Buyurtma #${selected.id}` : ""} onClose={() => setSelected(null)} wide>
-        {selected ? (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusPill variant={ORDER_STATUS_TONE[selected.status]} pulse>
-                {ORDER_STATUS_LABEL[selected.status]}
-              </StatusPill>
-              <span className="text-xs text-on-surface-variant">{formatDateTime(selected.created_at)}</span>
-            </div>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span className="text-sm text-on-surface-variant">Firma bandligi:</span>
+          <select
+            className={`${inputClass} sm:w-80`}
+            value={boardFirm ?? ""}
+            onChange={(e) => setScheduleFirm(e.target.value ? Number(e.target.value) : null)}
+          >
+            {!firms?.length ? <option value="">Firmalar yo&apos;q</option> : null}
+            {(firms ?? []).map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <ScheduleBoard organizationId={boardFirm} onOpenOrder={(id) => void openById(id)} />
+      </div>
 
-            {selected.status !== "cancelled" ? (
-              <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
-                <div className="flex items-center justify-between gap-1">
-                  {WORK_STAGES.map((s, i) => {
-                    const current = WORK_STAGES.findIndex((x) => x.key === selected.work_stage);
-                    const done = current >= i;
-                    const at = selected.status_history?.find((h) => h.stage === s.key)?.created_at;
-                    return (
-                      <div key={s.key} className="flex flex-1 flex-col items-center text-center">
-                        <span
-                          className={`flex h-9 w-9 items-center justify-center rounded-full border ${
-                            done ? "border-primary bg-primary/20 text-primary" : "border-[#263b2a] text-on-surface-variant"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">{s.icon}</span>
-                        </span>
-                        <span className={`mt-1 text-[11px] ${done ? "font-semibold" : "text-on-surface-variant"}`}>{s.label}</span>
-                        {at ? <span className="text-[10px] text-on-surface-variant">{formatDateTime(at)}</span> : null}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-3 text-xs text-on-surface-variant">
-                  {selected.assigned_worker_name ? `Mas'ul: ${selected.assigned_worker_name} · ` : ""}
-                  {selected.distance_km ? `Masofa: ${Number(selected.distance_km).toFixed(1)} km · ` : ""}
-                  {selected.eta_minutes ? `Yetib borish: ~${selected.eta_minutes} daq` : ""}
-                  {selected.eta_at ? ` (${formatDateTime(selected.eta_at)})` : ""}
-                  {selected.scheduled_date ? ` · Reja: ${formatDate(selected.scheduled_date)} ${selected.time_slot || ""}` : ""}
-                </p>
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <p><span className="text-on-surface-variant">Mijoz: </span>{selected.customer_name || "—"}</p>
-              <p><span className="text-on-surface-variant">Telefon: </span>{formatPhone(selected.phone_number || selected.customer_phone)}</p>
-              <p><span className="text-on-surface-variant">Xizmat: </span>{selected.service_name}</p>
-              <p><span className="text-on-surface-variant">Maydon: </span>{selected.area_size || "—"}</p>
-              <p>
-                <span className="text-on-surface-variant">Firma: </span>
-                {selected.firm_id ? (
-                  <Link href={`/firmalar/${selected.firm_id}`} className="text-primary hover:underline">
-                    {selected.firm_name}
-                  </Link>
-                ) : (
-                  "Tayinlanmagan"
-                )}
-              </p>
-              <p><span className="text-on-surface-variant">Narx: </span>{formatMoney(selected.quoted_price, selected.currency)}</p>
-              <p><span className="text-on-surface-variant">Kampaniya ulushi: </span>{formatMoney(selected.platform_share)}</p>
-              <p><span className="text-on-surface-variant">Stavka: </span>{selected.commission_rate_applied ? `${selected.commission_rate_applied}%` : "—"}</p>
-              <p className="sm:col-span-2"><span className="text-on-surface-variant">Manzil: </span>{selected.address || "—"}</p>
-              {selected.notes ? <p className="sm:col-span-2"><span className="text-on-surface-variant">Izoh: </span>{selected.notes}</p> : null}
-            </div>
-
-            {selected.payment_status !== "not_required" ? (
-              <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold">Mijoz to&apos;lovi</h3>
-                  <StatusPill variant={PAYMENT_TONE[selected.payment_status]} pulse={selected.payment_status === "checking"}>
-                    {PAYMENT_LABEL[selected.payment_status]}
-                  </StatusPill>
-                </div>
-                {selected.payment ? (
-                  <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                    <div>
-                      <p className="text-xs text-on-surface-variant">Usul</p>
-                      <p className="font-semibold">{selected.payment.provider_label}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-variant">Summa</p>
-                      <p className="font-semibold">{formatMoney(selected.payment.amount, selected.payment.currency)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-variant">Mijoz &quot;to&apos;ladim&quot; dedi</p>
-                      <p className="font-semibold">
-                        {selected.payment.submitted_at ? formatDateTime(selected.payment.submitted_at) : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-variant">Urinish holati</p>
-                      <p className="font-semibold">{selected.payment.status_label}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-on-surface-variant">Mijoz hali to&apos;lov usulini tanlamagan.</p>
-                )}
-                {["unpaid", "checking", "rejected"].includes(selected.payment_status) ? (
-                  <p className="mt-3 text-xs text-on-surface-variant">
-                    Pul Click/Payme hisobiga tushganini tekshiring. Tasdiqlangach buyurtma ishga ruxsat oladi.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="rounded-2xl border border-primary/30 bg-primary-container/10 p-4">
-              <h3 className="mb-2 text-sm font-bold text-primary">Escrow / hisob-kitob</h3>
-              <p className="mb-3 text-xs text-on-surface-variant">
-                User E-Makonga to&apos;laydi → pul ushlanadi → ish tugagach firmaga (ulush platformada).
-                Firmaning ishsiz pul talabi = userga qaytarish + jazo.
-              </p>
-              {selected.escrow ? (
-                <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-on-surface-variant">Holat</p>
-                    <p className="font-semibold">{selected.escrow.status_label || ESCROW_LABEL[selected.escrow.status]}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-on-surface-variant">Summa</p>
-                    <p className="font-semibold">{formatMoney(selected.escrow.amount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-on-surface-variant">Firmaga</p>
-                    <p className="font-semibold">{formatMoney(selected.escrow.firm_payout)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-on-surface-variant">Ulush</p>
-                    <p className="font-semibold text-primary">{formatMoney(selected.escrow.platform_fee)}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="mb-3 text-sm text-on-surface-variant">Escrow hali ochilmagan.</p>
-              )}
-              {selected.status === "completed" && selected.escrow?.status === "held" ? (
-                <p className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-                  Firma ishni yakunlandi deb belgiladi. Mijoz bilan tasdiqlang va &quot;Firmaga
-                  o&apos;tkazish&quot; tugmasini bosing — pul shundan keyin firma hisobiga o&apos;tadi.
-                </p>
-              ) : null}
-              <Field label="Izoh / sabab">
-                <input className={inputClass} value={financeNote} onChange={(e) => setFinanceNote(e.target.value)} />
-              </Field>
-              {financeErr ? <p className="mt-2 text-sm text-error">{financeErr}</p> : null}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <SecondaryButton disabled={busy || !selected.quoted_price} onClick={() => void financeAction("ensure")}>
-                  Escrow ochish
-                </SecondaryButton>
-                <PrimaryButton
-                  disabled={busy}
-                  onClick={() =>
-                    askFinance({
-                      action: "mark_paid",
-                      title: "To'lov tushganini tasdiqlaysizmi?",
-                      description: `#${selected.id} bo'yicha ${formatMoney(selected.quoted_price)} E-Makon hisobiga tushganini bank/provayderda tekshirdingizmi? Buyurtma firmaga yuboriladi.`,
-                      variant: "primary",
-                    })
-                  }
-                >
-                  To&apos;lov hisobga tushdi — tasdiqlash
-                </PrimaryButton>
-                {selected.payment && ["pending", "submitted"].includes(selected.payment.status) ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="rounded-xl border border-error/40 px-3 py-2 text-sm text-error"
-                    onClick={() =>
-                      askFinance({
-                        action: "reject_payment",
-                        title: "To'lov rad etilsinmi?",
-                        description: "Mijozga to'lov tushmagani haqida xabar boradi va u qayta to'lashi kerak bo'ladi.",
-                        variant: "danger",
-                      })
-                    }
-                  >
-                    To&apos;lov tushmadi — rad etish
-                  </button>
-                ) : null}
-                <SecondaryButton
-                  disabled={busy}
-                  onClick={() =>
-                    askFinance({
-                      action: "release",
-                      title: "Pul firmaga o'tkazilsinmi?",
-                      description: "Firma ulushi uning hisobiga o'tadi. Bu amalni qaytarib bo'lmaydi.",
-                      variant: "warning",
-                    })
-                  }
-                >
-                  Firmaga o&apos;tkazish
-                </SecondaryButton>
-                <SecondaryButton
-                  disabled={busy}
-                  onClick={() =>
-                    askFinance({
-                      action: "refund",
-                      title: "Pul mijozga qaytarilsinmi?",
-                      description: "To'lov mijozga qaytariladi va firma jazo hisobiga yoziladi.",
-                      variant: "danger",
-                      body: { punish_firm: true },
-                    })
-                  }
-                >
-                  Userga qaytarish + firma jazo
-                </SecondaryButton>
-                <SecondaryButton
-                  disabled={busy}
-                  onClick={() =>
-                    askFinance({
-                      action: "dispute",
-                      title: "Nizo ochilsinmi?",
-                      description: "Pul muzlatiladi — firma ham, mijoz ham olmaydi, to'g'ri qaror qabul qilinmaguncha.",
-                      variant: "warning",
-                    })
-                  }
-                >
-                  Nizo
-                </SecondaryButton>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="rounded-xl border border-error/40 px-3 py-2 text-sm text-error"
-                  onClick={() =>
-                    askFinance({
-                      action: "punish_firm",
-                      title: "Firmani jazolash",
-                      description: "To'lov mijozga qaytariladi, firmaga jarima yoziladi va sotuv vaqtincha to'xtatiladi.",
-                      variant: "danger",
-                      body: { refund: true },
-                    })
-                  }
-                >
-                  Firma jazosi (refund)
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="rounded-xl border border-amber-500/40 px-3 py-2 text-sm text-amber-300"
-                  onClick={() => {
-                    setBlockUser(false);
-                    askFinance({
-                      action: "punish_user",
-                      title: "Mijozni jazolash",
-                      description:
-                        selected.status === "completed"
-                          ? "Pul firmaga o'tkaziladi va mijozdan 50 ballgacha yechiladi."
-                          : "Mijozdan 50 ballgacha yechiladi.",
-                      variant: "warning",
-                      body: { release_to_firm: selected.status === "completed" },
-                    });
-                  }}
-                >
-                  User jazosi
-                </button>
-              </div>
-            </div>
-
-            {(selected.status_history?.length ?? 0) > 0 ? (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold">Holat tarixi</h3>
-                <div className="max-h-48 space-y-2 overflow-y-auto">
-                  {selected.status_history.map((h) => (
-                    <div key={h.id} className="rounded-xl border border-[#263b2a] bg-[#0e1510] px-3 py-2 text-xs">
-                      <p className="font-medium">
-                        {h.stage_label ||
-                          `${ORDER_STATUS_LABEL[h.from_status as OrderStatus] || h.from_status || "—"} → ${
-                            ORDER_STATUS_LABEL[h.to_status as OrderStatus] || h.to_status
-                          }`}
-                      </p>
-                      {h.note ? <p className="mt-0.5 text-on-surface-variant">{h.note}</p> : null}
-                      <p className="mt-0.5 text-on-surface-variant">
-                        {formatDateTime(h.created_at)}
-                        {h.changed_by_name ? ` · ${h.changed_by_name}` : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <SecondaryButton onClick={() => setSelected(null)}>Yopish</SecondaryButton>
-          </div>
-        ) : null}
-      </Modal>
+      {selected ? (
+        <OrderDetailModal
+          key={selected.id}
+          order={selected}
+          catalogName={catalogName.get(catalogIdOf(selected))}
+          customerBlocked={blocked.has(selected.customer_id)}
+          onClose={() => setSelectedId(null)}
+          onUpdated={(order) => {
+            setFresh({ order, at: Date.now() });
+            void reload();
+          }}
+          onBlock={() => askBlock(selected, false)}
+          onUnblock={() => askBlock(selected, true)}
+        />
+      ) : null}
 
       <ConfirmDialog
-        open={!!pending}
-        title={pending?.title ?? ""}
-        variant={pending?.variant ?? "primary"}
-        busy={busy}
-        confirmText="Tasdiqlash"
-        cancelText="Bekor"
-        onCancel={() => setPending(null)}
-        onConfirm={confirmFinance}
+        open={!!blockTarget}
+        variant={blockTarget?.unblock ? "primary" : "danger"}
+        busy={blockBusy}
+        title={blockTarget?.unblock ? "Mijozni blokdan chiqarish" : "Mijozni bloklash"}
+        confirmText={blockTarget?.unblock ? "Blokdan chiqarish" : "Bloklash"}
         description={
-          <div className="space-y-3">
-            <p>{pending?.description}</p>
-            {pending?.action === "punish_firm" ? (
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Jarima (UZS)">
-                  <input className={inputClass} inputMode="numeric" value={fine} onChange={(e) => setFine(e.target.value)} />
-                </Field>
-                <Field label="Sotuv taqiqi (kun)">
-                  <input className={inputClass} inputMode="numeric" value={banDays} onChange={(e) => setBanDays(e.target.value)} />
-                </Field>
-              </div>
-            ) : null}
-            {pending?.action === "punish_user" ? (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={blockUser} onChange={(e) => setBlockUser(e.target.checked)} />
-                Mijoz akkauntini bloklash
-              </label>
-            ) : null}
-            {financeNote ? <p className="text-xs">Izoh: {financeNote}</p> : null}
-          </div>
+          blockTarget ? (
+            blockTarget.unblock ? (
+              <>
+                <b className="text-on-surface">{blockTarget.name}</b> ({formatPhone(blockTarget.phone || "")}) yana ilovaga kira oladi va buyurtma
+                bera oladi.
+              </>
+            ) : (
+              <>
+                <b className="text-on-surface">{blockTarget.name}</b> ({formatPhone(blockTarget.phone || "")}) #{blockTarget.orderId} buyurtma
+                bo&apos;yicha soxta zayavka uchun bloklanadi. Hisob o&apos;chiriladi: ilovaga kira olmaydi va yangi buyurtma bera olmaydi. Kerak
+                bo&apos;lsa keyin blokdan chiqarish mumkin.
+              </>
+            )
+          ) : (
+            ""
+          )
         }
+        onCancel={() => setBlockTarget(null)}
+        onConfirm={() => void confirmBlock()}
       />
     </div>
   );

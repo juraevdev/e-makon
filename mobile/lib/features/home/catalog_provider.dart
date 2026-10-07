@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/api_config.dart';
 import '../../core/data/demo_content.dart';
@@ -75,10 +76,13 @@ class HomeFeedProvider extends ChangeNotifier {
   double? userLat;
   double? userLng;
 
-  Future<void> load(ApiClient api) async {
-    loading = true;
-    error = null;
-    notifyListeners();
+  /// [withLocation] — GPS faqat birinchi yuklashda; ilova qayta ochilganda faqat ma'lumot yangilanadi.
+  Future<void> load(ApiClient api, {bool silent = false, bool withLocation = true}) async {
+    if (!silent) {
+      loading = true;
+      error = null;
+      notifyListeners();
+    }
     if (ApiConfig.useLocalData) {
       carousel = List.of(DemoContent.carousel);
       partners = List.of(DemoContent.partners);
@@ -86,7 +90,7 @@ class HomeFeedProvider extends ChangeNotifier {
       serverOk = false;
       loading = false;
       notifyListeners();
-      await refreshLocation();
+      if (withLocation) await refreshLocation();
       return;
     }
     final results = await Future.wait([
@@ -94,16 +98,23 @@ class HomeFeedProvider extends ChangeNotifier {
       _tryGet(api, '/partners/'),
     ]);
     // Server rejimida soxta kontent ko'rsatilmaydi; xatoda oxirgi muvaffaqiyatli ma'lumot qoladi.
-    if (results[0] != null) carousel = _parseList(results[0], CarouselItem.fromJson);
+    if (results[0] != null) _applyBanners(results[0]);
     serverOk = results[1] != null;
     if (serverOk) {
       partners = _parseList(results[1], PartnerModel.fromJson);
-    } else {
+    } else if (!silent) {
       error = 'Serverga ulanib bo‘lmadi. Pastga tortib yangilang';
     }
     loading = false;
     notifyListeners();
-    await refreshLocation();
+    if (withLocation) await refreshLocation();
+  }
+
+  /// Superadmin bannerlari: `home` — karusel, `promo` — "Ommabop takliflar".
+  void _applyBanners(dynamic data) {
+    final banners = _parseList(data, CarouselItem.fromJson).where((b) => b.title.isNotEmpty || b.hasImage);
+    carousel = banners.where((b) => b.placement != 'promo').toList();
+    offers = banners.where((b) => b.placement == 'promo').map((b) => b.toOffer()).toList();
   }
 
   Future<dynamic> _tryGet(ApiClient api, String path) async {
@@ -184,6 +195,8 @@ class OrdersProvider extends ChangeNotifier {
   String? error;
   int _localId = 9000;
 
+  bool _fetching = false;
+
   void reset() {
     orders = ApiConfig.useLocalData ? List.of(DemoContent.sampleOrders) : <OrderModel>[];
     _localOrderIds.clear();
@@ -192,10 +205,17 @@ class OrdersProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> load() async {
-    loading = true;
-    error = null;
-    notifyListeners();
+  /// Server holatni o'zgartirganda (masalan, bajarildi → ball berildi) chaqiriladi.
+  void Function(OrderModel order)? onStatusChanged;
+
+  /// [silent] — fon yangilanishi (har ~5 s): yuklash belgisi ko'rsatilmaydi, faqat o'zgarish bo'lsa xabar beradi.
+  Future<void> load({bool silent = false}) async {
+    if (silent && (_fetching || ApiConfig.useLocalData)) return;
+    if (!silent) {
+      loading = true;
+      error = null;
+      notifyListeners();
+    }
     if (ApiConfig.useLocalData) {
       orders = List.of(DemoContent.sampleOrders);
       serverOk = false;
@@ -203,22 +223,47 @@ class OrdersProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    _fetching = true;
+    final before = _signature(orders);
     try {
       final data = await _api.get('/orders/', query: {'page_size': '100'});
       final list = data is Map ? data['results'] : data;
-      orders = list is List
+      final known = {for (final o in orders) o.id: o};
+      final fresh = list is List
           ? list.map((e) => OrderModel.fromJson(Map<String, dynamic>.from(e as Map))).toList()
           : <OrderModel>[];
+      // Telefonda boyitilgan maydonlar (firma koordinatasi va h.k.) saqlanib, holat serverdan olinadi.
+      orders = [for (final o in fresh) known[o.id]?.mergeServer(o) ?? o];
       serverOk = true;
+      error = null;
+      if (silent) {
+        for (final o in orders) {
+          final prev = known[o.id];
+          if (prev != null && (prev.status != o.status || prev.workStage != o.workStage)) {
+            NotificationService.instance.show(title: 'Buyurtma #${o.id}', body: 'Holat: ${o.displayStatus}').ignore();
+          }
+          if (prev != null && prev.status != o.status) onStatusChanged?.call(o);
+        }
+      }
     } catch (e) {
-      serverOk = false;
-      error = e is ApiException ? e.message : 'Buyurtmalarni yuklab bo‘lmadi';
+      if (!silent) {
+        serverOk = false;
+        error = e is ApiException ? e.message : 'Buyurtmalarni yuklab bo‘lmadi';
+      }
       if (kDebugMode) debugPrint('orders: $e');
     } finally {
-      loading = false;
-      notifyListeners();
+      _fetching = false;
+      final changed = before != _signature(orders);
+      if (!silent || loading || changed) {
+        loading = false;
+        notifyListeners();
+      }
     }
   }
+
+  static String _signature(List<OrderModel> list) => list
+      .map((o) => '${o.id}:${o.status}:${o.workStage}:${o.paymentStatus}:${o.etaAt}:${o.amount}:${o.history.length}')
+      .join('|');
 
   Future<OrderModel> cancel(int orderId) async {
     final i = orders.indexWhere((o) => o.id == orderId);
@@ -291,7 +336,10 @@ class OrdersProvider extends ChangeNotifier {
     }
     final data = await _api.get('/orders/$orderId/');
     final server = OrderModel.fromJson(Map<String, dynamic>.from(data as Map));
-    return _replace(orderId, (o) => o.mergeServer(server));
+    final prevStatus = orders.where((o) => o.id == orderId).firstOrNull?.status;
+    final updated = _replace(orderId, (o) => o.mergeServer(server));
+    if (prevStatus != null && prevStatus != updated.status) onStatusChanged?.call(updated);
+    return updated;
   }
 
   @Deprecated('Customer statusni o‘zgartirmaydi — faqat admin/firma')
@@ -312,9 +360,10 @@ class OrdersProvider extends ChangeNotifier {
     String partnerName = '',
     int? firmId,
     double distanceKm = 0,
-    List<String> mediaPaths = const [],
+    List<XFile> media = const [],
     DateTime? scheduledDate,
     String timeSlot = '',
+    String? scheduledStart,
     double? lat,
     double? lng,
     double? partnerLat,
@@ -330,27 +379,54 @@ class OrdersProvider extends ChangeNotifier {
 
     if (!ApiConfig.useLocalData) {
       try {
-        final fields = <String, String>{
-          'service_id': '${services.first.id}',
-          for (var i = 0; i < services.length; i++) 'service_ids[$i]': '${services[i].id}',
-          'area_size': areaSize,
-          'address': address,
-          'notes': notes,
-          if (phone.isNotEmpty) 'phone_number': phone,
-          if (firmId != null) 'firm_id': '$firmId',
-          if (lat != null) 'lat': lat.toStringAsFixed(6),
-          if (lng != null) 'lng': lng.toStringAsFixed(6),
-          if (scheduledDate != null)
-            'scheduled_date':
-                '${scheduledDate.year.toString().padLeft(4, '0')}-${scheduledDate.month.toString().padLeft(2, '0')}-${scheduledDate.day.toString().padLeft(2, '0')}',
-          if (timeSlot.isNotEmpty) 'time_slot': timeSlot,
-        };
-        final data = await _api.postMultipart(
-          '/orders/',
-          fields: fields,
-          files: [for (final path in mediaPaths) () => http.MultipartFile.fromPath('media', path)],
-          idempotencyKey: idempotencyKey,
-        );
+        final date = scheduledDate == null
+            ? null
+            : '${scheduledDate.year.toString().padLeft(4, '0')}-${scheduledDate.month.toString().padLeft(2, '0')}-${scheduledDate.day.toString().padLeft(2, '0')}';
+        final dynamic data;
+        if (media.isEmpty) {
+          data = await _api.post('/orders/', idempotencyKey: idempotencyKey, body: {
+            'service_ids': services.map((e) => e.id).toList(),
+            'service_id': services.first.id,
+            'area_size': areaSize,
+            'address': address,
+            'notes': notes,
+            if (phone.isNotEmpty) 'phone_number': phone,
+            'firm_id': ?firmId,
+            'lat': ?lat,
+            'lng': ?lng,
+            'scheduled_date': ?date,
+            if (timeSlot.isNotEmpty) 'time_slot': timeSlot,
+            'scheduled_start': ?scheduledStart,
+          });
+        } else {
+          final uploads = <({List<int> bytes, String name})>[];
+          for (final file in media) {
+            uploads.add((bytes: await file.readAsBytes(), name: file.name));
+          }
+          data = await _api.postMultipart(
+            '/orders/',
+            fields: {
+              'service_id': '${services.first.id}',
+              // DRF ListField multipart'da `service_ids[0]`, `service_ids[1]` ... ko'rinishini o'qiydi.
+              for (var i = 0; i < services.length; i++) 'service_ids[$i]': '${services[i].id}',
+              'area_size': areaSize,
+              'address': address,
+              'notes': notes,
+              if (phone.isNotEmpty) 'phone_number': phone,
+              if (firmId != null) 'firm_id': '$firmId',
+              // Backend DecimalField: verguldan keyin ko'pi bilan 7 ta raqam.
+              if (lat != null) 'lat': lat.toStringAsFixed(7),
+              if (lng != null) 'lng': lng.toStringAsFixed(7),
+              'scheduled_date': ?date,
+              if (timeSlot.isNotEmpty) 'time_slot': timeSlot,
+              'scheduled_start': ?scheduledStart,
+            },
+            files: () => [
+              for (final u in uploads) http.MultipartFile.fromBytes('media', u.bytes, filename: u.name),
+            ],
+            idempotencyKey: idempotencyKey,
+          );
+        }
         final order = OrderModel.fromJson(Map<String, dynamic>.from(data as Map));
         final serverAmount = order.amount > 0 ? order.amount : amount;
         final enriched = OrderModel(
@@ -426,10 +502,12 @@ class CatalogProvider extends ChangeNotifier {
   bool serverOk = false;
   String? error;
 
-  Future<void> load() async {
-    loading = true;
-    error = null;
-    notifyListeners();
+  Future<void> load({bool silent = false}) async {
+    if (!silent) {
+      loading = true;
+      error = null;
+      notifyListeners();
+    }
     if (ApiConfig.useLocalData) {
       services = List.of(DemoContent.catalogWithPrices);
       serverOk = false;
@@ -448,8 +526,10 @@ class CatalogProvider extends ChangeNotifier {
           : <ServiceModel>[];
       serverOk = true;
     } catch (e) {
-      serverOk = false;
-      error = e is ApiException ? e.message : 'Xizmatlarni yuklab bo‘lmadi';
+      if (!silent || !serverOk) {
+        serverOk = false;
+        error = e is ApiException ? e.message : 'Xizmatlarni yuklab bo‘lmadi';
+      }
       if (kDebugMode) debugPrint('catalog: $e');
     } finally {
       loading = false;

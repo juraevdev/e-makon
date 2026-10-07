@@ -8,9 +8,12 @@ import 'package:http/http.dart' as http;
 import '../constants/api_config.dart';
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.code});
   final String message;
   final int? statusCode;
+
+  /// Backend xato kodi (masalan `slot_busy`).
+  final String? code;
 
   @override
   String toString() => message;
@@ -117,6 +120,8 @@ class ApiClient {
       throw ApiException('Serverga ulanib bo‘lmadi. Internet yoki API manzilini tekshiring');
     } on HttpException {
       throw ApiException('Server javob bermadi');
+    } on http.ClientException {
+      throw ApiException('Serverga ulanib bo‘lmadi. Internet yoki API manzilini tekshiring');
     } on FormatException {
       throw ApiException('Server javobi noto‘g‘ri');
     } on ApiException {
@@ -178,23 +183,38 @@ class ApiClient {
         ));
   }
 
-  /// [files] — fabrikalar: 401 dan keyin qayta yuborishda MultipartFile qaytadan yaratilishi shart
-  /// (bir marta o'qilgan stream'ni qayta yuborib bo'lmaydi).
+  /// [files] har safar yangi ro'yxat qaytarishi kerak: MultipartFile faqat bir marta
+  /// yuboriladi, token yangilangandan keyingi qayta so'rov esa yangi nusxa talab qiladi.
   Future<dynamic> postMultipart(
     String path, {
     required Map<String, String> fields,
-    List<Future<http.MultipartFile> Function()> files = const [],
+    List<http.MultipartFile> Function()? files,
+    String? idempotencyKey,
+  }) =>
+      _multipart('POST', path, fields: fields, files: files, idempotencyKey: idempotencyKey);
+
+  /// Masalan, profil rasmi: `PATCH /auth/me/` (`avatar` fayli).
+  Future<dynamic> patchMultipart(
+    String path, {
+    Map<String, String> fields = const {},
+    List<http.MultipartFile> Function()? files,
+  }) =>
+      _multipart('PATCH', path, fields: fields, files: files);
+
+  Future<dynamic> _multipart(
+    String method,
+    String path, {
+    required Map<String, String> fields,
+    List<http.MultipartFile> Function()? files,
     String? idempotencyKey,
   }) async {
     return _guard(() async {
-      final req = http.MultipartRequest('POST', _uri(path));
+      final req = http.MultipartRequest(method, _uri(path));
       final token = await accessToken;
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
       if (idempotencyKey != null) req.headers['Idempotency-Key'] = idempotencyKey;
       req.fields.addAll(fields);
-      for (final make in files) {
-        req.files.add(await make());
-      }
+      if (files != null) req.files.addAll(files());
       final streamed = await _client.send(req);
       return http.Response.fromStream(streamed);
     }, timeout: const Duration(seconds: 90));
@@ -212,10 +232,12 @@ class ApiClient {
       return raw;
     }
     String message = 'Xatolik (${res.statusCode})';
+    String? code;
     if (raw is Map) {
       message = (raw['message'] ?? raw['detail'] ?? message).toString();
       if (raw['errors'] != null) message = '$message: ${raw['errors']}';
+      code = raw['code']?.toString();
     }
-    throw ApiException(message, statusCode: res.statusCode);
+    throw ApiException(message, statusCode: res.statusCode, code: code);
   }
 }

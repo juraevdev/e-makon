@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   ConfirmDialog,
   EmptyState,
+  ExcelButton,
   Field,
   FilterChip,
   inputClass,
@@ -13,9 +14,10 @@ import {
   SecondaryButton,
   StatusPill,
 } from "@/components/ui";
+import { PageBar } from "@/components/firm/PageBar";
 import { api, asPage, fetchAll } from "@/lib/api/client";
 import type { ModerationStatus, Service } from "@/lib/api/types";
-import { downloadCsv } from "@/lib/csv";
+import { downloadExcel } from "@/lib/excel";
 import { MODERATION_LABEL, MODERATION_TONE } from "@/lib/domain";
 import { formatDate, formatMoney, slugify } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
@@ -67,7 +69,7 @@ export default function XizmatlarPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
-  const { data, loading, error, reload } = useAsync(
+  const { data, loading, error, reload, updatedAt } = useAsync(
     async () => fetchAll<Service>("/admin/services/", { search: query || undefined }),
     [query],
     { keepPrevious: true },
@@ -212,38 +214,45 @@ export default function XizmatlarPage() {
   }
 
   function exportTable() {
-    downloadCsv(
-      `xizmatlar-${new Date().toISOString().slice(0, 10)}`,
-      ["ID", "Xizmat", "Katalog turi", "Narx (UZS)", "Davomiylik", "Holat", "Faol", "Qo'shilgan"],
-      rows.map((s) => [
+    downloadExcel("xizmatlar", {
+      name: FILTERS.find((f) => f.id === filter)?.label ?? "Xizmatlar",
+      headers: ["ID", "Xizmat", "Katalog turi", "Narx (UZS)", "Davomiylik", "Tekshiruv", "Rad sababi", "Faol", "Qo'shilgan"],
+      rows: rows.map((s) => [
         s.id,
         s.name,
         s.base_service_name || "Yangi tur",
         priceOf(s),
         s.duration,
         s.moderation_status ? MODERATION_LABEL[s.moderation_status] : "",
+        s.moderation_status === "rejected" ? s.moderation_note || "" : "",
         s.is_active ? "Ha" : "Yo'q",
         s.created_at ? formatDate(s.created_at) : "",
       ]),
-    );
+    });
   }
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <p className="max-w-3xl text-sm text-on-surface-variant">
-          Firmangiz ko&apos;rsatadigan xizmatlar va <b className="text-on-surface">o&apos;zgarmas aniq narxlari</b>. Xizmat turini
-          katalogdan tanlang (masalan &quot;Daraxt butash&quot;) — ilovada bitta xizmat ichida uni ko&apos;rsatadigan barcha firmalar narxi
-          bilan chiqadi. Katalogda yo&apos;q bo&apos;lsa, yangi tur taklif qiling: superadmin tasdiqlagach katalogga qo&apos;shiladi.
-        </p>
-        <div className="flex shrink-0 gap-2">
-          <SecondaryButton icon="download" onClick={exportTable} disabled={!rows.length}>
-            Jadval (CSV)
-          </SecondaryButton>
-          <PrimaryButton icon="add" onClick={openCreate}>
-            Xizmat qo&apos;shish
-          </PrimaryButton>
-        </div>
+      <div className="mb-6">
+        <PageBar
+          title="Xizmatlar va narxlar"
+          updatedAt={updatedAt}
+          description={
+            <>
+              Firmangiz ko&apos;rsatadigan xizmatlar va <b className="text-on-surface">o&apos;zgarmas aniq narxlari</b>. Xizmat turini
+              katalogdan tanlang (masalan &quot;Daraxt butash&quot;) — ilovada bitta xizmat ichida uni ko&apos;rsatadigan barcha firmalar
+              narxi bilan chiqadi. Katalogda yo&apos;q bo&apos;lsa, yangi tur taklif qiling: superadmin tasdiqlagach katalogga qo&apos;shiladi.
+            </>
+          }
+          actions={
+            <>
+              <ExcelButton onClick={exportTable} disabled={!rows.length} />
+              <PrimaryButton icon="add" onClick={openCreate}>
+                Xizmat qo&apos;shish
+              </PrimaryButton>
+            </>
+          }
+        />
       </div>
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
@@ -253,7 +262,7 @@ export default function XizmatlarPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
-        {loading ? (
+        {loading && !data ? (
           <LoadingBlock />
         ) : error ? (
           <p className="p-8 text-error">{error}</p>

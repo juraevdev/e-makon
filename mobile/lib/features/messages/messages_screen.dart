@@ -7,6 +7,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
+import '../../core/utils/live_refresh.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/partner_sheet.dart';
 import '../../core/widgets/widgets.dart';
@@ -20,7 +21,7 @@ class MessagesScreen extends StatefulWidget {
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
+class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
   String _filter = 'all';
   int _tab = 0;
 
@@ -32,6 +33,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
       context.read<MessagesProvider>().load(api);
       context.read<ChatProvider>().loadRooms();
     });
+  }
+
+  /// Yangi bildirishnoma va firma javoblari (o'qilmagan soni) tez ko'rinsin.
+  @override
+  Duration get liveInterval => const Duration(seconds: 10);
+
+  @override
+  Future<void> liveRefresh() async {
+    final api = context.read<ApiClient>();
+    final chat = context.read<ChatProvider>();
+    await Future.wait([
+      context.read<MessagesProvider>().load(api, silent: true),
+      chat.loadRooms(silent: true),
+    ]);
   }
 
   Color _typeColor(String type, SeasonTheme season) => switch (type) {

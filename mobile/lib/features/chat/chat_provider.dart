@@ -42,10 +42,11 @@ class ChatProvider extends ChangeNotifier {
     return null;
   }
 
-  Future<void> loadRooms() async {
+  Future<void> loadRooms({bool silent = false}) async {
     if (ApiConfig.useLocalData) return;
-    roomsLoading = true;
-    notifyListeners();
+    if (silent && roomsLoading) return;
+    roomsLoading = !silent;
+    if (!silent) notifyListeners();
     try {
       final data = await _api.get('/chats/', query: {'page_size': '100'});
       final list = data is Map ? data['results'] : data;

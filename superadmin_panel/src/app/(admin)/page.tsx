@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   Card,
+  ExcelButton,
+  LiveBadge,
   LoadingBlock,
   PrimaryButton,
   SectionTitle,
@@ -14,8 +16,10 @@ import {
 import { api } from "@/lib/api/client";
 import type { DashboardData, OrderStatus } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, SPECIALTY_LABEL } from "@/lib/domain";
-import { formatMoney, formatPhone, initials, relativeTime } from "@/lib/format";
+import { downloadExcel } from "@/lib/excel";
+import { escapeHtml, formatDateTime, formatMoney, formatPhone, initials, relativeTime } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
+import { useToast } from "@/providers/ToastProvider";
 
 const PERIODS = [
   { id: "day", label: "Kunlik" },
@@ -131,28 +135,29 @@ async function downloadPdfReport(query: Record<string, string>) {
     summary: DashboardData;
   }>("/admin/reports/bundle/", { query });
   const s = bundle.summary;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${bundle.title}</title>
+  const e = escapeHtml;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${e(bundle.title)}</title>
   <style>
     body{font-family:Arial,sans-serif;padding:24px;color:#111}
     h1{color:#1b6d24} table{width:100%;border-collapse:collapse;margin:16px 0}
     th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}
     th{background:#eef7ee} .muted{color:#666;font-size:12px}
   </style></head><body>
-  <h1>${bundle.title}</h1>
-  <p class="muted">Yaratilgan: ${bundle.generated_at} · Davr: ${s.date_from} — ${s.date_to}</p>
+  <h1>${e(bundle.title)}</h1>
+  <p class="muted">Yaratilgan: ${e(bundle.generated_at)} · Davr: ${e(s.date_from)} — ${e(s.date_to)}</p>
   <h2>Umumiy ko'rsatkichlar</h2>
   <table>
-    <tr><th>Firmalar</th><td>${s.firms_total} (faol ${s.firms_active})</td></tr>
-    <tr><th>Investorlar</th><td>${s.investors_active} / ${s.investors_total}</td></tr>
-    <tr><th>Faol buyurtmalar</th><td>${s.active_orders}</td></tr>
-    <tr><th>Davr buyurtmalari</th><td>${s.orders_in_period}</td></tr>
-    <tr><th>Umumiy aylanma</th><td>${s.revenue_done} UZS</td></tr>
-    <tr><th>Davr aylanmasi</th><td>${s.revenue_period} UZS</td></tr>
-    <tr><th>Kampaniya ulushi</th><td>${s.platform_share_total} UZS</td></tr>
+    <tr><th>Firmalar</th><td>${e(s.firms_total)} (faol ${e(s.firms_active)})</td></tr>
+    <tr><th>Investorlar</th><td>${e(s.investors_active)} / ${e(s.investors_total)}</td></tr>
+    <tr><th>Faol buyurtmalar</th><td>${e(s.active_orders)}</td></tr>
+    <tr><th>Davr buyurtmalari</th><td>${e(s.orders_in_period)}</td></tr>
+    <tr><th>Umumiy aylanma</th><td>${e(s.revenue_done)} UZS</td></tr>
+    <tr><th>Davr aylanmasi</th><td>${e(s.revenue_period)} UZS</td></tr>
+    <tr><th>Kampaniya ulushi</th><td>${e(s.platform_share_total)} UZS</td></tr>
   </table>
   <h2>Firma aylanmalari</h2>
   <table><tr><th>Firma</th><th>Buyurtma</th><th>Aylanma</th><th>Stavka</th><th>Ulush</th></tr>
-  ${(s.firm_revenues || []).map((f) => `<tr><td>${f.name}</td><td>${f.orders}</td><td>${f.revenue}</td><td>${f.commission_rate}%</td><td>${f.platform_share}</td></tr>`).join("")}
+  ${(s.firm_revenues || []).map((f) => `<tr><td>${e(f.name)}</td><td>${e(f.orders)}</td><td>${e(f.revenue)}</td><td>${e(f.commission_rate)}%</td><td>${e(f.platform_share)}</td></tr>`).join("")}
   </table>
   <script>window.onload=()=>window.print()</script>
   </body></html>`;
@@ -167,12 +172,14 @@ export default function DashboardPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
+  const { showError } = useToast();
 
   // Overview (KPIs, services, recent) — bir marta, oy bo'yicha
   const {
     data: overview,
     loading: overviewLoading,
     error: overviewError,
+    updatedAt,
   } = useAsync(() => api<DashboardData>("/admin/dashboard/", { query: { period: "month" } }), []);
 
   const chartQuery = useMemo(() => {
@@ -211,8 +218,82 @@ export default function DashboardPage() {
   }));
   const chartBusy = chartLoading || chartRefreshing;
 
+  function exportExcel() {
+    if (!overview) return;
+    const services = (rows: DashboardData["top_services"]) =>
+      rows.map((s) => [s.name, s.category || "", s.orders, (s.firms || []).map((f) => `${f.name} (${f.orders})`).join(", ")]);
+    downloadExcel("dashboard", [
+      {
+        name: "Ko'rsatkichlar",
+        headers: ["Ko'rsatkich", "Qiymat"],
+        rows: [
+          ["Davr", `${overview.date_from} — ${overview.date_to}`],
+          ["Firmalar (jami)", overview.firms_total],
+          ["Faol firmalar", overview.firms_active],
+          ["Tugatilgan firmalar", overview.firms_ended],
+          ["Investorlar (jami)", overview.investors_total],
+          ["Faol investorlar", overview.investors_active],
+          ["Mijozlar (jami)", overview.total_customers],
+          ["Faol mijozlar", overview.active_customers],
+          ["Faol buyurtmalar", overview.active_orders],
+          ["Bugungi buyurtmalar", overview.today_orders],
+          ["Bajarilgan buyurtmalar", overview.completed_orders],
+          ["Davr buyurtmalari", overview.orders_in_period],
+          ["Umumiy aylanma (UZS)", Number(overview.revenue_done) || 0],
+          ["Davr aylanmasi (UZS)", Number(overview.revenue_period) || 0],
+          ["Kampaniya ulushi (UZS)", Number(overview.platform_share_total) || 0],
+          ["O'rtacha chek (UZS)", Number(overview.avg_check) || 0],
+        ],
+      },
+      {
+        name: "Dinamika",
+        headers: ["Sana", "Buyurtmalar", "Aylanma (UZS)"],
+        rows: series.map((r) => [r.label || r.day || "", r.count, Number(r.revenue) || 0]),
+      },
+      {
+        name: "Firma aylanmalari",
+        headers: ["Firma", "Buyurtmalar", "Aylanma (UZS)", "Stavka (%)", "Ulush (UZS)"],
+        rows: (overview.firm_revenues || []).map((f) => [f.name, f.orders, Number(f.revenue) || 0, Number(f.commission_rate) || 0, Number(f.platform_share) || 0]),
+      },
+      { name: "Top xizmatlar", headers: ["Xizmat", "Toifa", "Buyurtmalar", "Firmalar"], rows: services(overview.top_services) },
+      { name: "Kam xizmatlar", headers: ["Xizmat", "Toifa", "Buyurtmalar", "Firmalar"], rows: services(overview.least_services) },
+      {
+        name: "So'nggi buyurtmalar",
+        headers: ["ID", "Mijoz", "Telefon", "Firma", "Xizmat", "Narx (UZS)", "Holat", "Sana"],
+        rows: (overview.recent_orders || []).map((o) => [
+          o.id,
+          o.customer,
+          o.customer_phone ? formatPhone(o.customer_phone) : "",
+          o.firm,
+          o.service,
+          Number(o.quoted_price) || 0,
+          ORDER_STATUS_LABEL[o.status] ?? o.status,
+          formatDateTime(o.created_at),
+        ]),
+      },
+      {
+        name: "Yangi firmalar",
+        headers: ["ID", "Nomi", "Telefon", "Hudud", "Mutaxassislik", "Holat", "Stavka (%)", "Qo'shilgan"],
+        rows: (overview.new_firms || []).map((f) => [
+          f.id,
+          f.name,
+          formatPhone(f.phone),
+          f.region,
+          SPECIALTY_LABEL[f.specialty] || f.specialty,
+          f.status,
+          Number(f.commission_rate) || 0,
+          formatDateTime(f.created_at),
+        ]),
+      },
+    ]);
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <LiveBadge updatedAt={updatedAt || undefined} />
+        <ExcelButton onClick={exportExcel} />
+      </div>
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Xizmat firmalari"
@@ -281,6 +362,8 @@ export default function DashboardPage() {
                         Object.entries(chartQuery).filter(([, v]) => v != null) as [string, string][],
                       ),
                     );
+                  } catch (e) {
+                    showError(e instanceof Error ? e.message : "PDF hisobotni tayyorlab bo'lmadi");
                   } finally {
                     setPdfBusy(false);
                   }

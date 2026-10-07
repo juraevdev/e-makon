@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.exceptions import AppError, ConflictError
+from apps.orders import schedule
 from apps.orders.models import Order, OrderIdempotency, OrderItem, OrderMedia, OrderStatusHistory
 
 
@@ -95,6 +96,8 @@ class OrderService:
         quoted_price=None,
         scheduled_date=None,
         time_slot: str = "",
+        scheduled_start=None,
+        duration_minutes: int | None = None,
         location_lat=None,
         location_lng=None,
         items: list[tuple] | None = None,
@@ -136,15 +139,25 @@ class OrderService:
         if address and not customer.home_address and not customer.formatted_address:
             customer.home_address = address
             profile_updates.append("home_address")
+        organization = getattr(service, "organization", None) or getattr(
+            customer, "organization", None
+        )
+        start = schedule.parse_time(scheduled_start) or schedule.parse_time(time_slot)
+        duration = schedule.clamp_duration(duration_minutes or schedule.DEFAULT_DURATION_MINUTES)
+        if start is not None and scheduled_date is not None and organization is not None:
+            from apps.organizations.models import Organization
+
+            # Bir vaqtda ikki mijoz oxirgi bo'sh joyni band qilmasligi uchun.
+            Organization.objects.select_for_update().filter(pk=organization.pk).first()
+            schedule.ensure_slot_available(organization.pk, scheduled_date, start, duration)
+            time_slot = schedule.format_slot(start, duration)
+
         if profile_updates:
             customer.save()
 
         order = Order.objects.create(
             customer=customer,
-            organization=(
-                getattr(service, "organization", None)
-                or getattr(customer, "organization", None)
-            ),
+            organization=organization,
             service=service,
             phone_number=phone_number or customer.phone,
             area_size=area_size,
@@ -156,6 +169,8 @@ class OrderService:
             quoted_price=quoted_price,
             scheduled_date=scheduled_date,
             time_slot=time_slot,
+            scheduled_start=start,
+            duration_minutes=duration,
             location_lat=location_lat,
             location_lng=location_lng,
             status=Order.Status.NEW,
@@ -400,6 +415,77 @@ class OrderService:
                 kind="order",
                 title=title,
                 body=(f"{body} {note}".strip() if note else body),
+                entity_type="order",
+                entity_id=order.pk,
+            )
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def reschedule(
+        order: Order,
+        *,
+        actor=None,
+        scheduled_date=None,
+        scheduled_start=None,
+        duration_minutes: int | None = None,
+        extend_minutes: int | None = None,
+        note: str = "",
+    ) -> Order:
+        """Firma vaqtni ko'chiradi yoki ish cho'zilganda davomiylikni uzaytiradi."""
+        if order.status in {Order.Status.CANCELLED, Order.Status.COMPLETED}:
+            raise AppError("Yopilgan buyurtma vaqtini o'zgartirib bo'lmaydi.", code="order_closed")
+
+        day = scheduled_date or order.scheduled_date
+        start = schedule.parse_time(scheduled_start) or order.scheduled_start
+        if day is None or start is None:
+            raise AppError("Buyurtma sanasi va boshlanish vaqtini kiriting.", code="schedule_required")
+        duration = order.duration_minutes or schedule.DEFAULT_DURATION_MINUTES
+        if duration_minutes:
+            duration = schedule.clamp_duration(duration_minutes)
+        if extend_minutes:
+            duration = schedule.clamp_duration(duration + int(extend_minutes))
+
+        moved = day != order.scheduled_date or start != order.scheduled_start
+        if moved and order.organization_id:
+            from apps.organizations.models import Organization
+
+            Organization.objects.select_for_update().filter(pk=order.organization_id).first()
+            schedule.ensure_slot_available(
+                order.organization_id, day, start, duration, exclude_order_id=order.pk
+            )
+        # Faqat uzaytirish bloklanmaydi: ish allaqachon ketmoqda, keyingi oraliqlar band bo'lib ko'rinadi.
+
+        before = order.time_slot
+        order.scheduled_date = day
+        order.scheduled_start = start
+        order.duration_minutes = duration
+        order.time_slot = schedule.format_slot(start, duration)
+        order.save(
+            update_fields=[
+                "scheduled_date",
+                "scheduled_start",
+                "duration_minutes",
+                "time_slot",
+                "updated_at",
+            ]
+        )
+        if before != order.time_slot or moved:
+            text = f"Vaqt: {day.strftime('%d.%m.%Y')} {order.time_slot}"
+            OrderStatusHistory.objects.create(
+                order=order,
+                from_status=order.status,
+                to_status=order.status,
+                changed_by=actor,
+                note=f"{text}. {note}".strip() if note else text,
+            )
+            from apps.notifications.services import notify_user
+
+            notify_user(
+                order.customer,
+                kind="order",
+                title=f"Buyurtma #{order.pk}: vaqt yangilandi",
+                body=f"{text}." + (f" {note}" if note else ""),
                 entity_type="order",
                 entity_id=order.pk,
             )

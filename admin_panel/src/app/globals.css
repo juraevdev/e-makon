@@ -44,15 +44,6 @@
   --color-card: #161a18;
   --color-card-border: #2a382e;
   --font-sans: var(--font-plus-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --spacing-xs: 4px;
-  --spacing-base: 8px;
-  --spacing-sm: 12px;
-  --spacing-md: 24px;
-  --spacing-lg: 40px;
-  --spacing-xl: 64px;
-  --spacing-gutter: 24px;
-  --spacing-margin-mobile: 16px;
-  --spacing-margin-desktop: 32px;
 }
 
 @layer base {

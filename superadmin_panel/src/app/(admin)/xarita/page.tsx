@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FilterChip, LoadingBlock } from "@/components/ui";
+import { ExcelButton, FilterChip, LiveBadge, LoadingBlock } from "@/components/ui";
 import { api } from "@/lib/api/client";
 import type { MapPayload } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, SPECIALTY_LABEL } from "@/lib/domain";
+import { downloadExcel, type ExcelSheet } from "@/lib/excel";
 import { formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 
@@ -23,7 +24,50 @@ function project(lat: number, lng: number) {
 
 export default function XaritaPage() {
   const [filter, setFilter] = useState<"all" | "workers" | "orders">("all");
-  const { data, loading, error } = useAsync(() => api<MapPayload>("/admin/map/"), []);
+  const { data, loading, error, updatedAt } = useAsync(() => api<MapPayload>("/admin/map/"), []);
+
+  function exportExcel() {
+    if (!data) return;
+    const sheets: ExcelSheet[] = [];
+    if (filter !== "orders") {
+      sheets.push({
+        name: "Hamkorlar",
+        headers: ["ID", "Ism", "Telefon", "Mutaxassislik", "Reyting", "Faol", "Manzil", "Lat", "Lng"],
+        rows: data.workers.map((w) => [
+          w.id,
+          w.name,
+          formatPhone(w.phone),
+          SPECIALTY_LABEL[w.specialty] || w.specialty,
+          Number(w.rating) || 0,
+          w.is_active ? "Ha" : "Yo'q",
+          w.address,
+          w.lat,
+          w.lng,
+        ]),
+      });
+    }
+    if (filter !== "workers") {
+      sheets.push({
+        name: "Buyurtmalar",
+        headers: ["ID", "Xizmat", "Mijoz", "Firma", "Holat", "Bosqich", "Hamkor", "Manzil", "Masofa (km)", "ETA (daq)", "Lat", "Lng"],
+        rows: data.orders.map((o) => [
+          o.id,
+          o.service,
+          o.customer,
+          o.firm ?? "",
+          ORDER_STATUS_LABEL[o.status] ?? o.status,
+          o.work_stage_label ?? "",
+          o.assigned_worker,
+          o.address,
+          o.distance_km ?? "",
+          o.eta_minutes ?? "",
+          o.lat,
+          o.lng,
+        ]),
+      });
+    }
+    downloadExcel("xarita", sheets);
+  }
 
   const pins = useMemo(() => {
     if (!data) return [];
@@ -82,16 +126,20 @@ export default function XaritaPage() {
 
       <aside className="z-10 flex h-full w-full flex-col overflow-hidden bg-surface lg:w-[400px]">
         <div className="border-b border-[#26352c] p-4">
-          <h2 className="text-lg font-bold">Jonli xarita</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">Jonli xarita</h2>
+            <LiveBadge updatedAt={updatedAt || undefined} />
+          </div>
           <p className="mt-1 text-xs text-outline">Mijoz geo nuqtalari va hamkorlar</p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             <FilterChip label="Barchasi" active={filter === "all"} onClick={() => setFilter("all")} />
             <FilterChip label="Hamkorlar" count={data.workers.length} active={filter === "workers"} onClick={() => setFilter("workers")} />
             <FilterChip label="Buyurtmalar" count={data.orders.length} active={filter === "orders"} onClick={() => setFilter("orders")} />
           </div>
+          <ExcelButton className="mt-3 w-full justify-center" onClick={exportExcel} disabled={!data.workers.length && !data.orders.length} />
         </div>
         <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-4">
-          {data.workers.map((w) => (
+          {(filter === "orders" ? [] : data.workers).map((w) => (
             <div key={w.id} className="rounded-2xl border border-[#26352c] bg-[#131916]/90 p-4">
               <h3 className="font-bold text-on-surface">{w.name}</h3>
               <p className="text-xs text-outline">{SPECIALTY_LABEL[w.specialty] || w.specialty}</p>
@@ -99,7 +147,7 @@ export default function XaritaPage() {
               <p className="truncate text-xs text-on-surface-variant">{w.address || "Geo kiritilmagan"}</p>
             </div>
           ))}
-          {data.orders.map((o) => (
+          {(filter === "workers" ? [] : data.orders).map((o) => (
             <div key={`o-${o.id}`} className="rounded-2xl border border-amber-500/20 bg-[#1a1910]/90 p-4">
               <h3 className="font-bold">#{o.id} · {o.service}</h3>
               <p className="text-xs text-outline">{o.customer} · {ORDER_STATUS_LABEL[o.status]}</p>

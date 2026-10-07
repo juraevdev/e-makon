@@ -17,6 +17,7 @@ from apps.orders.models import (
     OrderPayment,
     OrderStatusHistory,
 )
+from apps.orders import schedule
 from apps.orders.payments import PaymentService, estimate_items, payment_options
 from apps.orders.services import OrderService
 
@@ -176,6 +177,8 @@ class OrderSerializer(serializers.ModelSerializer):
     services = serializers.SerializerMethodField()
     points_earned = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
+    scheduled_start = serializers.TimeField(format="%H:%M", read_only=True, allow_null=True)
+    scheduled_end = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -216,6 +219,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "eta_at",
             "scheduled_date",
             "time_slot",
+            "scheduled_start",
+            "scheduled_end",
+            "duration_minutes",
             "lat",
             "lng",
             "partner_lat",
@@ -238,6 +244,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_firm_name(self, obj: Order) -> str:
         return obj.organization.name if obj.organization_id else ""
+
+    def get_scheduled_end(self, obj: Order) -> str | None:
+        if obj.scheduled_start is None:
+            return None
+        return schedule.end_time(obj.scheduled_start, obj.duration_minutes)
 
     def get_partner_name(self, obj: Order) -> str:
         return self.get_firm_name(obj)
@@ -343,6 +354,9 @@ class OrderCreateSerializer(serializers.Serializer):
         required=False, allow_null=True, input_formats=["%Y-%m-%d", "iso-8601"]
     )
     time_slot = serializers.CharField(max_length=64, required=False, allow_blank=True)
+    scheduled_start = serializers.TimeField(
+        required=False, allow_null=True, input_formats=["%H:%M", "%H:%M:%S"]
+    )
     lat = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     lng = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
 
@@ -447,6 +461,7 @@ class OrderCreateSerializer(serializers.Serializer):
             quoted_price=Decimal(total) if total > 0 else None,
             scheduled_date=validated_data.get("scheduled_date"),
             time_slot=validated_data.get("time_slot") or "",
+            scheduled_start=validated_data.get("scheduled_start"),
             location_lat=validated_data.get("lat"),
             location_lng=validated_data.get("lng"),
             items=items,
@@ -461,6 +476,20 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
         max_digits=14, decimal_places=2, required=False, allow_null=True
     )
     agreed_duration = serializers.CharField(required=False, allow_blank=True)
+
+
+class OrderScheduleSerializer(serializers.Serializer):
+    scheduled_date = serializers.DateField(required=False, allow_null=True)
+    scheduled_start = serializers.TimeField(
+        required=False, allow_null=True, input_formats=["%H:%M", "%H:%M:%S"]
+    )
+    duration_minutes = serializers.IntegerField(
+        required=False, allow_null=True, min_value=30, max_value=schedule.MAX_DURATION_MINUTES
+    )
+    extend_minutes = serializers.IntegerField(
+        required=False, allow_null=True, min_value=15, max_value=schedule.MAX_DURATION_MINUTES
+    )
+    note = serializers.CharField(required=False, allow_blank=True, max_length=200)
 
 
 class OrderStageSerializer(serializers.Serializer):

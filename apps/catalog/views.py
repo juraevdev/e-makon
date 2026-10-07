@@ -19,6 +19,7 @@ from apps.catalog.services import attach_to_catalog_type, is_catalog_type, platf
 from apps.core.exceptions import AppError
 from apps.core.permissions import IsAdmin, IsCustomer, IsSuperAdmin
 from apps.core.responses import success_response
+from apps.orders import schedule as scheduling
 from apps.organizations.mixins import OrganizationQuerysetMixin
 from apps.organizations.models import Organization
 from apps.organizations.permissions import RequiresAdminCapability
@@ -204,6 +205,19 @@ class PublicFirmViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
                 s.organization_id: s for s in offers_for_root(root) if s.organization_id
             }
         return ctx
+
+    @action(detail=True, methods=["get"])
+    def availability(self, request, pk=None):
+        """Mijoz uchun: tanlangan kunda firmaning bo'sh (yashil) va band (qizil) soatlari."""
+        firm = (
+            Organization.objects.filter(pk=pk, status=Organization.Status.ACTIVE)
+            .exclude(slug=DEFAULT_ORG_SLUG)
+            .first()
+        )
+        if firm is None:
+            raise AppError("Firma topilmadi.", status_code=404)
+        day = scheduling.parse_day(request.query_params.get("date"))
+        return success_response(scheduling.day_availability(firm.pk, day))
 
     @action(detail=True, methods=["get", "post"])
     def reviews(self, request, pk=None):

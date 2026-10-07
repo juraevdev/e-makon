@@ -188,6 +188,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     }
     throw new ApiError(message, res.status);
   }
+  if (method.toUpperCase() !== "GET") notifyDataChanged(path);
   return unwrap(json) as T;
 }
 
@@ -212,6 +213,32 @@ export async function fetchPages<T>(
 
 export async function fetchAll<T>(path: string, query: RequestOptions["query"] = {}, maxPages = 20): Promise<T[]> {
   return (await fetchPages<T>(path, query, maxPages)).results;
+}
+
+export const DATA_CHANGED_EVENT = "emakon:data-changed";
+let channel: BroadcastChannel | null | undefined;
+
+function liveChannel() {
+  if (channel !== undefined) return channel;
+  channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("emakon-live") : null;
+  channel?.addEventListener("message", (event) => {
+    window.dispatchEvent(new CustomEvent(DATA_CHANGED_EVENT, { detail: event.data }));
+  });
+  return channel;
+}
+
+/** Ma'lumot o'zgarganda ochiq sahifalar (shu va boshqa tablar) darhol yangilanadi. */
+export function notifyDataChanged(path = "") {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(DATA_CHANGED_EVENT, { detail: path }));
+  liveChannel()?.postMessage(path);
+}
+
+export function subscribeDataChanged(listener: () => void) {
+  if (typeof window === "undefined") return () => {};
+  liveChannel();
+  window.addEventListener(DATA_CHANGED_EVENT, listener);
+  return () => window.removeEventListener(DATA_CHANGED_EVENT, listener);
 }
 
 export function asPage<T>(raw: unknown): { count: number; results: T[] } {

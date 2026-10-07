@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import {
@@ -127,7 +127,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
   return (
     <section className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-6">
       <h3 className="mb-1 text-lg font-semibold">Aloqa ma&apos;lumotlari</h3>
-      <p className="mb-4 text-xs text-on-surface-variant">Mijozlar ilovada shu ma&apos;lumotlarni ko&apos;radi.</p>
+      <p className="mb-4 text-sm text-on-surface-variant">Mijozlar ilovada shu ma&apos;lumotlarni ko&apos;radi.</p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field label="Telefon">
           <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -189,7 +189,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
       </div>
 
       <h3 className="mb-1 mt-8 text-lg font-semibold">Ijtimoiy tarmoqlar</h3>
-      <p className="mb-4 text-xs text-on-surface-variant">
+      <p className="mb-4 text-sm text-on-surface-variant">
         Telegram kanal, guruh, Instagram va YouTube sahifalaringiz ilovadagi firma sahifasida tugma sifatida chiqadi. @nom yoki
         to&apos;liq havola kiritishingiz mumkin.
       </p>
@@ -294,9 +294,9 @@ export default function FirmaPage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
             <span className="material-symbols-outlined text-[28px]">storefront</span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">{firm.name}</h2>
-            <p className="text-xs text-on-surface-variant">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold">{firm.name}</h2>
+            <p className="text-sm text-on-surface-variant">
               Nom, yo&apos;nalish va ulush stavkasini tizim ma&apos;muriyati belgilaydi.
             </p>
           </div>
@@ -316,7 +316,7 @@ export default function FirmaPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
           <div className="flex items-center justify-between border-b border-[#263b2a] px-5 py-4">
-            <h3 className="text-sm font-bold">
+            <h3 className="flex items-center text-lg font-semibold">
               Ma&apos;muriyat xabarlari
               {unread ? <span className="ml-2 rounded-full bg-error/20 px-2 py-0.5 text-xs text-error">{unread} yangi</span> : null}
             </h3>
@@ -345,7 +345,7 @@ export default function FirmaPage() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-          <h3 className="border-b border-[#263b2a] px-5 py-4 text-sm font-bold">Jarimalar</h3>
+          <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Jarimalar</h3>
           {!stats?.fines.length ? (
             <EmptyState icon="gavel" title="Jarimalar yo'q" />
           ) : (
@@ -368,7 +368,7 @@ export default function FirmaPage() {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-sm font-bold">Mijoz baholari</h3>
+        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Mijoz baholari</h3>
         {!stats?.reviews.length ? (
           <EmptyState icon="star" title="Hali baholar yo'q" />
         ) : (

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAsync } from "@/hooks/useAsync";
-import { usePolling } from "@/hooks/usePolling";
-import { api } from "@/lib/api/client";
+import { api, asPage } from "@/lib/api/client";
 import { navItems } from "@/lib/nav";
 import { FIRM_STATUS_LABEL } from "@/lib/domain";
 import { useFirm } from "@/providers/FirmProvider";
@@ -17,12 +16,17 @@ type SidebarProps = {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { firm } = useFirm();
-  const { data: chat, reload: reloadChat } = useAsync(
+  const { data: chat } = useAsync(
     () => api<{ unread: number }>("/admin/chats/unread/").catch(() => ({ unread: 0 })),
-    [pathname],
+    [],
+    { live: 5000 },
   );
-  usePolling(() => void reloadChat(), 20000);
-  const badges: Record<string, number> = { "/aloqa": chat?.unread ?? 0 };
+  const { data: newOrders } = useAsync(
+    async () => asPage(await api("/admin/orders/", { query: { status: "new", page_size: 1 } }).catch(() => [])).count,
+    [],
+    { live: 5000 },
+  );
+  const badges: Record<string, number> = { "/aloqa": chat?.unread ?? 0, "/buyurtmalar": newOrders ?? 0 };
 
   return (
     <>
@@ -32,17 +36,23 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         aria-hidden
       />
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-30 flex h-screen w-[260px] flex-col border-r border-white/5 bg-surface-container py-6 transition-transform md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-[100dvh] w-[260px] max-w-[85vw] flex-col border-r border-white/5 bg-surface-container py-6 transition-transform md:sticky md:z-30 md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-8 flex items-center gap-3 px-6">
+        <div className="mb-6 flex items-center justify-between gap-3 px-6">
           <span className="text-2xl font-bold text-primary">E-MAKON</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high md:hidden"
+            aria-label="Menyuni yopish"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
         <div className="mb-6 px-6">
-          <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-            Firma Portali
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Firma portali</p>
           {firm ? (
             <div className="mt-3 rounded-xl border border-[#263b2a] bg-[#131b15] px-3 py-2.5">
               <p className="truncate text-sm font-semibold text-on-surface">{firm.name}</p>
@@ -60,10 +70,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
         <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto px-3">
           {navItems.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
+            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const badge = badges[item.href] ?? 0;
             return (
               <Link
                 key={item.href}
@@ -77,20 +85,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={
-                    active
-                      ? { fontVariationSettings: "'FILL' 1" }
-                      : undefined
-                  }
+                  style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
                   {item.icon}
                 </span>
-                <span className="text-sm font-semibold tracking-wide">
-                  {item.label}
-                </span>
-                {badges[item.href] ? (
-                  <span className="ml-auto mr-3 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-black">
-                    {badges[item.href] > 99 ? "99+" : badges[item.href]}
+                <span className="truncate text-sm font-semibold tracking-wide">{item.label}</span>
+                {badge ? (
+                  <span
+                    className={`ml-auto mr-3 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      item.href === "/buyurtmalar" ? "animate-pulse bg-amber-400 text-black" : "bg-primary text-black"
+                    }`}
+                  >
+                    {badge > 99 ? "99+" : badge}
                   </span>
                 ) : null}
               </Link>

@@ -15,6 +15,15 @@ class ApiConfig {
 
   static const Duration requestTimeout = Duration(seconds: 12);
 
+  /// Server `/media/...` kabi nisbiy yo'l qaytarsa — API hostiga bog'laydi.
+  static String mediaUrl(String path) {
+    if (path.isEmpty || path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (!path.startsWith('/')) return path;
+    final base = Uri.tryParse(baseUrl);
+    if (base == null || base.host.isEmpty) return path;
+    return base.replace(path: path).toString();
+  }
+
   static const String brandName = 'e-makon';
   static const String tagline = "Makoningiz go'zalligi — bizning ishimiz";
 }

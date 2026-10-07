@@ -102,7 +102,7 @@ export default function XaritaPage() {
 
       <aside className="z-10 flex h-full w-full flex-col overflow-hidden bg-surface lg:w-[400px]">
         <div className="border-b border-[#26352c] p-4">
-          <h2 className="text-lg font-bold">Jonli xarita</h2>
+          <h2 className="text-lg font-semibold">Jonli xarita</h2>
           <p className="mt-1 text-xs text-outline">
             Buyurtmalar, xodimlar va parvarish obyektlari. Har 30 soniyada yangilanadi.
             {!GOOGLE_MAPS_KEY ? " Ro'yxatdan nuqtani tanlang — xarita o'sha joyga o'tadi." : ""}

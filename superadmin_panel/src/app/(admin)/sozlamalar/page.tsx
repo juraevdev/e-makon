@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   EmptyState,
+  ExcelButton,
   Field,
   inputClass,
+  LiveBadge,
   LoadingBlock,
   PrimaryButton,
   StatusPill,
@@ -13,9 +15,12 @@ import {
 import { api, asPage } from "@/lib/api/client";
 import type { AdminProfile } from "@/lib/api/types";
 import { ROLE_LABEL } from "@/lib/domain";
+import { downloadExcel } from "@/lib/excel";
+import { formatDate, formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/providers/ToastProvider";
+import { errorMessage } from "@/components/people/api";
 
 export default function SozlamalarPage() {
   const { user, refreshMe } = useAuth();
@@ -27,8 +32,8 @@ export default function SozlamalarPage() {
     email: user?.email || "",
   });
 
-  const { data, loading, error } = useAsync(async () => {
-    const raw = await api("/admin/admins/", { query: { page_size: 50 } });
+  const { data, loading, error, updatedAt } = useAsync(async () => {
+    const raw = await api("/admin/admins/", { query: { page_size: 100 } });
     return asPage<AdminProfile>(raw).results;
   }, []);
 
@@ -38,11 +43,30 @@ export default function SozlamalarPage() {
       await api("/auth/me/", { method: "PATCH", body: profile });
       await refreshMe();
       showSuccess("Profil saqlandi");
-    } catch (err) {
-      showError(err instanceof Error ? err.message : "Profil saqlanmadi");
+    } catch (e) {
+      showError(errorMessage(e, "Profilni saqlab bo'lmadi"));
     } finally {
       setBusy(false);
     }
+  }
+
+  function exportExcel() {
+    downloadExcel("administratorlar", {
+      name: "Administratorlar",
+      headers: ["ID", "Ism", "Rol", "Telefon", "Lavozim", "Buyurtmalar", "Xodimlar", "Analitika", "Holat", "Qo'shilgan"],
+      rows: (data ?? []).map((a) => [
+        a.id,
+        a.user.full_name || "",
+        ROLE_LABEL[a.user.role] ?? a.user.role,
+        formatPhone(a.user.phone),
+        a.title,
+        a.can_manage_orders ? "Ha" : "Yo'q",
+        a.can_manage_staff ? "Ha" : "Yo'q",
+        a.can_view_analytics ? "Ha" : "Yo'q",
+        a.is_active ? "Faol" : "Nofaol",
+        formatDate(a.created_at),
+      ]),
+    });
   }
 
   return (
@@ -69,18 +93,24 @@ export default function SozlamalarPage() {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-low">
-        <div className="flex items-center justify-between border-b border-surface-container-highest/60 p-6">
+        <div className="flex flex-col gap-4 border-b border-surface-container-highest/60 p-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-xl font-semibold">Administratorlar</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-semibold">Administratorlar</h3>
+              <LiveBadge updatedAt={updatedAt || undefined} />
+            </div>
             <p className="text-xs text-on-surface-variant">Panelga telefon + parol bilan kiradigan adminlar</p>
           </div>
-          <Link
-            href="/administratorlar"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-black"
-          >
-            <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
-            Boshqarish
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <ExcelButton onClick={exportExcel} disabled={!data?.length} />
+            <Link
+              href="/administratorlar"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-black"
+            >
+              <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
+              Boshqarish
+            </Link>
+          </div>
         </div>
         {loading ? (
           <LoadingBlock />
@@ -89,6 +119,7 @@ export default function SozlamalarPage() {
         ) : !data?.length ? (
           <EmptyState icon="admin_panel_settings" title="Adminlar ro'yxati bo'sh" />
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-surface-variant/40 text-xs uppercase text-on-surface-variant">
@@ -100,9 +131,9 @@ export default function SozlamalarPage() {
             <tbody className="divide-y divide-surface-variant/20">
               {data.map((a) => (
                 <tr key={a.id}>
-                  <td className="px-6 py-4 font-medium">{a.user.full_name || a.user.phone}</td>
+                  <td className="px-6 py-4 font-medium whitespace-nowrap">{a.user.full_name || a.user.phone}</td>
                   <td className="px-6 py-4 text-on-surface-variant">{ROLE_LABEL[a.user.role]}</td>
-                  <td className="px-6 py-4 text-on-surface-variant">{a.user.phone}</td>
+                  <td className="px-6 py-4 font-mono whitespace-nowrap text-on-surface-variant">{formatPhone(a.user.phone)}</td>
                   <td className="px-6 py-4 text-on-surface-variant">{a.title}</td>
                   <td className="px-6 py-4">
                     <StatusPill variant={a.is_active ? "success" : "neutral"} pulse={a.is_active}>
@@ -113,6 +144,7 @@ export default function SozlamalarPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
     </div>

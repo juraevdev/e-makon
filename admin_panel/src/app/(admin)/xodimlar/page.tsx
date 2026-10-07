@@ -2,35 +2,46 @@
 
 import { useMemo, useState } from "react";
 import {
-  Breadcrumbs,
   EmptyState,
+  ExcelButton,
   Field,
-  FilterChip,
   inputClass,
   LoadingBlock,
   Modal,
   PrimaryButton,
   SecondaryButton,
   StatusPill,
+  TabBar,
 } from "@/components/ui";
+import { InfoNote, MiniStat, PageBar } from "@/components/firm/PageBar";
 import { api, fetchAll } from "@/lib/api/client";
 import type { Employee, EmployeeCard, EmploymentStatus } from "@/lib/api/types";
-import { downloadCsv } from "@/lib/csv";
-import {
-  EMPLOYMENT_LABEL,
-  EMPLOYMENT_TONE,
-  ORDER_STATUS_LABEL,
-  ORDER_STATUS_TONE,
-  SPECIALTY_LABEL,
-} from "@/lib/domain";
+import { downloadExcel } from "@/lib/excel";
+import { EMPLOYMENT_LABEL, EMPLOYMENT_TONE, ORDER_STATUS_LABEL, ORDER_STATUS_TONE, SPECIALTY_LABEL } from "@/lib/domain";
 import { formatDate, formatMoney, formatPhone, initials } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
 import { useToast } from "@/providers/ToastProvider";
 
 type FilterId = "all" | EmploymentStatus;
+type CardTab = "info" | "work" | "status";
+type SortId = "name" | "rating" | "active" | "completed" | "hired";
 
 const SPECIALTIES = Object.entries(SPECIALTY_LABEL);
+
+const SORTS: { id: SortId; label: string }[] = [
+  { id: "name", label: "Ism bo'yicha" },
+  { id: "active", label: "Faol buyurtmalar ↓" },
+  { id: "completed", label: "Bajargan ishlar ↓" },
+  { id: "rating", label: "Reyting ↓" },
+  { id: "hired", label: "Staj ↓" },
+];
+
+const STATUS_ACTIONS: { status: EmploymentStatus; icon: string; title: string; hint: string }[] = [
+  { status: "active", icon: "work", title: "Ishga qaytarish", hint: "Buyurtmalarga biriktirish mumkin bo'ladi" },
+  { status: "on_leave", icon: "beach_access", title: "Ta'tilga chiqarish", hint: "Vaqtincha buyurtma berilmaydi, bandlik sig'imi kamayadi" },
+  { status: "dismissed", icon: "person_off", title: "Ishdan bo'shatish", hint: "Tizimga kira olmaydi, ish tarixi saqlanadi" },
+];
 
 const emptyForm = {
   phone: "+998",
@@ -55,37 +66,61 @@ function yearsSince(date: string | null) {
 }
 
 export default function XodimlarPage() {
-  const { query } = useSearch();
+  const { query, setQuery } = useSearch();
   const { showSuccess, showError } = useToast();
   const [filter, setFilter] = useState<FilterId>("active");
+  const [specialty, setSpecialty] = useState("");
+  const [sort, setSort] = useState<SortId>("name");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [cardId, setCardId] = useState<number | null>(null);
-  const [tab, setTab] = useState<"info" | "work" | "status">("info");
+  const [tab, setTab] = useState<CardTab>("info");
   const [statusAction, setStatusAction] = useState<{ status: EmploymentStatus; reason: string } | null>(null);
 
-  const { data, loading, error, reload } = useAsync(
+  const { data, loading, error, updatedAt } = useAsync(
     async () => fetchAll<Employee>("/admin/employees/", { search: query || undefined }),
     [query],
     { keepPrevious: true },
   );
 
-  const {
-    data: card,
-    loading: cardLoading,
-    reload: reloadCard,
-  } = useAsync(async () => (cardId ? api<EmployeeCard>(`/admin/employees/${cardId}/card/`) : null), [cardId]);
+  const { data: card, loading: cardLoading } = useAsync(
+    async () => (cardId ? api<EmployeeCard>(`/admin/employees/${cardId}/card/`) : null),
+    [cardId],
+    { keepPrevious: true },
+  );
 
   const all = useMemo(() => data ?? [], [data]);
+  const bySpecialty = useMemo(() => (specialty ? all.filter((e) => e.specialty === specialty) : all), [all, specialty]);
   const counts: Record<FilterId, number> = {
-    all: all.length,
-    active: all.filter((e) => e.employment_status === "active").length,
-    on_leave: all.filter((e) => e.employment_status === "on_leave").length,
-    dismissed: all.filter((e) => e.employment_status === "dismissed").length,
+    all: bySpecialty.length,
+    active: bySpecialty.filter((e) => e.employment_status === "active").length,
+    on_leave: bySpecialty.filter((e) => e.employment_status === "on_leave").length,
+    dismissed: bySpecialty.filter((e) => e.employment_status === "dismissed").length,
   };
-  const rows = filter === "all" ? all : all.filter((e) => e.employment_status === filter);
+  const rows = useMemo(() => {
+    const list = filter === "all" ? bySpecialty : bySpecialty.filter((e) => e.employment_status === filter);
+    const name = (e: Employee) => (e.user.full_name || e.user.phone).toLowerCase();
+    return [...list].sort((a, b) => {
+      switch (sort) {
+        case "rating":
+          return Number(b.rating || 0) - Number(a.rating || 0);
+        case "active":
+          return b.active_orders - a.active_orders;
+        case "completed":
+          return b.completed_orders - a.completed_orders;
+        case "hired":
+          return (a.hired_at || "9999").localeCompare(b.hired_at || "9999");
+        default:
+          return name(a).localeCompare(name(b));
+      }
+    });
+  }, [bySpecialty, filter, sort]);
+
+  const activeStaff = all.filter((e) => e.employment_status === "active");
+  const freeStaff = activeStaff.filter((e) => e.active_orders === 0).length;
+  const activeOrders = activeStaff.reduce((s, e) => s + e.active_orders, 0);
 
   function openCard(emp: Employee) {
     setCardId(emp.id);
@@ -116,7 +151,8 @@ export default function XodimlarPage() {
   }
 
   async function save() {
-    if (form.phone.replace(/\D/g, "").length < 12) return showError("Telefon raqamni to'liq kiriting");
+    if (!form.full_name.trim()) return showError("Xodimning to'liq ismini kiriting");
+    if (form.phone.replace(/\D/g, "").length < 12) return showError("Telefon raqamni to'liq kiriting (+998 XX XXX XX XX)");
     if (!editing && form.password.trim().length < 6) return showError("Parol kamida 6 belgi bo'lsin");
     setBusy(true);
     try {
@@ -129,7 +165,10 @@ export default function XodimlarPage() {
         birth_date: form.birth_date || null,
         address: form.address.trim(),
         emergency_phone: form.emergency_phone.trim(),
-        skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
+        skills: form.skills
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         notes: form.notes.trim(),
       };
       if (form.password.trim()) payload.password = form.password.trim();
@@ -138,11 +177,9 @@ export default function XodimlarPage() {
         showSuccess("Xodim kartasi yangilandi");
       } else {
         await api("/admin/employees/", { method: "POST", body: payload });
-        showSuccess("Xodim qo'shildi — u shu telefon va parol bilan kira oladi");
+        showSuccess("Xodim qo'shildi — u shu telefon va parol bilan xodim ilovasiga kira oladi");
       }
       setFormOpen(false);
-      await reload();
-      if (cardId) await reloadCard();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Saqlanmadi");
     } finally {
@@ -160,7 +197,6 @@ export default function XodimlarPage() {
       await api(`/admin/employees/${cardId}/set-status/`, { method: "POST", body: statusAction });
       showSuccess(`Holat: ${EMPLOYMENT_LABEL[statusAction.status]}`);
       setStatusAction(null);
-      await Promise.all([reload(), reloadCard()]);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Xatolik");
     } finally {
@@ -169,70 +205,122 @@ export default function XodimlarPage() {
   }
 
   function exportTable() {
-    downloadCsv(
-      `xodimlar-${new Date().toISOString().slice(0, 10)}`,
-      ["ID", "F.I.Sh", "Telefon", "Lavozim", "Mutaxassislik", "Holat", "Ishga kirgan", "Bo'shagan", "Faol buyurtma", "Bajarilgan", "Reyting"],
-      rows.map((e) => [
+    downloadExcel("xodimlar", {
+      name: filter === "all" ? "Barcha xodimlar" : EMPLOYMENT_LABEL[filter],
+      headers: [
+        "ID",
+        "F.I.Sh",
+        "Telefon",
+        "Lavozim",
+        "Mutaxassislik",
+        "Holat",
+        "Ishga kirgan",
+        "Staj",
+        "Bo'shagan",
+        "Faol buyurtma",
+        "Bajarilgan",
+        "Reyting",
+        "Ko'nikmalar",
+      ],
+      rows: rows.map((e) => [
         e.id,
         e.user.full_name,
-        e.user.phone,
+        formatPhone(e.user.phone),
         e.position,
         SPECIALTY_LABEL[e.specialty] || e.specialty,
         EMPLOYMENT_LABEL[e.employment_status],
-        e.hired_at ?? "",
-        e.dismissed_at ?? "",
+        e.hired_at ? formatDate(e.hired_at) : "",
+        yearsSince(e.hired_at) ?? "",
+        e.dismissed_at ? formatDate(e.dismissed_at) : "",
         e.active_orders,
         e.completed_orders,
-        e.rating,
+        Number(e.rating || 0),
+        (e.skills || []).join(", "),
       ]),
-    );
+    });
   }
 
   const emp = card?.employee;
+  const set = (key: keyof typeof emptyForm) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
 
   return (
-    <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#26352c]/40 pb-2 sm:flex-row sm:items-center">
-        <div>
-          <Breadcrumbs items={[{ label: "Bosh sahifa", href: "/" }, { label: "Xodimlar" }]} />
-          <h2 className="text-xl font-bold tracking-tight text-white">Xodimlar kartotekasi</h2>
-          <p className="mt-0.5 text-xs text-on-surface-variant">
-            Har bir xodimning shaxsiy kartasi: ma&apos;lumotlari, ish faoliyati va holati (ishda, ta&apos;tilda, ishdan bo&apos;shagan).
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <SecondaryButton icon="download" onClick={exportTable} disabled={!rows.length}>
-            CSV
-          </SecondaryButton>
-          <PrimaryButton icon="person_add" onClick={() => openForm(null)}>
-            Yangi xodim
-          </PrimaryButton>
-        </div>
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
+      <PageBar
+        updatedAt={updatedAt}
+        description="Har bir xodimning shaxsiy kartasi: ma'lumotlari, ish faoliyati va holati. Faqat “Ishda” holatidagi xodimlar buyurtmalarga biriktiriladi va bandlik jadvalidagi soatlik sig'imni belgilaydi."
+        actions={
+          <>
+            <ExcelButton onClick={exportTable} disabled={!rows.length} />
+            <PrimaryButton icon="person_add" onClick={() => openForm(null)}>
+              Yangi xodim
+            </PrimaryButton>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MiniStat label="Ishda" value={counts.active} icon="engineering" tone="primary" hint="Soatlik sig'im shu songa teng" />
+        <MiniStat label="Hozir bo'sh" value={freeStaff} icon="person_check" hint="Faol buyurtmasi yo'q xodimlar" />
+        <MiniStat label="Faol buyurtmalar" value={activeOrders} icon="assignment" hint="Ishdagi xodimlarda" />
+        <MiniStat label="Ta'tilda" value={counts.on_leave} icon="beach_access" tone={counts.on_leave ? "warning" : "default"} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(["active", "on_leave", "dismissed", "all"] as FilterId[]).map((id) => (
-          <FilterChip
-            key={id}
-            label={id === "all" ? "Barchasi" : EMPLOYMENT_LABEL[id]}
-            count={counts[id]}
-            active={filter === id}
-            onClick={() => setFilter(id)}
-          />
-        ))}
+      <div className="flex flex-col gap-3">
+        <TabBar
+          tabs={[
+            { id: "active" as FilterId, label: EMPLOYMENT_LABEL.active, icon: "work", count: counts.active },
+            { id: "on_leave" as FilterId, label: EMPLOYMENT_LABEL.on_leave, icon: "beach_access", count: counts.on_leave },
+            { id: "dismissed" as FilterId, label: EMPLOYMENT_LABEL.dismissed, icon: "person_off", count: counts.dismissed },
+            { id: "all" as FilterId, label: "Barchasi", icon: "groups", count: counts.all },
+          ]}
+          value={filter}
+          onChange={setFilter}
+        />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_200px_200px]">
+          <div className="relative">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">
+              search
+            </span>
+            <input
+              className={`${inputClass} pl-10`}
+              placeholder="Ism, telefon yoki lavozim bo'yicha qidirish"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <select className={inputClass} value={specialty} onChange={(e) => setSpecialty(e.target.value)} aria-label="Mutaxassislik">
+            <option value="">Barcha mutaxassisliklar</option>
+            {SPECIALTIES.map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <select className={inputClass} value={sort} onChange={(e) => setSort(e.target.value as SortId)} aria-label="Saralash">
+            {SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
         <LoadingBlock />
-      ) : error ? (
+      ) : error && !data ? (
         <p className="rounded-2xl border border-error/40 bg-[#291113] p-6 text-sm text-error">{error}</p>
       ) : !rows.length ? (
         <div className="rounded-2xl border border-card-border bg-[#141816]">
           <EmptyState
             icon="badge"
-            title="Xodimlar yo'q"
-            description="Bu holatdagi xodim topilmadi."
-            action={<PrimaryButton icon="person_add" onClick={() => openForm(null)}>Xodim qo&apos;shish</PrimaryButton>}
+            title="Xodimlar topilmadi"
+            description={query || specialty ? "Qidiruv yoki filtrni o'zgartirib ko'ring." : "Bu holatdagi xodim yo'q."}
+            action={
+              <PrimaryButton icon="person_add" onClick={() => openForm(null)}>
+                Xodim qo&apos;shish
+              </PrimaryButton>
+            }
           />
         </div>
       ) : (
@@ -242,62 +330,73 @@ export default function XodimlarPage() {
               key={e.id}
               type="button"
               onClick={() => openCard(e)}
-              className={`group flex flex-col gap-4 rounded-2xl border bg-[#141816] p-5 text-left transition hover:border-primary/50 hover:shadow-[0_0_20px_rgba(46,125,50,0.15)] ${
+              className={`group flex min-w-0 flex-col gap-4 rounded-2xl border bg-[#141816] p-5 text-left transition hover:border-primary/50 hover:shadow-[0_0_20px_rgba(46,125,50,0.15)] ${
                 e.employment_status === "dismissed" ? "border-[#26352c] opacity-70" : "border-card-border"
               }`}
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-lg font-bold text-white">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-base font-bold text-white">
                   {initials(e.user.full_name || e.user.phone)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white">{e.user.full_name || "Ism kiritilmagan"}</p>
-                  <p className="truncate text-xs text-on-surface-variant">
+                  <p className="truncate text-base font-semibold text-on-surface">{e.user.full_name || "Ism kiritilmagan"}</p>
+                  <p className="truncate text-sm text-on-surface-variant">
                     {e.position || SPECIALTY_LABEL[e.specialty] || "Xodim"}
                   </p>
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <StatusPill variant={EMPLOYMENT_TONE[e.employment_status]} pulse={e.employment_status === "active"}>
                       {EMPLOYMENT_LABEL[e.employment_status]}
                     </StatusPill>
+                    {e.employment_status === "active" ? (
+                      <span className={`text-xs ${e.active_orders ? "text-amber-300" : "text-primary"}`}>
+                        {e.active_orders ? "Band" : "Bo'sh"}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-                <span className="text-xs font-semibold text-amber-400">★ {Number(e.rating || 0).toFixed(1)}</span>
+                <span className="shrink-0 text-sm font-semibold text-amber-400">★ {Number(e.rating || 0).toFixed(1)}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-[#0e1210] py-2">
                   <p className="text-lg font-bold text-primary">{e.active_orders}</p>
-                  <p className="text-[10px] text-on-surface-variant">Faol</p>
+                  <p className="text-xs text-on-surface-variant">Faol</p>
                 </div>
                 <div className="rounded-xl bg-[#0e1210] py-2">
                   <p className="text-lg font-bold">{e.completed_orders}</p>
-                  <p className="text-[10px] text-on-surface-variant">Bajargan</p>
+                  <p className="text-xs text-on-surface-variant">Bajargan</p>
                 </div>
                 <div className="rounded-xl bg-[#0e1210] py-2">
-                  <p className="text-sm font-bold leading-7">{yearsSince(e.hired_at) ?? "—"}</p>
-                  <p className="text-[10px] text-on-surface-variant">Staj</p>
+                  <p className="truncate px-1 text-sm font-bold leading-7">{yearsSince(e.hired_at) ?? "—"}</p>
+                  <p className="text-xs text-on-surface-variant">Staj</p>
                 </div>
               </div>
-              <p className="flex items-center gap-1 text-xs text-on-surface-variant">
+              <p className="flex items-center gap-1 text-sm text-on-surface-variant">
                 <span className="material-symbols-outlined text-[16px]">call</span>
                 {formatPhone(e.user.phone)}
-                <span className="ml-auto text-primary opacity-0 transition group-hover:opacity-100">Kartani ochish →</span>
+                <span className="ml-auto text-xs text-primary opacity-0 transition group-hover:opacity-100">Kartani ochish →</span>
               </p>
             </button>
           ))}
         </div>
       )}
 
-      <Modal open={cardId !== null} title="Xodim shaxsiy kartasi" onClose={() => setCardId(null)} wide>
+      <Modal
+        open={cardId !== null}
+        size="lg"
+        title="Xodim shaxsiy kartasi"
+        onClose={() => setCardId(null)}
+        footer={<SecondaryButton onClick={() => setCardId(null)}>Yopish</SecondaryButton>}
+      >
         {cardLoading || !card || !emp ? (
           <LoadingBlock />
         ) : (
-          <div className="space-y-5">
-            <div className="flex flex-col gap-4 rounded-2xl border border-[#26352c] bg-gradient-to-br from-[#16221a] to-[#0e1210] p-5 sm:flex-row sm:items-center">
-              <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-2xl font-bold text-white">
+          <div className="space-y-5 text-sm">
+            <div className="flex flex-col gap-4 rounded-2xl border border-[#26352c] bg-gradient-to-br from-[#16221a] to-[#0e1210] p-4 sm:flex-row sm:items-center sm:p-5">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-xl font-bold text-white">
                 {initials(emp.user.full_name || emp.user.phone)}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xl font-bold text-white">{emp.user.full_name || "Ism kiritilmagan"}</p>
+                <p className="truncate text-lg font-semibold text-on-surface">{emp.user.full_name || "Ism kiritilmagan"}</p>
                 <p className="text-sm text-on-surface-variant">
                   {emp.position || "Lavozim kiritilmagan"} · {SPECIALTY_LABEL[emp.specialty] || emp.specialty}
                 </p>
@@ -309,44 +408,34 @@ export default function XodimlarPage() {
                   </a>
                 </div>
               </div>
-              <SecondaryButton icon="edit" onClick={() => openForm(emp)}>
+              <SecondaryButton icon="edit" className="self-start sm:self-center" onClick={() => openForm(emp)}>
                 Tahrirlash
               </SecondaryButton>
             </div>
 
-            <div className="flex gap-2 border-b border-[#26352c] pb-2">
-              {[
-                { id: "info" as const, label: "Ma'lumotlar", icon: "person" },
-                { id: "work" as const, label: "Ish faoliyati", icon: "work_history" },
-                { id: "status" as const, label: "Holat", icon: "manage_accounts" },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTab(t.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm ${
-                    tab === t.id ? "bg-primary/15 font-semibold text-primary" : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <TabBar
+              tabs={[
+                { id: "info" as CardTab, label: "Ma'lumotlar", icon: "person" },
+                { id: "work" as CardTab, label: "Ish faoliyati", icon: "work_history", count: card.stats.total_orders },
+                { id: "status" as CardTab, label: "Holat", icon: "manage_accounts" },
+              ]}
+              value={tab}
+              onChange={setTab}
+            />
 
             {tab === "info" ? (
-              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
                   ["Ishga kirgan sana", emp.hired_at ? `${formatDate(emp.hired_at)} (${yearsSince(emp.hired_at)})` : "—"],
                   ["Tug'ilgan sana", formatDate(emp.birth_date)],
                   ["Yashash manzili", emp.address || "—"],
                   ["Favqulodda aloqa", emp.emergency_phone ? formatPhone(emp.emergency_phone) : "—"],
                   ["Tizimga qo'shilgan", formatDate(emp.created_at)],
-                  ["Login", formatPhone(emp.user.phone)],
+                  ["Login (telefon)", formatPhone(emp.user.phone)],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3">
+                  <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3">
                     <p className="text-xs text-on-surface-variant">{label}</p>
-                    <p className="font-medium">{value}</p>
+                    <p className="break-words font-medium">{value}</p>
                   </div>
                 ))}
                 <div className="rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 sm:col-span-2">
@@ -364,16 +453,17 @@ export default function XodimlarPage() {
                   </div>
                 </div>
                 {emp.notes ? (
-                  <div className="whitespace-pre-line rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 text-xs sm:col-span-2">
-                    <p className="mb-1 text-on-surface-variant">Qo&apos;shimcha izohlar</p>
+                  <div className="whitespace-pre-line rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 sm:col-span-2">
+                    <p className="mb-1 text-xs text-on-surface-variant">Qo&apos;shimcha izohlar</p>
                     {emp.notes}
                   </div>
                 ) : null}
                 {emp.employment_status === "dismissed" ? (
-                  <div className="rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-xs sm:col-span-2">
-                    <p className="font-semibold text-error">Ishdan bo&apos;shagan: {formatDate(emp.dismissed_at)}</p>
-                    <p className="mt-1 text-on-surface-variant">Sabab: {emp.dismissal_reason || "—"}</p>
-                  </div>
+                  <InfoNote icon="person_off" tone="error" className="sm:col-span-2">
+                    <b>Ishdan bo&apos;shagan: {formatDate(emp.dismissed_at)}</b>
+                    <br />
+                    Sabab: {emp.dismissal_reason || "—"}
+                  </InfoNote>
                 ) : null}
               </div>
             ) : null}
@@ -386,35 +476,45 @@ export default function XodimlarPage() {
                     ["Faol", card.stats.active_orders],
                     ["Bajarilgan", card.stats.completed_orders],
                     ["Bekor", card.stats.cancelled_orders],
-                    ["Bajargan ishlar summasi", formatMoney(card.stats.revenue)],
+                    ["Bajargan ishlar", formatMoney(card.stats.revenue)],
                     ["Parvarish tashriflari", card.stats.care_visits_done],
                     ["Rejadagi tashriflar", card.stats.care_visits_planned],
                   ].map(([label, value]) => (
-                    <div key={String(label)} className="rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
-                      <p className="text-[11px] text-on-surface-variant">{label}</p>
-                      <p className="text-lg font-bold">{value}</p>
+                    <div key={String(label)} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
+                      <p className="text-xs text-on-surface-variant">{label}</p>
+                      <p className="truncate text-lg font-bold">{value}</p>
                     </div>
                   ))}
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-semibold">So&apos;nggi buyurtmalar</p>
+                  <p className="mb-2 text-base font-semibold">So&apos;nggi buyurtmalar</p>
                   {card.recent_orders.length ? (
                     <div className="space-y-2">
                       {card.recent_orders.map((o) => (
-                        <div key={o.id} className="flex items-center justify-between rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2 text-xs">
-                          <div>
-                            <p className="font-semibold">#{o.id} · {o.service_name}</p>
-                            <p className="text-on-surface-variant">{o.customer_name} · {formatDate(o.created_at)}</p>
+                        <div
+                          key={o.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold">
+                              #{o.id} · {o.service_name}
+                            </p>
+                            <p className="truncate text-xs text-on-surface-variant">
+                              {o.customer_name} · {formatDate(o.scheduled_date || o.created_at)}
+                              {o.time_slot ? ` · ${o.time_slot}` : ""}
+                            </p>
                           </div>
-                          <div className="text-right">
-                            <StatusPill variant={ORDER_STATUS_TONE[o.status]}>{o.work_stage_label || ORDER_STATUS_LABEL[o.status]}</StatusPill>
-                            <p className="mt-1 font-semibold">{formatMoney(o.quoted_price)}</p>
+                          <div className="shrink-0 text-right">
+                            <StatusPill variant={ORDER_STATUS_TONE[o.status]}>
+                              {o.work_stage_label || ORDER_STATUS_LABEL[o.status]}
+                            </StatusPill>
+                            <p className="mt-1 text-xs font-semibold">{formatMoney(o.quoted_price)}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-on-surface-variant">Hali buyurtmaga biriktirilmagan.</p>
+                    <p className="text-sm text-on-surface-variant">Hali buyurtmaga biriktirilmagan.</p>
                   )}
                 </div>
               </div>
@@ -422,39 +522,34 @@ export default function XodimlarPage() {
 
             {tab === "status" ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {(
-                    [
-                      { status: "active", icon: "work", title: "Ishga qaytarish", hint: "Buyurtmalarga biriktirish mumkin bo'ladi" },
-                      { status: "on_leave", icon: "beach_access", title: "Ta'tilga chiqarish", hint: "Vaqtincha buyurtma berilmaydi" },
-                      { status: "dismissed", icon: "person_off", title: "Ishdan bo'shatish", hint: "Tizimga kira olmaydi, tarix saqlanadi" },
-                    ] as { status: EmploymentStatus; icon: string; title: string; hint: string }[]
-                  )
-                    .filter((a) => a.status !== emp.employment_status)
-                    .map((a) => (
-                      <button
-                        key={a.status}
-                        type="button"
-                        onClick={() => setStatusAction({ status: a.status, reason: "" })}
-                        className={`rounded-2xl border p-4 text-left transition ${
-                          statusAction?.status === a.status
-                            ? "border-primary bg-primary/10"
-                            : a.status === "dismissed"
-                              ? "border-error/30 hover:border-error/60"
-                              : "border-[#26352c] hover:border-primary/40"
-                        }`}
-                      >
-                        <span className={`material-symbols-outlined ${a.status === "dismissed" ? "text-error" : "text-primary"}`}>
-                          {a.icon}
-                        </span>
-                        <p className="mt-2 text-sm font-semibold">{a.title}</p>
-                        <p className="text-xs text-on-surface-variant">{a.hint}</p>
-                      </button>
-                    ))}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {STATUS_ACTIONS.filter((a) => a.status !== emp.employment_status).map((a) => (
+                    <button
+                      key={a.status}
+                      type="button"
+                      onClick={() => setStatusAction({ status: a.status, reason: "" })}
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        statusAction?.status === a.status
+                          ? "border-primary bg-primary/10"
+                          : a.status === "dismissed"
+                            ? "border-error/30 hover:border-error/60"
+                            : "border-[#26352c] hover:border-primary/40"
+                      }`}
+                    >
+                      <span className={`material-symbols-outlined ${a.status === "dismissed" ? "text-error" : "text-primary"}`}>
+                        {a.icon}
+                      </span>
+                      <p className="mt-2 text-sm font-semibold">{a.title}</p>
+                      <p className="text-xs text-on-surface-variant">{a.hint}</p>
+                    </button>
+                  ))}
                 </div>
                 {statusAction ? (
                   <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#0e1210] p-4">
-                    <Field label={statusAction.status === "dismissed" ? "Ishdan bo'shatish sababi" : "Izoh (ixtiyoriy)"} required={statusAction.status === "dismissed"}>
+                    <Field
+                      label={statusAction.status === "dismissed" ? "Ishdan bo'shatish sababi" : "Izoh (ixtiyoriy)"}
+                      required={statusAction.status === "dismissed"}
+                    >
                       <textarea
                         rows={2}
                         className={inputClass}
@@ -462,12 +557,13 @@ export default function XodimlarPage() {
                         onChange={(e) => setStatusAction({ ...statusAction, reason: e.target.value })}
                       />
                     </Field>
-                    {statusAction.status === "dismissed" && emp.active_orders > 0 ? (
-                      <p className="text-xs text-amber-200">
-                        Diqqat: xodimda {emp.active_orders} ta faol buyurtma bor — ularni boshqa xodimga o&apos;tkazing.
-                      </p>
+                    {statusAction.status !== "active" && emp.active_orders > 0 ? (
+                      <InfoNote tone="warning" icon="warning">
+                        Xodimda {emp.active_orders} ta faol buyurtma bor — ularni Buyurtmalar bo&apos;limida boshqa xodimga
+                        o&apos;tkazing.
+                      </InfoNote>
                     ) : null}
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <PrimaryButton disabled={busy} onClick={() => void applyStatus()}>
                         Tasdiqlash
                       </PrimaryButton>
@@ -481,67 +577,80 @@ export default function XodimlarPage() {
         )}
       </Modal>
 
-      <Modal open={formOpen} title={editing ? "Xodim kartasini tahrirlash" : "Yangi xodim"} onClose={() => setFormOpen(false)} wide>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="To'liq ismi" required>
-            <input className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-          </Field>
-          <Field label="Telefon (login)" required>
-            <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </Field>
-          <Field label={editing ? "Yangi parol (ixtiyoriy)" : "Parol"} required={!editing}>
-            <input type="password" className={inputClass} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          </Field>
-          <Field label="Lavozim">
-            <input
-              className={inputClass}
-              placeholder="Brigadir, bog'bon, haydovchi..."
-              value={form.position}
-              onChange={(e) => setForm({ ...form, position: e.target.value })}
-            />
-          </Field>
-          <Field label="Mutaxassislik">
-            <select className={inputClass} value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })}>
-              {SPECIALTIES.map(([id, label]) => (
-                <option key={id} value={id}>{label}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Ishga kirgan sana">
-            <input type="date" className={inputClass} value={form.hired_at} onChange={(e) => setForm({ ...form, hired_at: e.target.value })} />
-          </Field>
-          <Field label="Tug'ilgan sana">
-            <input type="date" className={inputClass} value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
-          </Field>
-          <Field label="Favqulodda aloqa telefoni">
-            <input className={inputClass} value={form.emergency_phone} onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })} />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Yashash manzili">
-              <input className={inputClass} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Ko'nikmalar (vergul bilan)">
-              <input
-                className={inputClass}
-                placeholder="Daraxt kesish, gazon, sug'orish tizimi"
-                value={form.skills}
-                onChange={(e) => setForm({ ...form, skills: e.target.value })}
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Qo'shimcha izoh">
-              <textarea rows={2} className={inputClass} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </Field>
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <SecondaryButton onClick={() => setFormOpen(false)}>Bekor</SecondaryButton>
-          <PrimaryButton disabled={busy} onClick={() => void save()}>
-            {busy ? "Saqlanmoqda..." : "Saqlash"}
-          </PrimaryButton>
+      <Modal
+        open={formOpen}
+        size="lg"
+        title={editing ? "Xodim kartasini tahrirlash" : "Yangi xodim"}
+        description={
+          editing
+            ? "O'zgarishlar darhol saqlanadi. Parolni bo'sh qoldirsangiz, eski parol o'zgarmaydi."
+            : "Xodim shu telefon raqami va parol bilan xodim ilovasiga kiradi."
+        }
+        onClose={() => setFormOpen(false)}
+        footer={
+          <>
+            <SecondaryButton onClick={() => setFormOpen(false)}>Bekor</SecondaryButton>
+            <PrimaryButton icon="save" disabled={busy} onClick={() => void save()}>
+              {busy ? "Saqlanmoqda..." : "Saqlash"}
+            </PrimaryButton>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          <section>
+            <p className="mb-3 text-base font-semibold text-primary">Kirish ma&apos;lumotlari</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="To'liq ismi" required className="sm:col-span-2">
+                <input className={inputClass} value={form.full_name} onChange={set("full_name")} placeholder="Familiya Ism" />
+              </Field>
+              <Field label="Telefon (login)" required>
+                <input className={inputClass} inputMode="tel" value={form.phone} onChange={set("phone")} />
+              </Field>
+              <Field label={editing ? "Yangi parol (ixtiyoriy)" : "Parol"} required={!editing} hint="Kamida 6 belgi">
+                <input type="password" autoComplete="new-password" className={inputClass} value={form.password} onChange={set("password")} />
+              </Field>
+            </div>
+          </section>
+          <section>
+            <p className="mb-3 text-base font-semibold text-primary">Ish ma&apos;lumotlari</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Lavozim">
+                <input className={inputClass} placeholder="Brigadir, bog'bon, haydovchi..." value={form.position} onChange={set("position")} />
+              </Field>
+              <Field label="Mutaxassislik">
+                <select className={inputClass} value={form.specialty} onChange={set("specialty")}>
+                  {SPECIALTIES.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Ishga kirgan sana">
+                <input type="date" className={inputClass} value={form.hired_at} onChange={set("hired_at")} />
+              </Field>
+              <Field label="Ko'nikmalar" hint="Vergul bilan ajrating">
+                <input className={inputClass} placeholder="Daraxt kesish, gazon, sug'orish" value={form.skills} onChange={set("skills")} />
+              </Field>
+            </div>
+          </section>
+          <section>
+            <p className="mb-3 text-base font-semibold text-primary">Shaxsiy ma&apos;lumotlar</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Tug'ilgan sana">
+                <input type="date" className={inputClass} value={form.birth_date} onChange={set("birth_date")} />
+              </Field>
+              <Field label="Favqulodda aloqa telefoni">
+                <input className={inputClass} inputMode="tel" value={form.emergency_phone} onChange={set("emergency_phone")} />
+              </Field>
+              <Field label="Yashash manzili" className="sm:col-span-2">
+                <input className={inputClass} value={form.address} onChange={set("address")} />
+              </Field>
+              <Field label="Qo'shimcha izoh" className="sm:col-span-2">
+                <textarea rows={3} className={inputClass} value={form.notes} onChange={set("notes")} />
+              </Field>
+            </div>
+          </section>
         </div>
       </Modal>
     </div>

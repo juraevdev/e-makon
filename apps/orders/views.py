@@ -12,6 +12,7 @@ from apps.accounts.models import User
 from apps.core.exceptions import AppError
 from apps.core.permissions import IsAdmin, IsCustomer, IsSuperAdmin
 from apps.core.responses import success_response
+from apps.orders import schedule as scheduling
 from apps.orders.finance import FinanceService
 from apps.orders.models import Order
 from apps.orders.payments import PaymentService
@@ -19,6 +20,7 @@ from apps.orders.serializers import (
     OrderCreateSerializer,
     OrderEscrowSerializer,
     OrderPaymentSerializer,
+    OrderScheduleSerializer,
     OrderSerializer,
     OrderStageSerializer,
     OrderStatusUpdateSerializer,
@@ -192,6 +194,42 @@ class AdminOrderViewSet(OrganizationQuerysetMixin, viewsets.ReadOnlyModelViewSet
             actor=request.user,
             distance_km=data.get("distance_km"),
             eta_minutes=data.get("eta_minutes"),
+            note=data.get("note") or "",
+        )
+        order.refresh_from_db()
+        return success_response(OrderSerializer(order, context={"request": request}).data)
+
+    @action(detail=False, methods=["get"])
+    def availability(self, request):
+        """Firma kunlik bandligi: soatlik oraliqlar, har birida nechta buyurtma va sig'im."""
+        if request.user.role == User.Role.SUPERADMIN:
+            raw = request.query_params.get("organization")
+            if not raw:
+                raise AppError("Firmani tanlang (organization).")
+            try:
+                org_id = int(raw)
+            except ValueError:
+                raise AppError("Noto'g'ri firma.") from None
+        else:
+            org_id = organization_id_for_queryset(request.user)
+            if org_id is None:
+                raise AppError("Firma topilmadi.", status_code=404)
+        day = scheduling.parse_day(request.query_params.get("date"))
+        return success_response(scheduling.day_availability(org_id, day, include_orders=True))
+
+    @action(detail=True, methods=["post"])
+    def schedule(self, request, pk=None):
+        order = self.get_object()
+        serializer = OrderScheduleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        OrderService.reschedule(
+            order,
+            actor=request.user,
+            scheduled_date=data.get("scheduled_date"),
+            scheduled_start=data.get("scheduled_start"),
+            duration_minutes=data.get("duration_minutes"),
+            extend_minutes=data.get("extend_minutes"),
             note=data.get("note") or "",
         )
         order.refresh_from_db()

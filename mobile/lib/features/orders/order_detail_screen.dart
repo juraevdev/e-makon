@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/service_icons.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/live_refresh.dart';
 import '../../core/widgets/widgets.dart';
 import '../home/catalog_provider.dart';
 
@@ -20,10 +19,9 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh {
   late OrderModel _order;
   bool _busy = false;
-  Timer? _timer;
 
   static const _stageIcons = {
     'accepted': Icons.task_alt_rounded,
@@ -38,17 +36,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     super.initState();
     _order = widget.order;
     WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
-    // Firma bosqichni yangilaganda mijoz ekranida ham tez ko'rinsin.
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) {
-      if (_order.isActive) _refresh();
-    });
   }
 
+  // Firma bosqichni yangilaganda mijoz ekranida ham tez ko'rinsin.
   @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  Duration get liveInterval => const Duration(seconds: 5);
+
+  @override
+  bool get liveEnabled => _order.isActive || _order.isPaymentChecking;
+
+  @override
+  Future<void> liveRefresh() => _refresh();
 
   void _openChat() {
     final feed = context.read<HomeFeedProvider>();
@@ -111,7 +109,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         title: Text('Buyurtma #${_order.id}'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _refresh,
+        child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(20, 8, 20, 28 + MediaQuery.paddingOf(context).bottom),
         children: [
           GlassCard(
@@ -272,6 +274,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ],
         ],
+        ),
       ),
     );
   }

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { LoadingBlock, PrimaryButton, inputClass } from "@/components/ui";
+import { ExcelButton, LiveBadge, LoadingBlock, PrimaryButton, inputClass } from "@/components/ui";
 import { api } from "@/lib/api/client";
 import type { DashboardData } from "@/lib/api/types";
-import { formatMoney } from "@/lib/format";
+import { downloadExcel } from "@/lib/excel";
+import { escapeHtml, formatMoney } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 
 const PERIODS = [
@@ -24,15 +25,16 @@ async function downloadPdfReport(query: Record<string, string>) {
     summary: DashboardData;
   }>("/admin/reports/bundle/", { query });
   const s = bundle.summary;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${bundle.title}</title>
+  const e = escapeHtml;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${e(bundle.title)}</title>
   <style>
     body{font-family:Arial,sans-serif;padding:24px;color:#111}
     h1{color:#1b6d24} table{width:100%;border-collapse:collapse;margin:16px 0}
     th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}
     th{background:#eef7ee} .muted{color:#666;font-size:12px}
   </style></head><body>
-  <h1>${bundle.title}</h1>
-  <p class="muted">Yaratilgan: ${bundle.generated_at} · Davr: ${s.date_from} — ${s.date_to}</p>
+  <h1>${e(bundle.title)}</h1>
+  <p class="muted">Yaratilgan: ${e(bundle.generated_at)} · Davr: ${e(s.date_from)} — ${e(s.date_to)}</p>
   <h2>Umumiy ko'rsatkichlar</h2>
   <table>
     <tr><th>Firmalar</th><td>${s.firms_total} (faol ${s.firms_active})</td></tr>
@@ -45,11 +47,11 @@ async function downloadPdfReport(query: Record<string, string>) {
   </table>
   <h2>Firma aylanmalari</h2>
   <table><tr><th>Firma</th><th>Buyurtma</th><th>Aylanma</th><th>Stavka</th><th>Ulush</th></tr>
-  ${(s.firm_revenues || []).map((f) => `<tr><td>${f.name}</td><td>${f.orders}</td><td>${f.revenue}</td><td>${f.commission_rate}%</td><td>${f.platform_share}</td></tr>`).join("")}
+  ${(s.firm_revenues || []).map((f) => `<tr><td>${e(f.name)}</td><td>${e(f.orders)}</td><td>${e(f.revenue)}</td><td>${e(f.commission_rate)}%</td><td>${e(f.platform_share)}</td></tr>`).join("")}
   </table>
   <h2>Eng ko'p foydalanilgan xizmatlar</h2>
   <table><tr><th>Xizmat</th><th>Soni</th><th>Firmalar</th></tr>
-  ${(s.top_services || []).map((x) => `<tr><td>${x.name}</td><td>${x.orders}</td><td>${(x.firms || []).map((f) => f.name).join(", ")}</td></tr>`).join("")}
+  ${(s.top_services || []).map((x) => `<tr><td>${e(x.name)}</td><td>${e(x.orders)}</td><td>${e((x.firms || []).map((f) => f.name).join(", "))}</td></tr>`).join("")}
   </table>
   <script>window.onload=()=>window.print()</script>
   </body></html>`;
@@ -76,7 +78,7 @@ export default function HisobotlarPage() {
     return { period };
   }, [period, dateFrom, dateTo]);
 
-  const { data, loading, error } = useAsync(
+  const { data, loading, error, updatedAt } = useAsync(
     () => api<DashboardData>("/admin/dashboard/", { query }),
     [period, dateFrom, dateTo],
   );
@@ -104,6 +106,50 @@ export default function HisobotlarPage() {
   const maxCount = Math.max(...series.map((p) => p.count || 0), 1);
   const firms = data.firm_revenues ?? [];
 
+  function onExcel() {
+    if (!data) return;
+    downloadExcel(`hisobot_${data.date_from}_${data.date_to}`, [
+      {
+        name: "Umumiy",
+        headers: ["Ko'rsatkich", "Qiymat"],
+        rows: [
+          ["Davr", `${data.date_from} — ${data.date_to}`],
+          ["Firmalar (jami)", data.firms_total],
+          ["Faol firmalar", data.firms_active],
+          ["Faol buyurtmalar", data.active_orders],
+          ["Davr buyurtmalari", data.orders_in_period],
+          ["Bajarilgan buyurtmalar", data.completed_orders],
+          ["Jami aylanma (UZS)", Number(data.revenue_done) || 0],
+          ["Davr aylanmasi (UZS)", Number(data.revenue_period) || 0],
+          ["Kampaniya ulushi (UZS)", Number(data.platform_share_total) || 0],
+          ["O'rtacha chek (UZS)", Number(data.avg_check) || 0],
+        ],
+      },
+      {
+        name: "Firmalar",
+        headers: ["Firma", "Buyurtma", "Aylanma (UZS)", "Stavka %", "Tavsiya %", "Ulush (UZS)"],
+        rows: firms.map((f) => [
+          f.name,
+          f.orders,
+          Number(f.revenue) || 0,
+          Number(f.commission_rate) || 0,
+          Number(f.suggested_rate) || 0,
+          Number(f.platform_share) || 0,
+        ]),
+      },
+      {
+        name: "Dinamika",
+        headers: ["Sana", "Buyurtmalar", "Aylanma (UZS)"],
+        rows: series.map((p) => [p.label || p.day, p.count, Number(p.revenue) || 0]),
+      },
+      {
+        name: "Xizmatlar",
+        headers: ["Xizmat", "Buyurtmalar", "Firmalar"],
+        rows: (data.top_services ?? []).map((x) => [x.name, x.orders, (x.firms || []).map((f) => f.name).join(", ")]),
+      },
+    ]);
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -128,7 +174,9 @@ export default function HisobotlarPage() {
             <input type="date" className={inputClass} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
         ) : null}
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <LiveBadge updatedAt={updatedAt} />
+          <ExcelButton onClick={onExcel} />
           <PrimaryButton icon="picture_as_pdf" disabled={pdfBusy} onClick={() => void onPdf()}>
             PDF yuklab olish
           </PrimaryButton>
@@ -198,17 +246,24 @@ export default function HisobotlarPage() {
           {series.length === 0 ? (
             <p className="py-16 text-center text-sm text-on-surface-variant">Buyurtmalar yo&apos;q</p>
           ) : (
-            <div className="flex h-64 items-end gap-1.5 px-2">
-              {series.map((p, i) => (
-                <div key={`${p.day}-${i}`} className="flex flex-1 flex-col items-center gap-2">
-                  <div
-                    className="w-full max-w-[28px] rounded-t-md bg-gradient-to-t from-primary-container to-primary/80"
-                    style={{ height: `${Math.max(8, (p.count / maxCount) * 100)}%` }}
-                    title={`${p.count} · ${formatMoney(p.revenue)}`}
-                  />
-                  <span className="text-[9px] text-on-surface-variant">{(p.label || "").slice(5) || p.label}</span>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <div className="flex h-64 min-w-full items-stretch gap-1.5 px-2" style={{ minWidth: series.length * 22 }}>
+                {series.map((p, i) => (
+                  <div key={`${p.day}-${i}`} className="group flex min-w-0 flex-1 flex-col items-center gap-2">
+                    <div className="flex w-full flex-1 flex-col items-center justify-end">
+                      <span className="mb-1 text-[10px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        {p.count}
+                      </span>
+                      <div
+                        className="w-full max-w-[28px] rounded-t-md bg-gradient-to-t from-primary-container to-primary/80 transition-all group-hover:to-primary"
+                        style={{ height: `${p.count ? Math.max(4, (p.count / maxCount) * 100) : 2}%` }}
+                        title={`${p.label}: ${p.count} ta · ${formatMoney(p.revenue)}`}
+                      />
+                    </div>
+                    <span className="text-[9px] text-on-surface-variant">{(p.label || "").slice(5) || p.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

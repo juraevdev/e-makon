@@ -81,6 +81,9 @@ class Order(TimeStampedModel):
     eta_at = models.DateTimeField(null=True, blank=True)
     scheduled_date = models.DateField(null=True, blank=True)
     time_slot = models.CharField(max_length=64, blank=True)
+    # Firma bandligi shu ikki maydon bo'yicha hisoblanadi; ish cho'zilsa firma davomiylikni uzaytiradi.
+    scheduled_start = models.TimeField(null=True, blank=True)
+    duration_minutes = models.PositiveIntegerField(default=60)
 
     # Optional Telegram ops bridge fields
     telegram_group_message_id = models.BigIntegerField(null=True, blank=True)

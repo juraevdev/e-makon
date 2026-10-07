@@ -10,6 +10,7 @@ import 'features/auth/auth_provider.dart';
 import 'features/chat/chat_provider.dart';
 import 'features/favorites/favorites_provider.dart';
 import 'features/home/catalog_provider.dart';
+import 'features/loyalty/loyalty_provider.dart';
 import 'features/reviews/reviews_provider.dart';
 
 class EmakonApp extends StatefulWidget {
@@ -29,8 +30,11 @@ class _EmakonAppState extends State<EmakonApp> {
   late final FavoritesProvider _favorites = FavoritesProvider()..load();
   late final ReviewsProvider _reviews = ReviewsProvider(_api);
   late final ChatProvider _chat = ChatProvider(_api);
+  late final LoyaltyProvider _loyalty = LoyaltyProvider(_api, _auth);
   late final GoRouter _router = createRouter();
+  late final AppLifecycleListener _lifecycle;
   bool _wasLoggedIn = false;
+  int? _userId;
 
   @override
   void initState() {
@@ -41,22 +45,51 @@ class _EmakonAppState extends State<EmakonApp> {
       _router.go('/login');
     };
     _auth.addListener(_onAuthChanged);
+    // Firma buyurtmani bajarganda server ball beradi — balansni darhol yangilaymiz.
+    _orders.onStatusChanged = (order) {
+      if (order.isCompleted) {
+        _auth.refreshMe();
+        _loyalty.load(silent: true);
+      }
+    };
+    _lifecycle = AppLifecycleListener(onResume: _onResume);
   }
 
-  /// Chiqish yoki sessiya tugashida oldingi foydalanuvchining buyurtma/suhbatlari qolmasin.
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    _auth.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
   void _onAuthChanged() {
+    // Chiqish yoki sessiya tugashida oldingi foydalanuvchining buyurtma/suhbatlari qolmasin.
     final now = _auth.isLoggedIn;
     if (_wasLoggedIn && !now) {
       _orders.reset();
       _chat.reset();
     }
     _wasLoggedIn = now;
+
+    final id = _auth.user?.id;
+    if (id == _userId) return;
+    _userId = id;
+    if (id == null) {
+      _loyalty.reset();
+    } else if (!_auth.bootstrapping) {
+      _loyalty.load(silent: true);
+    }
   }
 
-  @override
-  void dispose() {
-    _auth.removeListener(_onAuthChanged);
-    super.dispose();
+  /// Ilova qayta ochilganda superadmin/firma o'zgartirgan ma'lumotlar (katalog, bannerlar, ballar) yangilanadi.
+  void _onResume() {
+    _catalog.load(silent: true);
+    _feed.load(_api, silent: true, withLocation: false);
+    if (!_auth.isLoggedIn) return;
+    _auth.refreshMe();
+    _loyalty.load(silent: true);
+    _messages.load(_api, silent: true);
+    _chat.loadRooms(silent: true);
   }
 
   @override
@@ -72,6 +105,7 @@ class _EmakonAppState extends State<EmakonApp> {
         ChangeNotifierProvider.value(value: _favorites),
         ChangeNotifierProvider.value(value: _reviews),
         ChangeNotifierProvider.value(value: _chat),
+        ChangeNotifierProvider.value(value: _loyalty),
       ],
       child: MaterialApp.router(
         title: 'e-makon',

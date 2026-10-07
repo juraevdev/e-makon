@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  ConfirmDialog,
+  ExcelButton,
   Field,
   inputClass,
+  LiveBadge,
   LoadingBlock,
   PrimaryButton,
   SecondaryButton,
@@ -14,6 +17,7 @@ import {
 import { api, ApiError } from "@/lib/api/client";
 import type { FirmLedgerSummary, FirmStats, OrderStatus, PartnerFirm } from "@/lib/api/types";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, SPECIALTY_LABEL } from "@/lib/domain";
+import { downloadExcel } from "@/lib/excel";
 import { formatDate, formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 
@@ -37,7 +41,8 @@ export default function FirmaProfilPage() {
   const id = params.id;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [rate, setRate] = useState("");
+  // null — serverdagi qiymat ko'rsatiladi; jonli yangilanish foydalanuvchi kiritayotgan qiymatni bosib ketmasin.
+  const [rateDraft, setRateDraft] = useState<string | null>(null);
   const [exitReason, setExitReason] = useState("");
   const [trialDays, setTrialDays] = useState("30");
   const [msgKind, setMsgKind] = useState<"message" | "warning" | "report">("message");
@@ -46,15 +51,14 @@ export default function FirmaProfilPage() {
   const [fineAmount, setFineAmount] = useState("");
   const [fineReason, setFineReason] = useState("");
   const [banDays, setBanDays] = useState("7");
-  const [debt, setDebt] = useState("");
+  const [debtDraft, setDebtDraft] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"block" | "end" | null>(null);
 
-  const { data, loading, error, reload } = useAsync(async () => {
+  const { data, loading, error, reload, updatedAt } = useAsync(async () => {
     const [stats, ledger] = await Promise.all([
       api<FirmStats>(`/admin/firms/${id}/stats/`),
       api<FirmLedgerSummary>(`/admin/firms/${id}/ledger/`),
     ]);
-    setRate(String(stats.firm.commission_rate));
-    setDebt(String(stats.firm.debt_amount));
     return { ...stats, finance: ledger };
   }, [id]);
 
@@ -75,6 +79,86 @@ export default function FirmaProfilPage() {
   if (error || !data) return <p className="p-8 text-error">{error}</p>;
 
   const f = data.firm;
+  const rate = rateDraft ?? String(f.commission_rate);
+  const debt = debtDraft ?? String(f.debt_amount);
+
+  function exportExcel() {
+    if (!data) return;
+    const firm = data.firm;
+    downloadExcel(`firma_${firm.id}`, [
+      {
+        name: "Profil",
+        headers: ["Ko'rsatkich", "Qiymat"],
+        rows: [
+          ["Nomi", firm.name],
+          ["Yuridik nomi", firm.legal_name],
+          ["Holat", statusLabel(firm.status)],
+          ["Mutaxassislik", firm.specialty_label || SPECIALTY_LABEL[firm.specialty] || firm.specialty],
+          ["Telefon", formatPhone(firm.phone)],
+          ["Email", firm.email],
+          ["Manzil", firm.address],
+          ["Hudud", [firm.region, firm.district].filter(Boolean).join(", ")],
+          ["Reyting", Number(firm.rating) || 0],
+          ["Baholar soni", firm.ratings_count || 0],
+          ["Stavka (%)", Number(firm.commission_rate) || 0],
+          ["Tavsiya stavka (%)", Number(data.suggested_rate) || 0],
+          ["Aylanma (UZS)", Number(data.revenue) || 0],
+          ["Kampaniya ulushi (UZS)", Number(data.platform_share) || 0],
+          ["Escrowda (UZS)", Number(data.finance.held_in_escrow) || 0],
+          ["Firmaga to'langan (UZS)", Number(data.finance.paid_to_firm) || 0],
+          ["Userga qaytarilgan (UZS)", Number(data.finance.refunded) || 0],
+          ["Qarz (UZS)", Number(data.finance.debt) || 0],
+          ["Ogohlantirishlar", firm.warnings_count || 0],
+          ["Savdo taqiqi", firm.is_sales_banned ? `Ha, ${firm.sales_banned_until ? formatDateTime(firm.sales_banned_until) : ""}` : "Yo'q"],
+          ["Sinov tugashi", firm.trial_ends_at ? formatDateTime(firm.trial_ends_at) : "Doimiy"],
+        ],
+      },
+      {
+        name: "Buyurtmalar",
+        headers: ["ID", "Mijoz", "Telefon", "Xizmat", "Narx (UZS)", "Ulush (UZS)", "Holat", "Sana"],
+        rows: data.recent_orders.map((o) => [
+          o.id,
+          o.customer_name,
+          o.customer_phone ? formatPhone(o.customer_phone) : "",
+          o.service_name,
+          Number(o.quoted_price) || 0,
+          Number(o.platform_share) || 0,
+          ORDER_STATUS_LABEL[o.status as OrderStatus] ?? o.status,
+          formatDateTime(o.created_at),
+        ]),
+      },
+      {
+        name: "Xizmatlar",
+        headers: ["Xizmat", "Buyurtmalar", "Aylanma (UZS)"],
+        rows: data.by_service.map((s) => [s.name, s.orders, Number(s.revenue) || 0]),
+      },
+      {
+        name: "Ledger",
+        headers: ["Turi", "Izoh", "Summa (UZS)", "Sana"],
+        rows: data.finance.ledger.map((e) => [
+          e.entry_type_label,
+          e.note || `${e.debit_label} → ${e.credit_label}`,
+          Number(e.amount) || 0,
+          formatDateTime(e.created_at),
+        ]),
+      },
+      {
+        name: "Jarimalar",
+        headers: ["Sabab", "Summa (UZS)", "To'langan", "Sana"],
+        rows: data.fines.map((x) => [x.reason, Number(x.amount) || 0, x.is_paid ? "Ha" : "Yo'q", formatDateTime(x.created_at)]),
+      },
+      {
+        name: "Baholar",
+        headers: ["Mijoz", "Baho", "Izoh", "Sana"],
+        rows: data.reviews.map((r) => [r.customer_name || r.customer_phone, r.score, r.comment, formatDateTime(r.created_at)]),
+      },
+      {
+        name: "Nazorat tarixi",
+        headers: ["Amal", "Izoh", "Kim", "Sana"],
+        rows: data.moderation_logs.map((l) => [l.action_label, l.note, l.created_by_name, formatDateTime(l.created_at)]),
+      },
+    ]);
+  }
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-8">
@@ -120,7 +204,11 @@ export default function FirmaProfilPage() {
             ) : null}
           </p>
         </div>
-        <StatusPill variant={statusTone(f.status)}>{statusLabel(f.status)}</StatusPill>
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveBadge updatedAt={updatedAt || undefined} />
+          <ExcelButton onClick={exportExcel} />
+          <StatusPill variant={statusTone(f.status)}>{statusLabel(f.status)}</StatusPill>
+        </div>
       </div>
 
       {err ? <p className="rounded-xl border border-error/40 bg-error/10 px-4 py-2 text-sm text-error">{err}</p> : null}
@@ -203,7 +291,7 @@ export default function FirmaProfilPage() {
             Tavsiya: <strong className="text-primary">{data.suggested_rate}%</strong> (0.1%–3%)
           </p>
           <Field label="Kampaniya ulushi (%)">
-            <input className={inputClass} type="number" step="0.1" min="0.1" max="3" value={rate} onChange={(e) => setRate(e.target.value)} />
+            <input className={inputClass} type="number" step="0.1" min="0.1" max="3" value={rate} onChange={(e) => setRateDraft(e.target.value)} />
           </Field>
           <div className="mt-3 flex flex-wrap gap-2">
             <PrimaryButton
@@ -211,6 +299,7 @@ export default function FirmaProfilPage() {
               onClick={() =>
                 void run(async () => {
                   await api(`/admin/firms/${id}/`, { method: "PATCH", body: { commission_rate: Number(rate) } });
+                  setRateDraft(null);
                 })
               }
             >
@@ -218,7 +307,12 @@ export default function FirmaProfilPage() {
             </PrimaryButton>
             <SecondaryButton
               disabled={busy}
-              onClick={() => void run(async () => { await api(`/admin/firms/${id}/apply_suggested_rate/`, { method: "POST" }); })}
+              onClick={() =>
+                void run(async () => {
+                  await api(`/admin/firms/${id}/apply_suggested_rate/`, { method: "POST" });
+                  setRateDraft(null);
+                })
+              }
             >
               Avtomatik
             </SecondaryButton>
@@ -227,7 +321,7 @@ export default function FirmaProfilPage() {
           <div className="mt-5 border-t border-[#26352c] pt-4">
             <Field label="Qarz (UZS)">
               <div className="flex gap-2">
-                <input className={inputClass} type="number" min="0" value={debt} onChange={(e) => setDebt(e.target.value)} />
+                <input className={inputClass} type="number" min="0" value={debt} onChange={(e) => setDebtDraft(e.target.value)} />
                 <SecondaryButton
                   disabled={busy}
                   onClick={() =>
@@ -236,6 +330,7 @@ export default function FirmaProfilPage() {
                         method: "POST",
                         body: { amount: Number(debt) || 0 },
                       });
+                      setDebtDraft(null);
                     })
                   }
                 >
@@ -270,15 +365,7 @@ export default function FirmaProfilPage() {
                   Blokdan chiqarish
                 </PrimaryButton>
               ) : f.status !== "ended" ? (
-                <SecondaryButton
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      if (!confirm("Bloklashni tasdiqlaysizmi?")) return;
-                      await api(`/admin/firms/${id}/block/`, { method: "POST", body: { reason: exitReason || "Admin blokladi" } });
-                    })
-                  }
-                >
+                <SecondaryButton disabled={busy} onClick={() => setConfirmAction("block")}>
                   Vaqtincha bloklash
                 </SecondaryButton>
               ) : null}
@@ -286,12 +373,7 @@ export default function FirmaProfilPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      if (!confirm("Kelishuvni tugatish?")) return;
-                      await api(`/admin/firms/${id}/end_agreement/`, { method: "POST", body: { exit_reason: exitReason } });
-                    })
-                  }
+                  onClick={() => setConfirmAction("end")}
                   className="text-sm text-error hover:underline"
                 >
                   Kelishuvni tugatish
@@ -528,6 +610,36 @@ export default function FirmaProfilPage() {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        variant="danger"
+        title={confirmAction === "end" ? "Kelishuvni tugatish" : "Firmani vaqtincha bloklash"}
+        description={
+          <>
+            <strong>{f.name}</strong>{" "}
+            {confirmAction === "end"
+              ? "bilan kelishuv tugatiladi va firma platformadan chiqariladi."
+              : "bloklanadi va yangi buyurtma qabul qila olmaydi."}
+            <br />
+            Sabab: {exitReason.trim() || (confirmAction === "end" ? "ko'rsatilmagan" : "Admin blokladi")}
+          </>
+        }
+        confirmText={confirmAction === "end" ? "Tugatish" : "Bloklash"}
+        busy={busy}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => {
+          const action = confirmAction;
+          void run(async () => {
+            if (action === "end") {
+              await api(`/admin/firms/${id}/end_agreement/`, { method: "POST", body: { exit_reason: exitReason } });
+            } else {
+              await api(`/admin/firms/${id}/block/`, { method: "POST", body: { reason: exitReason || "Admin blokladi" } });
+            }
+            setConfirmAction(null);
+          });
+        }}
+      />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
 import '../../core/utils/location_helper.dart';
@@ -16,6 +18,8 @@ import '../../core/widgets/widgets.dart';
 import '../auth/auth_provider.dart';
 import '../favorites/favorites_provider.dart';
 import '../home/catalog_provider.dart';
+import '../loyalty/loyalty_provider.dart';
+import '../loyalty/loyalty_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,19 +38,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _editing = false;
   bool _hydrated = false;
 
+  UserModel? _shown;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_hydrated) return;
     final u = context.read<AuthProvider>().user;
     if (u != null) {
-      _email.text = u.email;
-      _address.text = u.address;
-      _first.text = u.firstName;
-      _last.text = u.lastName;
-      _company.text = u.company;
+      _hydrate(u);
       _hydrated = true;
     }
+  }
+
+  void _hydrate(UserModel u) {
+    _shown = u;
+    _email.text = u.email;
+    _address.text = u.address;
+    _first.text = u.firstName;
+    _last.text = u.lastName;
+    _company.text = u.company;
+  }
+
+  Future<void> _reload() async {
+    final auth = context.read<AuthProvider>();
+    final loyalty = context.read<LoyaltyProvider>();
+    await Future.wait([auth.refreshMe(), loyalty.load(silent: true)]);
   }
 
   @override
@@ -60,9 +77,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75);
+    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75, maxWidth: 1024);
     if (file == null || !mounted) return;
-    await context.read<AuthProvider>().updateProfile(avatarPath: file.path);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await context.read<AuthProvider>().uploadAvatar(file);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Profil rasmi yangilandi'), behavior: SnackBarBehavior.floating),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Rasm yuklanmadi: $e'), behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
+  ImageProvider? _avatarImage(UserModel? user) {
+    final path = user?.avatarPath;
+    if (path == null || path.isEmpty) return null;
+    if (user!.hasNetworkAvatar || kIsWeb) return NetworkImage(path);
+    return FileImage(File(path));
   }
 
   Future<void> _detectLocation() async {
@@ -119,6 +153,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
+    // Server (firma/superadmin) profilni o'zgartirgan bo'lsa — tahrirlanmayotgan maydonlar yangilanadi.
+    if (user != null && !_editing && !identical(user, _shown)) {
+      _shown = user;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_editing && identical(context.read<AuthProvider>().user, user)) _hydrate(user);
+      });
+    }
+    final avatar = _avatarImage(user);
     final favs = context.watch<FavoritesProvider>();
     final catalog = context.watch<CatalogProvider>().services;
     final feed = context.watch<HomeFeedProvider>();
@@ -136,7 +178,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         showWeather: true,
         child: SafeArea(
           bottom: false,
-          child: ListView(
+          child: RefreshIndicator(
+            color: accent,
+            onRefresh: _reload,
+            child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.paddingOf(context).bottom + 16),
             children: [
               Row(
@@ -214,8 +260,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         CircleAvatar(
                           radius: 40,
                           backgroundColor: accent.withValues(alpha: 0.25),
-                          backgroundImage: user?.avatarPath != null ? FileImage(File(user!.avatarPath!)) : null,
-                          child: user?.avatarPath == null
+                          backgroundImage: avatar,
+                          onBackgroundImageError: avatar == null ? null : (_, _) {},
+                          child: avatar == null
                               ? Text(
                                   (user?.displayName.isNotEmpty == true ? user!.displayName[0] : 'E').toUpperCase(),
                                   style: const TextStyle(fontSize: 30, color: Colors.white, fontWeight: FontWeight.w800),
@@ -307,7 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       label: 'Ballar',
                       value: '${user?.points ?? 0}',
                       accent: accent,
-                      onTap: null,
+                      onTap: () => showLoyaltySheet(context),
                     ),
                   ),
                 ],
@@ -463,6 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

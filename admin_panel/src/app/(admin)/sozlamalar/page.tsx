@@ -58,7 +58,7 @@ export default function SozlamalarPage() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 p-4 md:p-8">
       <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-low p-6">
-        <h3 className="mb-1 text-xl font-semibold">Mening profilim</h3>
+        <h3 className="mb-1 text-lg font-semibold">Mening profilim</h3>
         <p className="mb-4 text-xs text-on-surface-variant">
           {ROLE_LABEL[user?.role || "admin"]}
           {firm ? ` · ${firm.name}` : ""}
@@ -83,7 +83,7 @@ export default function SozlamalarPage() {
       </section>
 
       <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-low p-6">
-        <h3 className="mb-1 text-xl font-semibold">Platforma qoidalari</h3>
+        <h3 className="mb-1 text-lg font-semibold">Platforma qoidalari</h3>
         <p className="mb-5 text-xs text-on-surface-variant">
           Mijoz bilan xavfsiz va ishonchli aloqa uchun hisob-kitob tizim orqali amalga oshiriladi.
         </p>
