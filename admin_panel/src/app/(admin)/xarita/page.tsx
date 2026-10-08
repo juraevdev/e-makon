@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EmbedMap, GOOGLE_MAPS_KEY, GoogleMap, type MapPoint } from "@/components/map/GoogleMap";
+import { MAP_COLORS, YandexMap, type MapPoint } from "@/components/map/YandexMap";
 import { FilterChip, LoadingBlock, StatusPill } from "@/components/ui";
 import { api } from "@/lib/api/client";
 import type { MapPayload } from "@/lib/api/types";
@@ -14,7 +14,6 @@ import { useFirm } from "@/providers/FirmProvider";
 
 type Layer = "all" | "orders" | "workers" | "care";
 
-const COLORS = { firm: "#42a5f5", order: "#ffb300", worker: "#66bb6a", care: "#ab47bc" };
 const DEFAULT_CENTER = { lat: 40.1158, lng: 67.8422 };
 
 export default function XaritaPage() {
@@ -32,44 +31,41 @@ export default function XaritaPage() {
     if (!data) return [];
     const list: MapPoint[] = [];
     if (firmLat !== null && firmLng !== null && firm) {
-      list.push({ key: "firm", lat: firmLat, lng: firmLng, title: firm.name, subtitle: "Firma bazasi", color: COLORS.firm });
+      list.push({ key: "firm", kind: "firm", lat: firmLat, lng: firmLng, title: firm.name, subtitle: "Firma bazasi" });
     }
     if (layer === "all" || layer === "orders") {
       data.orders.forEach((o) => {
         if (o.lat == null || o.lng == null) return;
         list.push({
           key: `o-${o.id}`,
+          kind: "order",
           lat: o.lat,
           lng: o.lng,
           title: `#${o.id} · ${o.service}`,
           subtitle: `${o.customer} · ${o.work_stage_label || ORDER_STATUS_LABEL[o.status]}`,
-          color: COLORS.order,
         });
       });
     }
     if (layer === "all" || layer === "workers") {
       data.workers.forEach((w) => {
         if (w.lat == null || w.lng == null) return;
-        list.push({ key: `w-${w.id}`, lat: w.lat, lng: w.lng, title: w.name, subtitle: formatPhone(w.phone), color: COLORS.worker });
+        list.push({ key: `w-${w.id}`, kind: "worker", lat: w.lat, lng: w.lng, title: w.name, subtitle: formatPhone(w.phone) });
       });
     }
     if (layer === "all" || layer === "care") {
       (data.care ?? []).forEach((c) => {
         list.push({
           key: `c-${c.id}`,
+          kind: "care",
           lat: c.lat,
           lng: c.lng,
           title: c.title,
           subtitle: `Parvarish · ${CARE_CLIENT_TYPE_LABEL[c.client_type]}`,
-          color: COLORS.care,
         });
       });
     }
     return list;
   }, [data, layer, firm, firmLat, firmLng]);
-
-  const focused = points.find((p) => p.key === focus) ?? null;
-  const embedTarget = focused ?? points.find((p) => p.key !== "firm") ?? points[0] ?? { ...center };
 
   if (loading) return <LoadingBlock />;
   if (error || !data) return <p className="p-8 text-error">{error}</p>;
@@ -78,18 +74,14 @@ export default function XaritaPage() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
-      <div className="relative h-[460px] flex-1 border-b border-surface-variant bg-[#0c1210] lg:h-auto lg:border-b-0 lg:border-r">
-        {GOOGLE_MAPS_KEY ? (
-          <GoogleMap points={points} focusKey={focus} onSelect={setFocus} fallbackCenter={center} />
-        ) : (
-          <EmbedMap lat={embedTarget.lat} lng={embedTarget.lng} zoom={focused ? 16 : 13} />
-        )}
+      <div className="relative h-[460px] shrink-0 border-b lg:flex-1 lg:shrink border-surface-variant bg-[#0c1210] lg:h-auto lg:border-b-0 lg:border-r">
+        <YandexMap points={points} focusKey={focus} onSelect={setFocus} fallbackCenter={center} />
         <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-2xl border border-[#26352c] bg-[#0c0f0f]/90 p-3 text-xs">
           {[
-            ["Firma", COLORS.firm, firm ? 1 : 0],
-            ["Faol buyurtmalar", COLORS.order, data.orders_active],
-            ["Xodimlar", COLORS.worker, data.workers_active],
-            ["Parvarish obyektlari", COLORS.care, data.care?.length ?? 0],
+            ["Firma", MAP_COLORS.firm, firm ? 1 : 0],
+            ["Faol buyurtmalar", MAP_COLORS.order, data.orders_active],
+            ["Xodimlar", MAP_COLORS.worker, data.workers_active],
+            ["Parvarish obyektlari", MAP_COLORS.care, data.care?.length ?? 0],
           ].map(([label, color, n]) => (
             <p key={String(label)} className="flex items-center gap-2 py-0.5">
               <span className="h-3 w-3 rounded-full border-2 border-white" style={{ background: String(color) }} />
@@ -104,8 +96,8 @@ export default function XaritaPage() {
         <div className="border-b border-[#26352c] p-4">
           <h2 className="text-lg font-semibold">Jonli xarita</h2>
           <p className="mt-1 text-xs text-outline">
-            Buyurtmalar, xodimlar va parvarish obyektlari. Har 30 soniyada yangilanadi.
-            {!GOOGLE_MAPS_KEY ? " Ro'yxatdan nuqtani tanlang — xarita o'sha joyga o'tadi." : ""}
+            Buyurtmalar, xodimlar va parvarish obyektlari. Har 30 soniyada yangilanadi. Ro&apos;yxatdan nuqtani
+            tanlang — xarita o&apos;sha joyga o&apos;tadi.
           </p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             <FilterChip label="Barchasi" active={layer === "all"} onClick={() => setLayer("all")} />

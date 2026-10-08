@@ -14,6 +14,7 @@ import { api } from "@/lib/api/client";
 import type { FirmStats, PartnerFirm } from "@/lib/api/types";
 import { FIRM_STATUS_LABEL, SPECIALTY_LABEL } from "@/lib/domain";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { mapsLink } from "@/lib/geo";
 import { useAsync } from "@/hooks/useAsync";
 import { useFirm } from "@/providers/FirmProvider";
 import { useToast } from "@/providers/ToastProvider";
@@ -58,6 +59,12 @@ function socialUrl(key: SocialKey, value: string) {
   if (key === "facebook") return `https://facebook.com/${handle}`;
   return `https://${raw}`;
 }
+
+const SECTION_TITLE = "text-[19px] font-bold leading-tight tracking-[-0.01em] text-on-surface";
+const SECTION_LEAD = "mt-1 max-w-2xl text-[13.5px] leading-relaxed text-on-surface-variant/80";
+const EYEBROW = "text-[11px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant/70";
+const FIELD_TYPO =
+  "[&>span:first-child]:text-[12.5px] [&>span:first-child]:font-semibold [&>span:first-child]:tracking-[0.01em] [&>span:first-child]:text-on-surface-variant/90 [&_input]:text-[14.5px] [&_input]:font-medium [&_input]:tracking-[0.005em] [&_input]:placeholder:font-normal [&_input]:placeholder:text-on-surface-variant/45 [&_textarea]:text-[14.5px] [&_textarea]:leading-relaxed";
 
 const MESSAGE_KIND_LABEL: Record<string, string> = {
   message: "Xabar",
@@ -126,9 +133,10 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
 
   return (
     <section className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-6">
-      <h3 className="mb-1 text-lg font-semibold">Aloqa ma&apos;lumotlari</h3>
-      <p className="mb-4 text-sm text-on-surface-variant">Mijozlar ilovada shu ma&apos;lumotlarni ko&apos;radi.</p>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <p className={EYEBROW}>Kontaktlar</p>
+      <h3 className={`mt-1.5 ${SECTION_TITLE}`}>Aloqa ma&apos;lumotlari</h3>
+      <p className={`mb-5 ${SECTION_LEAD}`}>Mijozlar ilovada shu ma&apos;lumotlarni ko&apos;radi.</p>
+      <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${FIELD_TYPO}`}>
         <Field label="Telefon">
           <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </Field>
@@ -158,13 +166,13 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
           </SecondaryButton>
           {form.location_lat && form.location_lng ? (
             <a
-              href={`https://www.google.com/maps?q=${form.location_lat},${form.location_lng}`}
+              href={mapsLink(form.location_lat, form.location_lng) ?? undefined}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-[#26352c] px-4 py-2 text-sm text-primary hover:bg-primary/10"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#26352c] px-4 py-2 text-[13.5px] font-semibold tracking-[0.01em] text-primary hover:bg-primary/10"
             >
               <span className="material-symbols-outlined text-[18px]">map</span>
-              Google Mapsda ko&apos;rish
+              Yandex xaritada ko&apos;rish
             </a>
           ) : null}
         </div>
@@ -188,13 +196,14 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
         </div>
       </div>
 
-      <h3 className="mb-1 mt-8 text-lg font-semibold">Ijtimoiy tarmoqlar</h3>
-      <p className="mb-4 text-sm text-on-surface-variant">
+      <p className={`mt-10 ${EYEBROW}`}>Tarmoqlar</p>
+      <h3 className={`mt-1.5 ${SECTION_TITLE}`}>Ijtimoiy tarmoqlar</h3>
+      <p className={`mb-5 ${SECTION_LEAD}`}>
         Telegram kanal, guruh, Instagram va YouTube sahifalaringiz ilovadagi firma sahifasida tugma sifatida chiqadi. @nom yoki
         to&apos;liq havola kiritishingiz mumkin.
       </p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${FIELD_TYPO}`}>
           {SOCIALS.map((s) => (
             <Field key={s.key} label={s.label}>
               <div className="relative">
@@ -212,9 +221,9 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
           ))}
         </div>
         <div className="rounded-3xl border border-[#26352c] bg-[#0b0f0c] p-4">
-          <p className="mb-3 text-[11px] uppercase tracking-wider text-on-surface-variant">Ilovada ko&apos;rinishi</p>
-          <p className="font-bold">{firm.name}</p>
-          <p className="text-xs text-on-surface-variant">
+          <p className={`mb-3 ${EYEBROW}`}>Ilovada ko&apos;rinishi</p>
+          <p className="text-[16px] font-bold leading-snug tracking-[-0.01em]">{firm.name}</p>
+          <p className="mt-0.5 text-[12.5px] font-medium tabular-nums text-on-surface-variant/80">
             ★ {Number(firm.rating).toFixed(1)} · {form.work_hours || "Ish vaqti ko'rsatilmagan"}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -224,7 +233,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
                 href={socialUrl(s.key, form[s.key])}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-[0.01em] text-white"
                 style={{ background: s.color }}
               >
                 <span className="material-symbols-outlined text-[14px]">{s.icon}</span>
@@ -232,7 +241,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
               </a>
             ))}
             {!SOCIALS.some((s) => form[s.key].trim()) ? (
-              <p className="text-xs text-on-surface-variant">Hali tarmoq qo&apos;shilmagan</p>
+              <p className="text-[12.5px] italic text-on-surface-variant/70">Hali tarmoq qo&apos;shilmagan</p>
             ) : null}
           </div>
         </div>
@@ -295,17 +304,18 @@ export default function FirmaPage() {
             <span className="material-symbols-outlined text-[28px]">storefront</span>
           </div>
           <div className="min-w-0">
-            <h2 className="text-2xl font-bold">{firm.name}</h2>
-            <p className="text-sm text-on-surface-variant">
+            <p className={EYEBROW}>Firma profili</p>
+            <h2 className="mt-1 text-[30px] font-extrabold leading-[1.1] tracking-[-0.02em] text-on-surface">{firm.name}</h2>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-on-surface-variant/80">
               Nom, yo&apos;nalish va ulush stavkasini tizim ma&apos;muriyati belgilaydi.
             </p>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {info.map((i) => (
-            <div key={i.label} className="rounded-xl border border-[#263b2a] bg-[#0e1510] px-4 py-3">
-              <p className="text-xs text-on-surface-variant">{i.label}</p>
-              <p className="mt-0.5 text-sm font-semibold">{i.value}</p>
+            <div key={i.label} className="rounded-xl border border-[#263b2a] bg-[#0e1510] px-4 py-3.5">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/65">{i.label}</p>
+              <p className="mt-1.5 text-[15.5px] font-bold leading-snug tracking-[-0.005em] tabular-nums text-on-surface">{i.value}</p>
             </div>
           ))}
         </div>
@@ -316,9 +326,13 @@ export default function FirmaPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
           <div className="flex items-center justify-between border-b border-[#263b2a] px-5 py-4">
-            <h3 className="flex items-center text-lg font-semibold">
+            <h3 className={`flex items-center ${SECTION_TITLE}`}>
               Ma&apos;muriyat xabarlari
-              {unread ? <span className="ml-2 rounded-full bg-error/20 px-2 py-0.5 text-xs text-error">{unread} yangi</span> : null}
+              {unread ? (
+                <span className="ml-2 rounded-full bg-error/20 px-2 py-0.5 text-[11px] font-bold tracking-[0.02em] tabular-nums text-error">
+                  {unread} yangi
+                </span>
+              ) : null}
             </h3>
             {unread ? (
               <SecondaryButton icon="done_all" onClick={() => void markRead()}>
@@ -334,10 +348,10 @@ export default function FirmaPage() {
                 <div key={m.id} className={`px-5 py-3 ${m.is_read ? "" : "bg-primary/5"}`}>
                   <div className="mb-1 flex items-center gap-2">
                     <StatusPill variant={m.kind === "warning" ? "error" : "info"}>{MESSAGE_KIND_LABEL[m.kind] || m.kind}</StatusPill>
-                    <span className="text-xs text-on-surface-variant">{formatDateTime(m.created_at)}</span>
+                    <span className="text-[12px] font-medium tabular-nums text-on-surface-variant/70">{formatDateTime(m.created_at)}</span>
                   </div>
-                  {m.subject ? <p className="text-sm font-semibold">{m.subject}</p> : null}
-                  <p className="text-sm text-on-surface-variant">{m.body}</p>
+                  {m.subject ? <p className="text-[14.5px] font-semibold leading-snug text-on-surface">{m.subject}</p> : null}
+                  <p className="mt-0.5 text-[13.5px] leading-relaxed text-on-surface-variant/85">{m.body}</p>
                 </div>
               ))}
             </div>
@@ -345,7 +359,7 @@ export default function FirmaPage() {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-          <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Jarimalar</h3>
+          <h3 className={`border-b border-[#263b2a] px-5 py-4 ${SECTION_TITLE}`}>Jarimalar</h3>
           {!stats?.fines.length ? (
             <EmptyState icon="gavel" title="Jarimalar yo'q" />
           ) : (
@@ -353,11 +367,11 @@ export default function FirmaPage() {
               {stats.fines.map((f) => (
                 <div key={f.id} className="flex items-center justify-between px-5 py-3">
                   <div>
-                    <p className="text-sm font-medium">{f.reason || "Jarima"}</p>
-                    <p className="text-xs text-on-surface-variant">{formatDateTime(f.created_at)}</p>
+                    <p className="text-[14.5px] font-semibold leading-snug text-on-surface">{f.reason || "Jarima"}</p>
+                    <p className="mt-0.5 text-[12px] font-medium tabular-nums text-on-surface-variant/70">{formatDateTime(f.created_at)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{formatMoney(f.amount, f.currency)}</p>
+                    <p className="mb-1 text-[15px] font-bold tracking-[-0.01em] tabular-nums text-on-surface">{formatMoney(f.amount, f.currency)}</p>
                     <StatusPill variant={f.is_paid ? "success" : "error"}>{f.is_paid ? "To'langan" : "To'lanmagan"}</StatusPill>
                   </div>
                 </div>
@@ -368,21 +382,21 @@ export default function FirmaPage() {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Mijoz baholari</h3>
+        <h3 className={`border-b border-[#263b2a] px-5 py-4 ${SECTION_TITLE}`}>Mijoz baholari</h3>
         {!stats?.reviews.length ? (
           <EmptyState icon="star" title="Hali baholar yo'q" />
         ) : (
           <div className="divide-y divide-[#263b2a]/40">
             {stats.reviews.map((r) => (
               <div key={r.id} className="px-5 py-3">
-                <p className="text-sm font-medium">
-                  <span className="text-amber-400">{"★".repeat(r.score)}</span>
-                  <span className="text-on-surface-variant">{"★".repeat(Math.max(0, 5 - r.score))}</span>
-                  <span className="ml-2">{r.customer_name || "Mijoz"}</span>
-                  {r.order ? <span className="text-on-surface-variant"> · #{r.order}</span> : null}
+                <p className="text-[14.5px] font-semibold leading-snug">
+                  <span className="tracking-[0.08em] text-amber-400">{"★".repeat(r.score)}</span>
+                  <span className="tracking-[0.08em] text-on-surface-variant/40">{"★".repeat(Math.max(0, 5 - r.score))}</span>
+                  <span className="ml-2 text-on-surface">{r.customer_name || "Mijoz"}</span>
+                  {r.order ? <span className="font-medium tabular-nums text-on-surface-variant/70"> · #{r.order}</span> : null}
                 </p>
-                {r.comment ? <p className="text-sm text-on-surface-variant">{r.comment}</p> : null}
-                <p className="text-xs text-on-surface-variant">{formatDateTime(r.created_at)}</p>
+                {r.comment ? <p className="mt-1 text-[13.5px] leading-relaxed text-on-surface-variant/85">{r.comment}</p> : null}
+                <p className="mt-1 text-[12px] font-medium tabular-nums text-on-surface-variant/60">{formatDateTime(r.created_at)}</p>
               </div>
             ))}
           </div>

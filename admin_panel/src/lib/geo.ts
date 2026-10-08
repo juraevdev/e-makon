@@ -20,10 +20,12 @@ export function suggestRoute(straightKm: number | null) {
   return { km: Math.round(roadKm * 10) / 10, minutes };
 }
 
+const YANDEX_MAPS_URL = "https://yandex.uz/maps/";
+
 export function mapsLink(lat: Coord, lng: Coord, address?: string) {
   const [a, b] = [toNum(lat), toNum(lng)];
-  if (a !== null && b !== null) return `https://www.google.com/maps/search/?api=1&query=${a},${b}`;
-  if (address) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  if (a !== null && b !== null) return `${YANDEX_MAPS_URL}?pt=${b},${a}&z=16&l=map`;
+  if (address) return `${YANDEX_MAPS_URL}?text=${encodeURIComponent(address)}`;
   return null;
 }
 
@@ -31,7 +33,6 @@ export function directionsLink(fromLat: Coord, fromLng: Coord, toLat: Coord, toL
   const dest =
     toNum(toLat) !== null && toNum(toLng) !== null ? `${toNum(toLat)},${toNum(toLng)}` : toAddress || "";
   if (!dest) return null;
-  const origin =
-    toNum(fromLat) !== null && toNum(fromLng) !== null ? `&origin=${toNum(fromLat)},${toNum(fromLng)}` : "";
-  return `https://www.google.com/maps/dir/?api=1${origin}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+  const origin = toNum(fromLat) !== null && toNum(fromLng) !== null ? `${toNum(fromLat)},${toNum(fromLng)}` : "";
+  return `${YANDEX_MAPS_URL}?rtext=${encodeURIComponent(origin)}~${encodeURIComponent(dest)}&rtt=auto`;
 }
