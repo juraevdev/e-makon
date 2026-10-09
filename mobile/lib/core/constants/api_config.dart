@@ -5,12 +5,13 @@ class ApiConfig {
     defaultValue: false,
   );
 
+  /// Default: production server. Lokal backend uchun --dart-define=API_BASE_URL=...
   /// Emulator (Android): http://10.0.2.2:8000/api/v1
   /// Real telefon: PC LAN IP (masalan http://192.168.0.117:8000/api/v1)
   /// Windows / iOS simulator: http://127.0.0.1:8000/api/v1
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.0.117:8000/api/v1',
+    defaultValue: 'https://api.e-makon.uz/api/v1',
   );
 
   static const Duration requestTimeout = Duration(seconds: 12);

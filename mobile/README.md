@@ -18,9 +18,9 @@ flutter run
 
 ### API manzil
 
-Default: `http://10.0.2.2:8000/api/v1` (Android emulator → host).
+Default: `https://api.e-makon.uz/api/v1` (production server) — oddiy `flutter build apk --release` shu serverga ulanadi.
 
-Telefon/qurilma uchun:
+Lokal backend bilan (telefon/qurilma):
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://192.168.x.x:8000/api/v1
