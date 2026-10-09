@@ -34,7 +34,7 @@ services:
       POSTGRES_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.production
-      DRF_NUM_PROXIES: "1"
+      DRF_NUM_PROXIES: ${DRF_NUM_PROXIES:-1}
     volumes:
       - media:/app/media
       - static:/app/staticfiles
