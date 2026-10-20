@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
-
 from django.db.models import Count, Q, Sum
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -9,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.accounts.models import User
 from apps.core.exceptions import AppError
+from apps.core.parsing import parse_decimal, parse_int
 from apps.core.permissions import IsAdmin, IsSuperAdmin
 from apps.core.responses import success_response
 from apps.orders.models import Order
@@ -88,8 +87,14 @@ class FirmViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def set_trial(self, request, pk=None):
         firm = self.get_object()
-        days = int(request.data.get("days") or 0)
-        FirmService.set_trial(firm, days, actor=request.user)
+        days = parse_int(
+            request.data.get("days"),
+            field="Kunlar",
+            default=0,
+            minimum=0,
+            maximum=3650,
+        )
+        FirmService.set_trial(firm, days or 0, actor=request.user)
         return success_response(self._firm_payload(firm))
 
     @action(detail=True, methods=["post"])
@@ -101,10 +106,7 @@ class FirmViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def adjust_debt(self, request, pk=None):
         firm = self.get_object()
-        try:
-            amount = Decimal(str(request.data.get("amount", "0")))
-        except Exception as exc:  # noqa: BLE001
-            raise AppError("Noto'g'ri summa.") from exc
+        amount = parse_decimal(request.data.get("amount", "0"), field="Summa", required=True)
         FirmService.adjust_debt(firm, amount, actor=request.user)
         return success_response(self._firm_payload(firm))
 
@@ -145,10 +147,7 @@ class FirmViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def add_fine(self, request, pk=None):
         firm = self.get_object()
-        try:
-            amount = Decimal(str(request.data.get("amount", "0")))
-        except Exception as exc:  # noqa: BLE001
-            raise AppError("Noto'g'ri summa.") from exc
+        amount = parse_decimal(request.data.get("amount", "0"), field="Summa", required=True)
         if amount <= 0:
             raise AppError("Jarima summasi musbat bo'lishi kerak.")
         FirmService.add_fine(
@@ -162,10 +161,16 @@ class FirmViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def ban_sales(self, request, pk=None):
         firm = self.get_object()
-        days = int(request.data.get("days") or 7)
+        days = parse_int(
+            request.data.get("days"),
+            field="Kunlar",
+            default=7,
+            minimum=1,
+            maximum=365,
+        )
         FirmService.ban_sales(
             firm,
-            days,
+            days or 7,
             reason=request.data.get("reason") or "",
             actor=request.user,
         )

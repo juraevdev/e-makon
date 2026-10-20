@@ -33,9 +33,23 @@ CACHES = {
     }
 }
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", default="INFO")},
-}
+# Keep base LOGGING (structured console); allow level override only.
+LOGGING["root"]["level"] = env("DJANGO_LOG_LEVEL", default="INFO")  # noqa: F405
+LOGGING["loggers"]["django.request"]["level"] = "WARNING"  # noqa: F405
+
+# Optional Sentry (SENTRY_DSN set bo'lsa ulanadi)
+_sentry_dsn = env("SENTRY_DSN", default="")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", default="0.0")),
+            send_default_pii=False,
+            environment=env("SENTRY_ENVIRONMENT", default="production"),
+        )
+    except ImportError:
+        pass

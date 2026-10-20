@@ -5,12 +5,23 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.analytics.services import DashboardService, analytics_org_id
+from apps.core.parsing import parse_int
 from apps.core.permissions import IsAdmin
 from apps.core.responses import success_response
 from apps.orders.models import Order
 from apps.organizations.models import Organization
 from apps.organizations.permissions import RequiresAdminCapability
 from apps.staff.models import EmployeeProfile
+
+
+def _parse_days(request) -> int | None:
+    return parse_int(
+        request.query_params.get("days"),
+        field="Kunlar",
+        default=None,
+        minimum=1,
+        maximum=365,
+    )
 
 
 class DashboardView(APIView):
@@ -21,13 +32,9 @@ class DashboardView(APIView):
         period = request.query_params.get("period") or "month"
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
-        days_raw = request.query_params.get("days")
-        days = int(days_raw) if days_raw else None
-        if days is not None:
-            days = max(1, min(days, 365))
         return success_response(
             DashboardService.summary(
-                days=days,
+                days=_parse_days(request),
                 user=request.user,
                 period=period,
                 date_from=date_from,
@@ -44,10 +51,8 @@ class ReportsBundleView(APIView):
         period = request.query_params.get("period") or "month"
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
-        days_raw = request.query_params.get("days")
-        days = int(days_raw) if days_raw else None
         summary = DashboardService.summary(
-            days=days,
+            days=_parse_days(request),
             user=request.user,
             period=period,
             date_from=date_from,

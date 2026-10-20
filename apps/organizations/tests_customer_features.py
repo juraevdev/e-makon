@@ -32,7 +32,9 @@ class CustomerFeatureBase(PortalTestBase):
 
 class ApiSchemaTests(CustomerFeatureBase):
     def test_openapi_schema_builds(self):
-        self.assertEqual(self.client.get("/api/schema/").status_code, 200)
+        # Test runner sets DEBUG=False → schema requires superadmin JWT.
+        resp = self.api_super.get("/api/schema/")
+        self.assertEqual(resp.status_code, 200, resp.content)
 
 
 class PublicBannerTests(CustomerFeatureBase):

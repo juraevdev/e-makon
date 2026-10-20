@@ -66,11 +66,13 @@ class OTPVerifyView(APIView):
 
 
 class AdminLoginView(APIView):
-    """Superadmin / admin panel login (telefon + parol)."""
+    """Admin / superadmin / xodim kirishi (telefon + parol)."""
 
     permission_classes = [permissions.AllowAny]
     throttle_classes = [SettingsScopedRateThrottle]
     throttle_scope = "admin_login"
+
+    STAFF_ROLES = {User.Role.ADMIN, User.Role.SUPERADMIN, User.Role.WORKER}
 
     def post(self, request):
         serializer = AdminPasswordLoginSerializer(data=request.data)
@@ -82,10 +84,14 @@ class AdminLoginView(APIView):
 
         if not user.check_password(serializer.validated_data["password"]):
             raise AuthenticationFailed("Login yoki parol noto'g'ri.")
-        if user.role not in {User.Role.ADMIN, User.Role.SUPERADMIN}:
-            raise PermissionDenied("Admin huquqi yo'q.")
+        if user.role not in self.STAFF_ROLES:
+            raise PermissionDenied("Bu hisob bilan panelga kirib bo'lmaydi.")
         if not user.is_active:
             raise PermissionDenied("Hisob faol emas.")
+        if user.role == User.Role.WORKER:
+            profile = getattr(user, "employee_profile", None)
+            if profile is not None and profile.employment_status == "dismissed":
+                raise PermissionDenied("Hisob faol emas.")
 
         refresh = RefreshToken.for_user(user)
         return success_response(

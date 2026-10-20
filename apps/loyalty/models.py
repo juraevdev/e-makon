@@ -36,6 +36,7 @@ class LoyaltyReward(TimeStampedModel):
     points_cost = models.PositiveIntegerField(default=100)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
+    description = models.TextField(blank=True)
 
     class Meta:
         ordering = ["sort_order", "id"]
@@ -53,6 +54,12 @@ class PointTransaction(TimeStampedModel):
         EXPIRE = "expire", "Muddati o'tdi"
         ADJUST = "adjust", "Tuzatish"
 
+    class RedemptionStatus(models.TextChoices):
+        NONE = "", "—"
+        PENDING = "pending", "Kutilmoqda"
+        FULFILLED = "fulfilled", "Bajarildi"
+        CANCELLED = "cancelled", "Bekor"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -67,6 +74,21 @@ class PointTransaction(TimeStampedModel):
         blank=True,
         related_name="point_transactions",
     )
+    reward = models.ForeignKey(
+        LoyaltyReward,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="redemptions",
+    )
+    redemption_status = models.CharField(
+        max_length=16,
+        choices=RedemptionStatus.choices,
+        blank=True,
+        default=RedemptionStatus.NONE,
+        db_index=True,
+    )
+    fulfilled_at = models.DateTimeField(null=True, blank=True)
     note = models.CharField(max_length=512, blank=True)
 
     class Meta:

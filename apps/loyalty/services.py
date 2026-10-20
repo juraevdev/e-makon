@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from collections import deque
+from datetime import timedelta
+
 from django.db import transaction
 from django.db.models import F
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.exceptions import AppError
 from apps.loyalty.models import LoyaltyReward, LoyaltySettings, PointTransaction
+from apps.notifications.services import notify_user
 
 
 class LoyaltyService:
@@ -33,8 +38,6 @@ class LoyaltyService:
             order=order,
             note=f"Buyurtma #{order.pk} bajarildi",
         )
-        from apps.notifications.services import notify_user
-
         notify_user(
             order.customer,
             kind="bonus",
@@ -62,9 +65,120 @@ class LoyaltyService:
             raise AppError("Ballaringiz yetarli emas.", code="loyalty_insufficient")
         locked.loyalty_points -= reward.points_cost
         locked.save(update_fields=["loyalty_points"])
-        return PointTransaction.objects.create(
+        tx = PointTransaction.objects.create(
             user=locked,
             kind=PointTransaction.Kind.REDEEM,
             points=-reward.points_cost,
+            reward=reward,
+            redemption_status=PointTransaction.RedemptionStatus.PENDING,
             note=reward.name,
         )
+        notify_user(
+            locked,
+            kind="bonus",
+            title=f"Mukofot so'rovi: {reward.name}",
+            body=(
+                f"{reward.points_cost} ball ayirildi. "
+                "Operator mukofotni tayyorlagach xabar beramiz."
+            ),
+            entity_type="loyalty_redeem",
+            entity_id=tx.pk,
+        )
+        return tx
+
+    @staticmethod
+    @transaction.atomic
+    def fulfill_redemption(tx: PointTransaction, *, actor=None, note: str = "") -> PointTransaction:
+        locked = PointTransaction.objects.select_for_update().select_related("user", "reward").get(
+            pk=tx.pk
+        )
+        if locked.kind != PointTransaction.Kind.REDEEM:
+            raise AppError("Faqat almashtirish tranzaksiyasini bajarish mumkin.")
+        if locked.redemption_status == PointTransaction.RedemptionStatus.FULFILLED:
+            return locked
+        if locked.redemption_status == PointTransaction.RedemptionStatus.CANCELLED:
+            raise AppError("Bekor qilingan so'rovni bajarib bo'lmaydi.")
+        locked.redemption_status = PointTransaction.RedemptionStatus.FULFILLED
+        locked.fulfilled_at = timezone.now()
+        if note:
+            locked.note = f"{locked.note} · {note}".strip(" ·")
+        locked.save(update_fields=["redemption_status", "fulfilled_at", "note", "updated_at"])
+        reward_name = locked.reward.name if locked.reward_id else locked.note
+        notify_user(
+            locked.user,
+            kind="bonus",
+            title=f"Mukofot tayyor: {reward_name}",
+            body=note or "Mukofotingiz berildi.",
+            entity_type="loyalty_redeem",
+            entity_id=locked.pk,
+        )
+        return locked
+
+    @classmethod
+    def expire_stale_points(cls) -> dict:
+        """
+        FIFO: eski (expire_months dan oshgan) ishlatilmagan ballarni yechadi.
+        Cron: `manage.py run_scheduled_tasks`.
+        """
+        months = int(LoyaltySettings.load().expire_months or 0)
+        if months <= 0:
+            return {"users": 0, "points": 0}
+        cutoff = timezone.now() - timedelta(days=months * 30)
+        users = 0
+        points_total = 0
+        qs = User.objects.filter(loyalty_points__gt=0, role=User.Role.CUSTOMER).only("id")
+        for user in qs.iterator():
+            expired = cls._expire_user(user.pk, cutoff)
+            if expired:
+                users += 1
+                points_total += expired
+        return {"users": users, "points": points_total}
+
+    @staticmethod
+    @transaction.atomic
+    def _expire_user(user_id: int, cutoff) -> int:
+        locked = User.objects.select_for_update().get(pk=user_id)
+        txs = list(
+            PointTransaction.objects.filter(user_id=user_id).order_by("created_at", "id").only(
+                "kind", "points", "created_at"
+            )
+        )
+        lots: deque[list] = deque()
+        for tx in txs:
+            if tx.kind == PointTransaction.Kind.EARN or (
+                tx.kind == PointTransaction.Kind.ADJUST and tx.points > 0
+            ):
+                lots.append([tx.points, tx.created_at])
+                continue
+            consume = -tx.points if tx.points < 0 else 0
+            while consume > 0 and lots:
+                lot_pts, _created = lots[0]
+                take = min(lot_pts, consume)
+                lots[0][0] -= take
+                consume -= take
+                if lots[0][0] <= 0:
+                    lots.popleft()
+
+        expired = sum(pts for pts, created in lots if created < cutoff and pts > 0)
+        if expired <= 0:
+            return 0
+        expired = min(expired, locked.loyalty_points)
+        if expired <= 0:
+            return 0
+        locked.loyalty_points -= expired
+        locked.save(update_fields=["loyalty_points"])
+        PointTransaction.objects.create(
+            user=locked,
+            kind=PointTransaction.Kind.EXPIRE,
+            points=-expired,
+            note=f"Ball muddati tugadi ({cutoff.date().isoformat()} gacha)",
+        )
+        notify_user(
+            locked,
+            kind="bonus",
+            title=f"{expired} ball muddati tugadi",
+            body="Ishlatilmagan ballaringiz muddati o'tgani uchun hisobdan yechildi.",
+            entity_type="loyalty",
+            entity_id=None,
+        )
+        return expired

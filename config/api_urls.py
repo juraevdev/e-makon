@@ -23,6 +23,7 @@ from apps.notifications.views import UserNotificationViewSet
 from apps.orders.views import AdminOrderViewSet, CustomerOrderViewSet
 from apps.organizations.views import FirmViewSet, InvestorViewSet
 from apps.staff.views import AdminUserViewSet, EmployeeViewSet
+from apps.staff.worker_views import WorkerCareVisitViewSet, WorkerOrderViewSet
 from apps.support.chat import AdminChatViewSet, CustomerChatViewSet
 from apps.support.views import AdminSupportTicketViewSet, CustomerSupportTicketViewSet
 
@@ -54,10 +55,15 @@ admin_router.register(
     "loyalty-transactions", PointTransactionViewSet, basename="admin-loyalty-transaction"
 )
 
+worker_router = DefaultRouter()
+worker_router.register("orders", WorkerOrderViewSet, basename="worker-order")
+worker_router.register("care-visits", WorkerCareVisitViewSet, basename="worker-care-visit")
+
 urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("", include(customer_router.urls)),
     path("admin/", include(admin_router.urls)),
+    path("worker/", include(worker_router.urls)),
     path("admin/dashboard/", DashboardView.as_view(), name="admin-dashboard"),
     path("admin/reports/bundle/", ReportsBundleView.as_view(), name="admin-reports-bundle"),
     path("admin/map/", MapPayloadView.as_view(), name="admin-map"),

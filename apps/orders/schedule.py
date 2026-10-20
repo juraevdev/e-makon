@@ -2,10 +2,12 @@
 
 Bir vaqtda firma nechta buyurtmani bajara oladi — faol xodimlari soni (kamida 1).
 Oraliqqa to'g'ri keladigan faol buyurtmalar shu songa yetsa, oraliq band (qizil).
+Ish oynasi Organization.work_hours dan olinadi (masalan "09:00 – 18:00").
 """
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, time
 
 from django.utils import timezone
@@ -21,6 +23,10 @@ MAX_DURATION_MINUTES = 12 * 60
 
 ACTIVE_STATUSES = (Order.Status.NEW, Order.Status.IN_REVIEW, Order.Status.CONTACTED)
 
+_WORK_HOURS_RE = re.compile(
+    r"(?P<sh>\d{1,2}):(?P<sm>\d{2})\s*[-–—]\s*(?P<eh>\d{1,2}):(?P<em>\d{2})"
+)
+
 
 def _minutes(value: time) -> int:
     return value.hour * 60 + value.minute
@@ -34,6 +40,42 @@ def _hhmm(total_minutes: int) -> str:
 def format_slot(start: time, duration_minutes: int) -> str:
     begin = _minutes(start)
     return f"{_hhmm(begin)} – {_hhmm(begin + duration_minutes)}"
+
+
+def parse_work_hours(raw: str | None) -> tuple[int, int]:
+    """
+    "09:00 – 18:00" / "9:00-18:00" → (start_minutes, end_minutes).
+    Bo'sh yoki noto'g'ri bo'lsa platforma default (08:00–20:00).
+    """
+    text = (raw or "").strip()
+    if not text:
+        return WORK_START_HOUR * 60, WORK_END_HOUR * 60
+    match = _WORK_HOURS_RE.search(text.replace("–", "-").replace("—", "-"))
+    if not match:
+        return WORK_START_HOUR * 60, WORK_END_HOUR * 60
+    start = int(match.group("sh")) * 60 + int(match.group("sm"))
+    end = int(match.group("eh")) * 60 + int(match.group("em"))
+    if not (0 <= start < end <= 24 * 60):
+        return WORK_START_HOUR * 60, WORK_END_HOUR * 60
+    # Slot gridga moslash: pastga/yuqoriga SLOT_MINUTES
+    start = (start // SLOT_MINUTES) * SLOT_MINUTES
+    end = ((end + SLOT_MINUTES - 1) // SLOT_MINUTES) * SLOT_MINUTES if end % SLOT_MINUTES else end
+    if end <= start:
+        return WORK_START_HOUR * 60, WORK_END_HOUR * 60
+    return start, end
+
+
+def work_window(organization_id: int | None) -> tuple[int, int]:
+    if not organization_id:
+        return WORK_START_HOUR * 60, WORK_END_HOUR * 60
+    from apps.organizations.models import Organization
+
+    raw = (
+        Organization.objects.filter(pk=organization_id)
+        .values_list("work_hours", flat=True)
+        .first()
+    )
+    return parse_work_hours(raw)
 
 
 def parse_time(raw) -> time | None:
@@ -112,8 +154,9 @@ def day_availability(
     capacity = firm_capacity(organization_id)
     orders = _day_orders(organization_id, day)
     now = _now_local()
+    work_start, work_end = work_window(organization_id)
     slots = []
-    for start in range(WORK_START_HOUR * 60, WORK_END_HOUR * 60, SLOT_MINUTES):
+    for start in range(work_start, work_end, SLOT_MINUTES):
         end = start + SLOT_MINUTES
         inside = [o for o in orders if _overlaps(o, start, end)]
         past = day < now.date() or (day == now.date() and start <= now.hour * 60 + now.minute)
@@ -143,8 +186,8 @@ def day_availability(
     return {
         "date": day.isoformat(),
         "capacity": capacity,
-        "work_start": _hhmm(WORK_START_HOUR * 60),
-        "work_end": _hhmm(WORK_END_HOUR * 60),
+        "work_start": _hhmm(work_start),
+        "work_end": _hhmm(work_end),
         "slot_minutes": SLOT_MINUTES,
         "slots": slots,
     }
@@ -162,9 +205,10 @@ def ensure_slot_available(
     if not organization_id or day is None or start is None:
         return
     begin = _minutes(start)
-    if begin < WORK_START_HOUR * 60 or begin >= WORK_END_HOUR * 60:
+    work_start, work_end = work_window(organization_id)
+    if begin < work_start or begin >= work_end:
         raise AppError(
-            f"Ish vaqti {_hhmm(WORK_START_HOUR * 60)} – {_hhmm(WORK_END_HOUR * 60)}. Boshqa vaqt tanlang.",
+            f"Ish vaqti {_hhmm(work_start)} – {_hhmm(work_end)}. Boshqa vaqt tanlang.",
             code="slot_outside_hours",
         )
     now = _now_local()

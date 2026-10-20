@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from decimal import Decimal
 
 from django.conf import settings
@@ -9,6 +8,7 @@ from rest_framework import serializers
 from apps.catalog.models import Service
 from apps.catalog.serializers import ServiceSerializer
 from apps.core.exceptions import AppError
+from apps.core.uploads import sniff_order_media
 from apps.orders.models import (
     LedgerEntry,
     Order,
@@ -20,8 +20,6 @@ from apps.orders.models import (
 from apps.orders import schedule
 from apps.orders.payments import PaymentService, estimate_items, payment_options
 from apps.orders.services import OrderService
-
-ORDER_MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".mp4", ".mov", ".3gp"}
 
 
 class OrderMediaSerializer(serializers.ModelSerializer):
@@ -362,18 +360,12 @@ class OrderCreateSerializer(serializers.Serializer):
 
     def validate_media(self, files):
         max_files = int(getattr(settings, "ORDER_MEDIA_MAX_FILES", 5))
-        max_bytes = int(getattr(settings, "ORDER_MEDIA_MAX_BYTES", 10 * 1024 * 1024))
         if len(files) > max_files:
             raise serializers.ValidationError(f"Ko'pi bilan {max_files} ta fayl yuklash mumkin.")
         for uploaded in files:
-            ext = os.path.splitext(uploaded.name or "")[1].lower()
-            content_type = (getattr(uploaded, "content_type", "") or "").lower()
-            if ext not in ORDER_MEDIA_EXTENSIONS or not content_type.startswith(("image/", "video/")):
-                raise serializers.ValidationError("Faqat rasm yoki video yuklash mumkin.")
-            if uploaded.size > max_bytes:
-                raise serializers.ValidationError(
-                    f"Fayl juda katta (maks. {max_bytes // (1024 * 1024)} MB)."
-                )
+            error = sniff_order_media(uploaded)
+            if error:
+                raise serializers.ValidationError(error)
         return files
 
     def to_internal_value(self, data):

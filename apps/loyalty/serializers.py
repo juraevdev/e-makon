@@ -21,6 +21,7 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
             "points_cost",
             "is_active",
             "sort_order",
+            "description",
             "created_at",
         )
         read_only_fields = ("id", "created_at")
@@ -30,6 +31,10 @@ class PointTransactionSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     user_phone = serializers.CharField(source="user.phone", read_only=True)
     order_id = serializers.IntegerField(read_only=True, allow_null=True)
+    reward_name = serializers.CharField(source="reward.name", read_only=True, default="")
+    redemption_status_label = serializers.CharField(
+        source="get_redemption_status_display", read_only=True
+    )
 
     class Meta:
         model = PointTransaction
@@ -42,6 +47,11 @@ class PointTransactionSerializer(serializers.ModelSerializer):
             "points",
             "order",
             "order_id",
+            "reward",
+            "reward_name",
+            "redemption_status",
+            "redemption_status_label",
+            "fulfilled_at",
             "note",
             "created_at",
         )
@@ -53,8 +63,25 @@ class PointTransactionSerializer(serializers.ModelSerializer):
 
 class CustomerPointTransactionSerializer(serializers.ModelSerializer):
     kind_label = serializers.CharField(source="get_kind_display", read_only=True)
+    reward_name = serializers.CharField(source="reward.name", read_only=True, default="")
+    redemption_status_label = serializers.CharField(
+        source="get_redemption_status_display", read_only=True
+    )
 
     class Meta:
         model = PointTransaction
-        fields = ("id", "kind", "kind_label", "points", "order", "note", "created_at")
+        fields = (
+            "id",
+            "kind",
+            "kind_label",
+            "points",
+            "order",
+            "reward",
+            "reward_name",
+            "redemption_status",
+            "redemption_status_label",
+            "fulfilled_at",
+            "note",
+            "created_at",
+        )
         read_only_fields = fields

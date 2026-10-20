@@ -47,7 +47,9 @@ class CustomerLoyaltyViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsCustomer]
 
     def get_queryset(self):
-        return PointTransaction.objects.filter(user=self.request.user).select_related("order")
+        return PointTransaction.objects.filter(user=self.request.user).select_related(
+            "order", "reward"
+        )
 
     def list(self, request):
         settings_obj = LoyaltySettings.load()
@@ -82,8 +84,21 @@ class CustomerLoyaltyViewSet(viewsets.GenericViewSet):
 
 
 class PointTransactionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = PointTransaction.objects.select_related("user", "order").all()
+    queryset = PointTransaction.objects.select_related("user", "order", "reward").all()
     serializer_class = PointTransactionSerializer
     permission_classes = [IsAuthenticated, IsSuperAdmin]
-    filterset_fields = ("kind", "user")
-    search_fields = ("user__phone", "user__full_name", "note")
+    filterset_fields = ("kind", "user", "redemption_status")
+    search_fields = ("user__phone", "user__full_name", "note", "reward__name")
+
+    @action(detail=True, methods=["post"])
+    def fulfill(self, request, pk=None):
+        tx = self.get_object()
+        updated = LoyaltyService.fulfill_redemption(
+            tx,
+            actor=request.user,
+            note=(request.data.get("note") or "").strip(),
+        )
+        return success_response(
+            PointTransactionSerializer(updated).data,
+            message="Mukofot bajarildi deb belgilandi",
+        )

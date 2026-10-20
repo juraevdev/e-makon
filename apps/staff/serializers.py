@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -95,14 +96,19 @@ class EmployeeSerializer(serializers.ModelSerializer):
         full_name = validated_data.pop("full_name", "")
         password = validated_data.pop("password", "") or None
         org = self.context.get("organization") or get_or_create_default_organization()
-        user = User.objects.create_user(
-            phone=phone,
-            password=password,
-            full_name=full_name,
-            role=User.Role.WORKER,
-            is_staff=False,
-            organization=org,
-        )
+        try:
+            user = User.objects.create_user(
+                phone=phone,
+                password=password,
+                full_name=full_name,
+                role=User.Role.WORKER,
+                is_staff=False,
+                organization=org,
+            )
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {"phone": "Bu telefon raqam boshqa hisobga biriktirilgan."}
+            ) from exc
         validated_data.setdefault("hired_at", timezone.localdate())
         return EmployeeProfile.objects.create(user=user, organization=org, **validated_data)
 
@@ -173,14 +179,19 @@ class AdminUserSerializer(serializers.ModelSerializer):
         org = validated_data.pop("organization", None) or self.context.get(
             "default_organization"
         ) or get_or_create_default_organization()
-        user = User.objects.create_user(
-            phone=phone,
-            password=password,
-            full_name=full_name,
-            role=User.Role.ADMIN,
-            is_staff=True,
-            organization=org,
-        )
+        try:
+            user = User.objects.create_user(
+                phone=phone,
+                password=password,
+                full_name=full_name,
+                role=User.Role.ADMIN,
+                is_staff=True,
+                organization=org,
+            )
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {"phone": "Bu telefon raqam boshqa hisobga biriktirilgan."}
+            ) from exc
         return AdminProfile.objects.create(user=user, organization=org, **validated_data)
 
     def update(self, instance, validated_data):
