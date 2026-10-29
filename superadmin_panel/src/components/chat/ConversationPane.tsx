@@ -163,11 +163,11 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-[#26352c] px-3 py-3 sm:px-4">
+      <header className="flex items-center gap-3 border-b border-card-border px-3 py-3 sm:px-4">
         <button
           type="button"
           onClick={onBack}
-          className="rounded-full p-1.5 text-on-surface-variant hover:bg-white/5 hover:text-on-surface md:hidden"
+          className="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface md:hidden"
           aria-label="Ortga"
         >
           <span className="material-symbols-outlined">arrow_back</span>
@@ -210,12 +210,12 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
       </header>
 
       <div className="relative min-h-0 flex-1">
-        <div ref={scroller} onScroll={onScroll} className="h-full space-y-1.5 overflow-y-auto bg-[#0e1210] px-3 py-4 sm:px-5">
+        <div ref={scroller} onScroll={onScroll} className="h-full space-y-1.5 overflow-y-auto bg-surface-container-low px-3 py-4 sm:px-5">
           {items === null ? (
             loadError ? (
               <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-error">
                 {loadError}
-                <button type="button" onClick={retryLoad} className="rounded-full border border-[#26352c] px-4 py-2 text-on-surface">
+                <button type="button" onClick={retryLoad} className="rounded-full border border-card-border px-4 py-2 text-on-surface">
                   Qayta urinish
                 </button>
               </div>
@@ -236,7 +236,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
               <Fragment key={m.id}>
                 {newDay ? (
                   <div className="sticky top-0 z-10 flex justify-center py-2">
-                    <span className="rounded-full border border-[#26352c] bg-[#151917]/95 px-3 py-0.5 text-[11px] text-on-surface-variant backdrop-blur">
+                    <span className="rounded-full border border-card-border bg-card/95 px-3 py-0.5 text-[11px] text-on-surface-variant backdrop-blur">
                       {dayLabel(m.created_at)}
                     </span>
                   </div>
@@ -275,7 +275,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
           <button
             type="button"
             onClick={jumpDown}
-            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-primary/40 bg-[#1b2a1e] px-3.5 py-1.5 text-xs font-semibold text-primary shadow-lg"
+            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-primary/40 bg-secondary-container px-3.5 py-1.5 text-xs font-semibold text-primary shadow-lg"
           >
             <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
             {unseen} ta yangi xabar
@@ -284,7 +284,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
       </div>
 
       <form
-        className="border-t border-[#26352c] p-3"
+        className="border-t border-card-border p-3"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -329,8 +329,8 @@ function Bubble({ message: m, grouped, read }: { message: ChatMessage; grouped: 
     m.sender_role === "platform"
       ? "border border-amber-500/40 bg-amber-500/15"
       : m.sender_role === "firm"
-        ? "bg-primary-container/90 text-white"
-        : "border border-[#26352c] bg-[#1b231e]";
+        ? "bg-primary-container/90 text-on-primary"
+        : "border border-card-border bg-surface-container";
   const corner = left ? "rounded-bl-md" : "rounded-br-md";
   return (
     <div className={`flex ${left ? "justify-start" : "justify-end"} ${grouped ? "" : "pt-1.5"}`}>

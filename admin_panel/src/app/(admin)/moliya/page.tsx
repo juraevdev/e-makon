@@ -81,7 +81,7 @@ export default function MoliyaPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 md:px-8">
       <PageBar
         title="Moliyaviy holat"
         updatedAt={updatedAt}
@@ -123,21 +123,21 @@ export default function MoliyaPage() {
         />
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Buyurtmalar bo&apos;yicha to&apos;lovlar</h3>
+      <section className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm">
+        <h3 className="border-b border-card-border bg-surface-container-low/70 px-5 py-4 text-base font-semibold text-ink md:text-lg">Buyurtmalar bo&apos;yicha to&apos;lovlar</h3>
         {!data.escrows.length ? (
           <EmptyState icon="receipt_long" title="Hali to'lovlar yo'q" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#263b2a] text-xs uppercase text-on-surface-variant">
+                <tr className="border-b border-card-border bg-surface-container-low text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
                   {["Buyurtma", "Holat", "Mijoz to'lagan", "Platforma ulushi", "Sizga", "To'langan", "O'tkazilgan"].map((h) => (
                     <th key={h} className="px-5 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#263b2a]/40">
+              <tbody className="divide-y divide-card-border/40">
                 {data.escrows.map((e) => (
                   <tr key={e.id}>
                     <td className="px-5 py-3 font-semibold text-primary">#{e.order_id}</td>
@@ -157,16 +157,16 @@ export default function MoliyaPage() {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className="border-b border-[#263b2a] px-5 py-4 text-lg font-semibold">Hisob-kitob jurnali</h3>
+      <section className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm">
+        <h3 className="border-b border-card-border bg-surface-container-low/70 px-5 py-4 text-base font-semibold text-ink md:text-lg">Hisob-kitob jurnali</h3>
         {!data.ledger.length ? (
           <EmptyState icon="menu_book" title="Jurnal bo'sh" />
         ) : (
-          <div className="divide-y divide-[#263b2a]/40">
+          <div className="divide-y divide-card-border/40">
             {data.ledger.map((l) => (
               <div key={l.id} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-ink">
                     {l.entry_type_label}
                     {l.order ? <span className="text-on-surface-variant"> · #{l.order}</span> : null}
                   </p>
@@ -176,7 +176,7 @@ export default function MoliyaPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold">{formatMoney(l.amount, l.currency)}</p>
+                  <p className="text-sm font-semibold text-ink">{formatMoney(l.amount, l.currency)}</p>
                   <p className="text-xs text-on-surface-variant">{formatDateTime(l.created_at)}</p>
                 </div>
               </div>

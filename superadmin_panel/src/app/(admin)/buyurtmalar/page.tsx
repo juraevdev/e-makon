@@ -294,8 +294,8 @@ export default function BuyurtmalarPage() {
             type="button"
             disabled={!card.tab}
             onClick={() => card.tab && changeFilter(setTab)(card.tab)}
-            className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-[#131b15]/90 p-4 text-left shadow-lg sm:p-5 ${
-              card.tab ? (fakeTotal ? "border-error/40 hover:bg-error/5" : "border-[#263b2a] hover:bg-white/5") : "cursor-default border-[#263b2a]"
+            className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-card/90 p-4 text-left shadow-lg sm:p-5 ${
+              card.tab ? (fakeTotal ? "border-error/40 hover:bg-error/5" : "border-card-border hover:bg-surface-container-high/40") : "cursor-default border-card-border"
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -316,7 +316,7 @@ export default function BuyurtmalarPage() {
         tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon, count: counts[t.id] }))}
       />
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-card-border bg-card/90 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
         <div className="relative sm:col-span-2 xl:col-span-1">
           <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
             search
@@ -364,7 +364,7 @@ export default function BuyurtmalarPage() {
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 shadow-lg">
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg">
         {loading && !data ? (
           <LoadingBlock />
         ) : error && !data ? (
@@ -386,7 +386,7 @@ export default function BuyurtmalarPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1080px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#263b2a] text-xs uppercase text-on-surface-variant">
+                  <tr className="border-b border-card-border text-xs uppercase text-on-surface-variant">
                     {["#", "Mijoz", "Firma", "Xizmat", "Reja", "Narx", "To'lov", "Holat", ""].map((h, i) => (
                       <th key={`${h}-${i}`} className="px-4 py-3 font-semibold">
                         {h}
@@ -394,7 +394,7 @@ export default function BuyurtmalarPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#263b2a]/40">
+                <tbody className="divide-y divide-card-border/40">
                   {pageRows.map((o) => {
                     const fake = fakeEntry(o);
                     const isBlocked = blocked.has(o.customer_id);
@@ -403,7 +403,7 @@ export default function BuyurtmalarPage() {
                       <tr
                         key={o.id}
                         onClick={() => setSelectedId(o.id)}
-                        className={`cursor-pointer transition hover:bg-white/5 ${fake ? "bg-error/[0.06] shadow-[inset_3px_0_0_0_rgba(255,107,107,0.8)]" : ""}`}
+                        className={`cursor-pointer transition hover:bg-surface-container-high/40 ${fake ? "bg-error/[0.06] shadow-[inset_3px_0_0_0_rgba(255,107,107,0.8)]" : ""}`}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -478,7 +478,7 @@ export default function BuyurtmalarPage() {
                               }}
                               className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${
                                 isBlocked
-                                  ? "border-[#26352c] text-on-surface-variant hover:text-on-surface"
+                                  ? "border-card-border text-on-surface-variant hover:text-on-surface"
                                   : "border-error/50 bg-error/10 text-error hover:bg-error/20"
                               }`}
                             >

@@ -164,7 +164,7 @@ export default function BannerlarPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#26352c] bg-[#121614] p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-card-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_220px]">
         <div className="relative">
           <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
             search
@@ -196,7 +196,7 @@ export default function BannerlarPage() {
           </SecondaryButton>
         </div>
       ) : !list.length ? (
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="ad_units"
             title={all.length ? "Filtr bo'yicha banner topilmadi" : "Bannerlar hali yo'q"}
@@ -215,8 +215,8 @@ export default function BannerlarPage() {
             const live = isLive(b, now);
             const expired = Boolean(b.ends_at && new Date(b.ends_at).getTime() <= now);
             return (
-              <article key={b.id} className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
-                <div className="relative aspect-[16/9] bg-[#0d100f]">
+              <article key={b.id} className="flex h-full flex-col overflow-hidden rounded-2xl border border-card-border bg-card">
+                <div className="relative aspect-[16/9] bg-surface-container-low">
                   {src ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={src} alt={b.title} loading="lazy" className={`h-full w-full object-cover ${live ? "" : "opacity-60"}`} />
@@ -238,7 +238,7 @@ export default function BannerlarPage() {
                       </StatusPill>
                     ) : null}
                   </div>
-                  <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
+                  <span className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-2.5 py-1 text-[11px] font-semibold text-ink">
                     #{b.sort_order} · {PLACEMENT_LABEL[b.placement] ?? b.placement}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ export default function BannerlarPage() {
                       {b.service_name || "Xizmatga bog'lanmagan"}
                     </p>
                   </div>
-                  <div className="mt-auto flex items-center gap-2 border-t border-[#26352c]/60 pt-3">
+                  <div className="mt-auto flex items-center gap-2 border-t border-card-border/60 pt-3">
                     <SecondaryButton icon="edit" className="flex-1 justify-center" onClick={() => openForm(b)}>
                       Tahrirlash
                     </SecondaryButton>
@@ -267,7 +267,7 @@ export default function BannerlarPage() {
                       className={`rounded-full border p-2 transition disabled:opacity-50 ${
                         b.status === "active" || b.status === "scheduled"
                           ? "border-primary/40 text-primary hover:bg-primary/10"
-                          : "border-[#26352c] text-on-surface-variant hover:text-primary"
+                          : "border-card-border text-on-surface-variant hover:text-primary"
                       }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">
@@ -278,7 +278,7 @@ export default function BannerlarPage() {
                       type="button"
                       title="O'chirish"
                       onClick={() => setDeleting(b)}
-                      className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:border-error/40 hover:text-error"
+                      className="rounded-full border border-card-border p-2 text-on-surface-variant hover:border-error/40 hover:text-error"
                     >
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>

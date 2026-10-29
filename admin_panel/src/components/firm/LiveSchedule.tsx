@@ -9,13 +9,13 @@ import { fetchAvailability, localIso, shiftDay } from "./schedule";
 const TONE: Record<ScheduleSlot["status"], string> = {
   free: "border-emerald-500/50 bg-emerald-500/10",
   busy: "border-red-500/60 bg-red-500/15",
-  past: "border-[#26352c] bg-[#0e1510] opacity-60",
+  past: "border-card-border bg-surface-container-low opacity-60",
 };
 
 const BAR: Record<ScheduleSlot["status"], string> = {
   free: "bg-emerald-400",
   busy: "bg-red-400",
-  past: "bg-[#40493d]",
+  past: "bg-outline-variant",
 };
 
 function hhmm(ts: number) {
@@ -45,7 +45,7 @@ export function LiveSchedule({
   const nowLabel = updatedAt ? hhmm(updatedAt) : "";
 
   return (
-    <section className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-4 shadow-lg sm:p-5">
+    <section className="rounded-2xl border border-card-border bg-card p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-on-surface">
@@ -63,7 +63,7 @@ export function LiveSchedule({
           <button
             type="button"
             onClick={() => setDate((d) => shiftDay(d, -1))}
-            className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border p-2 text-on-surface-variant hover:text-on-surface"
             aria-label="Oldingi kun"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -72,12 +72,12 @@ export function LiveSchedule({
             type="date"
             value={date}
             onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="rounded-xl border border-[#26352c] bg-[#0d100f] px-3 py-1.5 text-sm text-on-surface outline-none focus:border-primary"
+            className="rounded-xl border border-card-border bg-surface-container-low px-3 py-1.5 text-sm text-on-surface outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={() => setDate((d) => shiftDay(d, 1))}
-            className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border p-2 text-on-surface-variant hover:text-on-surface"
             aria-label="Keyingi kun"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -85,7 +85,7 @@ export function LiveSchedule({
           <button
             type="button"
             onClick={() => setDate(localIso(new Date()))}
-            className="rounded-full border border-[#26352c] px-3 py-1.5 text-sm text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border px-3 py-1.5 text-sm text-on-surface-variant hover:text-on-surface"
           >
             Bugun
           </button>
@@ -100,7 +100,7 @@ export function LiveSchedule({
           <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Band · {busyHours} soat
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#40493d]" /> O&apos;tgan
+          <span className="h-2.5 w-2.5 rounded-full bg-outline-variant" /> O&apos;tgan
         </span>
         <span className="flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[16px] text-primary">event_available</span>
@@ -132,7 +132,7 @@ export function LiveSchedule({
                       {slot.busy_count}/{slot.capacity}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/30">
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink/20">
                     <div className={`h-full rounded-full ${BAR[slot.status]}`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className="mt-1 text-xs text-on-surface-variant">
@@ -151,10 +151,10 @@ export function LiveSchedule({
                           onClick={() => onOpenOrder?.(o.id)}
                           className={`rounded-md px-1.5 py-0.5 text-xs font-semibold transition ${
                             fresh
-                              ? "animate-pulse bg-amber-400 text-black"
+                              ? "animate-pulse bg-amber-400 text-ink"
                               : o.assigned_worker_name
-                                ? "bg-black/30 text-on-surface hover:bg-black/50"
-                                : "border border-dashed border-amber-400/60 bg-black/20 text-amber-200 hover:bg-black/40"
+                                ? "bg-surface-container-high text-ink hover:bg-surface-container-highest"
+                                : "border border-dashed border-amber-600/50 bg-amber-500/10 text-amber-900 hover:bg-amber-500/20 dark:border-amber-400/60 dark:text-amber-200"
                           }`}
                         >
                           #{o.id}

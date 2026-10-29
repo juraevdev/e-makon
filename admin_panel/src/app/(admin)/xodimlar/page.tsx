@@ -309,9 +309,9 @@ export default function XodimlarPage() {
       {loading ? (
         <LoadingBlock />
       ) : error && !data ? (
-        <p className="rounded-2xl border border-error/40 bg-[#291113] p-6 text-sm text-error">{error}</p>
+        <p className="rounded-2xl border border-error/40 bg-error-container p-6 text-sm text-error">{error}</p>
       ) : !rows.length ? (
-        <div className="rounded-2xl border border-card-border bg-[#141816]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="badge"
             title="Xodimlar topilmadi"
@@ -330,12 +330,12 @@ export default function XodimlarPage() {
               key={e.id}
               type="button"
               onClick={() => openCard(e)}
-              className={`group flex min-w-0 flex-col gap-4 rounded-2xl border bg-[#141816] p-5 text-left transition hover:border-primary/50 hover:shadow-[0_0_20px_rgba(46,125,50,0.15)] ${
-                e.employment_status === "dismissed" ? "border-[#26352c] opacity-70" : "border-card-border"
+              className={`group flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5 text-left transition hover:border-primary/50 hover:shadow-[0_0_20px_rgba(46,125,50,0.15)] ${
+                e.employment_status === "dismissed" ? "border-card-border opacity-70" : "border-card-border"
               }`}
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-base font-bold text-white">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-secondary-container text-base font-bold text-ink">
                   {initials(e.user.full_name || e.user.phone)}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -357,15 +357,15 @@ export default function XodimlarPage() {
                 <span className="shrink-0 text-sm font-semibold text-amber-400">★ {Number(e.rating || 0).toFixed(1)}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-[#0e1210] py-2">
+                <div className="rounded-xl bg-surface-container-low py-2">
                   <p className="text-lg font-bold text-primary">{e.active_orders}</p>
                   <p className="text-xs text-on-surface-variant">Faol</p>
                 </div>
-                <div className="rounded-xl bg-[#0e1210] py-2">
+                <div className="rounded-xl bg-surface-container-low py-2">
                   <p className="text-lg font-bold">{e.completed_orders}</p>
                   <p className="text-xs text-on-surface-variant">Bajargan</p>
                 </div>
-                <div className="rounded-xl bg-[#0e1210] py-2">
+                <div className="rounded-xl bg-surface-container-low py-2">
                   <p className="truncate px-1 text-sm font-bold leading-7">{yearsSince(e.hired_at) ?? "—"}</p>
                   <p className="text-xs text-on-surface-variant">Staj</p>
                 </div>
@@ -391,8 +391,8 @@ export default function XodimlarPage() {
           <LoadingBlock />
         ) : (
           <div className="space-y-5 text-sm">
-            <div className="flex flex-col gap-4 rounded-2xl border border-[#26352c] bg-gradient-to-br from-[#16221a] to-[#0e1210] p-4 sm:flex-row sm:items-center sm:p-5">
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-xl font-bold text-white">
+            <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-gradient-to-br from-surface-container to-surface-container-low p-4 sm:flex-row sm:items-center sm:p-5">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-container to-secondary-container text-xl font-bold text-ink">
                 {initials(emp.user.full_name || emp.user.phone)}
               </span>
               <div className="min-w-0 flex-1">
@@ -433,12 +433,12 @@ export default function XodimlarPage() {
                   ["Tizimga qo'shilgan", formatDate(emp.created_at)],
                   ["Login (telefon)", formatPhone(emp.user.phone)],
                 ].map(([label, value]) => (
-                  <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3">
+                  <div key={label} className="min-w-0 rounded-xl border border-card-border bg-surface-container-low px-4 py-3">
                     <p className="text-xs text-on-surface-variant">{label}</p>
                     <p className="break-words font-medium">{value}</p>
                   </div>
                 ))}
-                <div className="rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 sm:col-span-2">
+                <div className="rounded-xl border border-card-border bg-surface-container-low px-4 py-3 sm:col-span-2">
                   <p className="mb-2 text-xs text-on-surface-variant">Ko&apos;nikmalar</p>
                   <div className="flex flex-wrap gap-2">
                     {emp.skills?.length ? (
@@ -453,7 +453,7 @@ export default function XodimlarPage() {
                   </div>
                 </div>
                 {emp.notes ? (
-                  <div className="whitespace-pre-line rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 sm:col-span-2">
+                  <div className="whitespace-pre-line rounded-xl border border-card-border bg-surface-container-low px-4 py-3 sm:col-span-2">
                     <p className="mb-1 text-xs text-on-surface-variant">Qo&apos;shimcha izohlar</p>
                     {emp.notes}
                   </div>
@@ -480,7 +480,7 @@ export default function XodimlarPage() {
                     ["Parvarish tashriflari", card.stats.care_visits_done],
                     ["Rejadagi tashriflar", card.stats.care_visits_planned],
                   ].map(([label, value]) => (
-                    <div key={String(label)} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
+                    <div key={String(label)} className="min-w-0 rounded-xl border border-card-border bg-surface-container-low p-3">
                       <p className="text-xs text-on-surface-variant">{label}</p>
                       <p className="truncate text-lg font-bold">{value}</p>
                     </div>
@@ -493,7 +493,7 @@ export default function XodimlarPage() {
                       {card.recent_orders.map((o) => (
                         <div
                           key={o.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2.5"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-card-border bg-surface-container-low px-3 py-2.5"
                         >
                           <div className="min-w-0">
                             <p className="truncate font-semibold">
@@ -533,7 +533,7 @@ export default function XodimlarPage() {
                           ? "border-primary bg-primary/10"
                           : a.status === "dismissed"
                             ? "border-error/30 hover:border-error/60"
-                            : "border-[#26352c] hover:border-primary/40"
+                            : "border-card-border hover:border-primary/40"
                       }`}
                     >
                       <span className={`material-symbols-outlined ${a.status === "dismissed" ? "text-error" : "text-primary"}`}>
@@ -545,7 +545,7 @@ export default function XodimlarPage() {
                   ))}
                 </div>
                 {statusAction ? (
-                  <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#0e1210] p-4">
+                  <div className="space-y-3 rounded-2xl border border-card-border bg-surface-container-low p-4">
                     <Field
                       label={statusAction.status === "dismissed" ? "Ishdan bo'shatish sababi" : "Izoh (ixtiyoriy)"}
                       required={statusAction.status === "dismissed"}

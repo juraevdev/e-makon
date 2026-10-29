@@ -205,7 +205,7 @@ export function CatalogTypeFormModal({
                 className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
                   form.icon === icon
                     ? "border-primary bg-primary/15 text-primary"
-                    : "border-[#26352c] bg-[#0d100f] text-on-surface-variant hover:text-on-surface"
+                    : "border-card-border bg-surface-container-low text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{icon}</span>
@@ -261,12 +261,12 @@ export function CatalogTypeFormModal({
         >
           <input className={inputClass} value={form.hero_image_url} placeholder="https://..." onChange={(e) => set("hero_image_url", e.target.value.trim())} />
         </Field>
-        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0d100f] px-4 py-3 text-sm sm:col-span-2">
+        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-card-border bg-surface-container-low px-4 py-3 text-sm sm:col-span-2">
           <span>
             <span className="font-semibold">Faol</span>
             <span className="block text-xs text-on-surface-variant">Mobil ilova katalogida ko&apos;rinsin</span>
           </span>
-          <input type="checkbox" className="h-5 w-5 accent-[#4caf50]" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
+          <input type="checkbox" className="h-5 w-5 accent-primary" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
         </label>
       </div>
     </Modal>

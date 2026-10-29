@@ -253,7 +253,7 @@ export default function DashboardPage() {
         />
         <Link
           href="/moliya"
-          className="flex flex-col justify-between rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-card to-card p-6 shadow-lg shadow-black/20 transition-all hover:border-primary/50"
+          className="flex flex-col justify-between rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-card to-card p-6 shadow-lg shadow-ink/10 transition-all hover:border-primary/50"
         >
           <div className="mb-3 flex items-center justify-between">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary">

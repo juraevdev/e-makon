@@ -89,7 +89,7 @@ export default function SozlamalarPage() {
         </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {RULES.map((r) => (
-            <div key={r.title} className="flex gap-3 rounded-xl border border-[#263b2a] bg-[#131b15] p-4">
+            <div key={r.title} className="flex gap-3 rounded-xl border border-card-border bg-card p-4">
               <span className="material-symbols-outlined text-primary">{r.icon}</span>
               <div>
                 <p className="text-sm font-semibold">{r.title}</p>

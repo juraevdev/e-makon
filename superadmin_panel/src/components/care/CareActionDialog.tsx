@@ -61,7 +61,7 @@ export function CareActionDialog({
       }
     >
       <div className="space-y-4">
-        <p className="rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 text-sm text-on-surface-variant">
+        <p className="rounded-xl border border-card-border bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
           {conf.description}
         </p>
         <Field

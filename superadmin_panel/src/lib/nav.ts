@@ -1,108 +1,78 @@
 export type NavItem = {
   href: string;
-  label: string;
   icon: string;
-  title: string;
+  labelKey: string;
+  titleKey: string;
 };
 
 export const navItems: NavItem[] = [
-  {
-    href: "/",
-    label: "Bosh sahifa",
-    icon: "dashboard",
-    title: "Umumiy ko'rinish",
-  },
-  {
-    href: "/hisobotlar",
-    label: "Hisobotlar",
-    icon: "assessment",
-    title: "Hisobotlar",
-  },
-  {
-    href: "/firmalar",
-    label: "Firmalar",
-    icon: "storefront",
-    title: "Xizmat firmalari",
-  },
-  {
-    href: "/foydalanuvchilar",
-    label: "Foydalanuvchilar",
-    icon: "group",
-    title: "Foydalanuvchilar",
-  },
-  {
-    href: "/investorlar",
-    label: "Investorlar",
-    icon: "handshake",
-    title: "Investor hamkorlar",
-  },
-  {
-    href: "/xodimlar",
-    label: "Xodimlar",
-    icon: "badge",
-    title: "Firma xodimlari",
-  },
-  {
-    href: "/xizmatlar",
-    label: "Xizmatlar",
-    icon: "nature_people",
-    title: "Xizmatlar",
-  },
-  {
-    href: "/buyurtmalar",
-    label: "Buyurtmalar",
-    icon: "shopping_cart",
-    title: "Buyurtmalar",
-  },
-  {
-    href: "/parvarish",
-    label: "Parvarish",
-    icon: "verified",
-    title: "Parvarish shartnomalari",
-  },
-  {
-    href: "/bannerlar",
-    label: "Bannerlar",
-    icon: "ad_units",
-    title: "Bannerlar va aksiyalar",
-  },
-  {
-    href: "/aloqa",
-    label: "Aloqa",
-    icon: "mail",
-    title: "Aloqa markazi",
-  },
-  {
-    href: "/ball-tizimi",
-    label: "Ball tizimi",
-    icon: "military_tech",
-    title: "Ball tizimi",
-  },
-  {
-    href: "/xarita",
-    label: "Xarita",
-    icon: "map",
-    title: "Jonli xarita",
-  },
-  {
-    href: "/administratorlar",
-    label: "Administratorlar",
-    icon: "admin_panel_settings",
-    title: "Administratorlar",
-  },
-  {
-    href: "/sozlamalar",
-    label: "Sozlamalar",
-    icon: "settings",
-    title: "Sozlamalar",
-  },
+  { href: "/", icon: "dashboard", labelKey: "nav.home", titleKey: "nav.homeTitle" },
+  { href: "/hisobotlar", icon: "assessment", labelKey: "nav.reports", titleKey: "nav.reportsTitle" },
+  { href: "/firmalar", icon: "storefront", labelKey: "nav.firms", titleKey: "nav.firmsTitle" },
+  { href: "/foydalanuvchilar", icon: "group", labelKey: "nav.users", titleKey: "nav.usersTitle" },
+  { href: "/investorlar", icon: "handshake", labelKey: "nav.investors", titleKey: "nav.investorsTitle" },
+  { href: "/xodimlar", icon: "badge", labelKey: "nav.staff", titleKey: "nav.staffTitle" },
+  { href: "/xizmatlar", icon: "nature_people", labelKey: "nav.services", titleKey: "nav.servicesTitle" },
+  { href: "/buyurtmalar", icon: "shopping_cart", labelKey: "nav.orders", titleKey: "nav.ordersTitle" },
+  { href: "/parvarish", icon: "verified", labelKey: "nav.care", titleKey: "nav.careTitle" },
+  { href: "/bannerlar", icon: "ad_units", labelKey: "nav.banners", titleKey: "nav.bannersTitle" },
+  { href: "/aloqa", icon: "mail", labelKey: "nav.contact", titleKey: "nav.contactTitle" },
+  { href: "/ball-tizimi", icon: "military_tech", labelKey: "nav.loyalty", titleKey: "nav.loyaltyTitle" },
+  { href: "/xarita", icon: "map", labelKey: "nav.map", titleKey: "nav.mapTitle" },
+  { href: "/administratorlar", icon: "admin_panel_settings", labelKey: "nav.admins", titleKey: "nav.adminsTitle" },
+  { href: "/sozlamalar", icon: "settings", labelKey: "nav.settings", titleKey: "nav.settingsTitle" },
 ];
 
-export function getNavTitle(pathname: string): string {
+export function getNavTitleKey(pathname: string): string {
   const exact = navItems.find((item) => item.href === pathname);
-  if (exact) return exact.title;
+  if (exact) return exact.titleKey;
   const match = navItems.find(
     (item) => item.href !== "/" && pathname.startsWith(item.href),
   );
-  return match?.title ?? "E-MAKON";
+  return match?.titleKey ?? "brand";
+}
+
+/** Page root for nature atmosphere (longest matching nav href). */
+export function getPageRoot(pathname: string): string {
+  if (pathname === "/") return "/";
+  const match = navItems
+    .filter((item) => item.href !== "/" && pathname.startsWith(item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  return match?.href ?? "/";
+}
+
+/** Uzbekistan climate mood for page background art. */
+export type WeatherMood =
+  | "sunny"
+  | "dry"
+  | "wind"
+  | "rain"
+  | "snow"
+  | "dew"
+  | "forest";
+
+const PAGE_WEATHER: Record<string, WeatherMood> = {
+  "/": "sunny",
+  "/hisobotlar": "dry",
+  "/firmalar": "wind",
+  "/foydalanuvchilar": "wind",
+  "/investorlar": "dry",
+  "/xodimlar": "sunny",
+  "/xizmatlar": "rain",
+  "/buyurtmalar": "sunny",
+  "/parvarish": "dew",
+  "/bannerlar": "sunny",
+  "/aloqa": "wind",
+  "/ball-tizimi": "dry",
+  "/xarita": "wind",
+  "/administratorlar": "forest",
+  "/sozlamalar": "snow",
+};
+
+export function getPageWeather(pathname: string): WeatherMood {
+  return PAGE_WEATHER[getPageRoot(pathname)] ?? "sunny";
+}
+
+export function getWeatherLabelKey(mood: WeatherMood): string {
+  return `weather.${mood}`;
 }

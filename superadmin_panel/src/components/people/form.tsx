@@ -60,7 +60,7 @@ export function FormSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#26352c] bg-[#101412] p-4 sm:p-5">
+    <section className="rounded-2xl border border-card-border bg-surface-container-low p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
@@ -106,7 +106,7 @@ export function PasswordInput({
   }
 
   const iconBtn =
-    "flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-[#1a231d] hover:text-primary disabled:opacity-30";
+    "flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30";
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -171,7 +171,7 @@ export function StrengthMeter({ value }: { value: string }) {
     <span className="flex items-center gap-2">
       <span className="flex flex-1 gap-1">
         {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} className={`h-1 flex-1 rounded-full ${i < s.score ? s.tone : "bg-[#26352c]"}`} />
+          <span key={i} className={`h-1 flex-1 rounded-full ${i < s.score ? s.tone : "bg-surface-container-high"}`} />
         ))}
       </span>
       <span className="shrink-0 text-[11px] text-on-surface-variant">{s.label}</span>
@@ -244,7 +244,7 @@ export function SelectFilter({
 
 export function ViewToggle({ value, onChange }: { value: "grid" | "table"; onChange: (v: "grid" | "table") => void }) {
   return (
-    <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-[#26352c] bg-[#0f1311] p-1 md:inline-flex" role="group" aria-label="Ko'rinish">
+    <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-card-border bg-surface-container-low p-1 md:inline-flex" role="group" aria-label="Ko'rinish">
       {(
         [
           ["table", "table_rows", "Jadval"],
@@ -258,7 +258,7 @@ export function ViewToggle({ value, onChange }: { value: "grid" | "table"; onCha
           aria-pressed={value === id}
           onClick={() => onChange(id)}
           className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
-            value === id ? "bg-[#1f3324] text-primary" : "text-on-surface-variant hover:text-on-surface"
+            value === id ? "bg-secondary-container text-primary" : "text-on-surface-variant hover:text-on-surface"
           }`}
         >
           <span className="material-symbols-outlined text-[20px]">{icon}</span>
@@ -285,13 +285,13 @@ export function Toggle({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-xl border border-[#26352c] bg-[#0d100f] px-4 py-3 text-left transition-colors hover:border-[#384f40]"
+      className="flex w-full items-center justify-between gap-4 rounded-xl border border-card-border bg-surface-container-low px-4 py-3 text-left transition-colors hover:border-outline-variant"
     >
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-on-surface">{label}</span>
         {description ? <span className="mt-0.5 block text-xs text-on-surface-variant">{description}</span> : null}
       </span>
-      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary/80" : "bg-[#2a332d]"}`}>
+      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary/80" : "bg-surface-container-high"}`}>
         <span
           className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`}
         />
@@ -302,14 +302,14 @@ export function Toggle({
 
 export function ErrorPanel({ title, message, onRetry }: { title: string; message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-error/40 bg-[#291113] p-6 text-center">
+    <div className="rounded-2xl border border-error/40 bg-error-container p-6 text-center">
       <span className="material-symbols-outlined mb-2 text-3xl text-error">error</span>
-      <p className="text-sm font-semibold text-white">{title}</p>
+      <p className="text-sm font-semibold text-ink">{title}</p>
       <p className="mt-1 text-xs text-on-surface-variant">{message}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#26352c] bg-[#151c18] px-4 py-2 text-sm font-medium text-on-surface hover:bg-[#1f2922]"
+        className="mt-4 inline-flex items-center gap-2 rounded-full border border-card-border bg-card px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-high"
       >
         <span className="material-symbols-outlined text-[18px]">refresh</span>
         Qayta urinish
@@ -340,7 +340,7 @@ export function MiniStat({
     amber: "border-amber-500/25 bg-amber-500/10 text-amber-300",
     error: "border-error/25 bg-error/10 text-error",
     sky: "border-sky-500/25 bg-sky-500/10 text-sky-300",
-    neutral: "border-white/10 bg-surface-container-high text-on-surface-variant",
+    neutral: "border-card-border bg-surface-container-high text-on-surface-variant",
   };
   const body = (
     <>
@@ -354,8 +354,8 @@ export function MiniStat({
       </span>
     </>
   );
-  const cls = `flex min-w-0 items-center gap-3.5 rounded-2xl border bg-card/90 p-4 text-left shadow-lg shadow-black/20 transition-all ${
-    active ? "border-primary/50 shadow-[0_0_15px_rgba(46,125,50,0.2)]" : "border-card-border hover:border-[#384c3e]"
+  const cls = `flex min-w-0 items-center gap-3.5 rounded-2xl border bg-card/90 p-4 text-left shadow-lg shadow-ink/10 transition-all ${
+    active ? "border-primary/50 shadow-[0_0_15px_rgba(46,125,50,0.2)]" : "border-card-border hover:border-outline-variant"
   }`;
   if (onClick) {
     return (

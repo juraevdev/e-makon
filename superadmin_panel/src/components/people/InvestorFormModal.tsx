@@ -295,7 +295,7 @@ export function InvestorFormModal({
                         aria-pressed={form.status === id}
                         onClick={() => setForm({ status: id })}
                         className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all ${
-                          form.status === id ? "border-primary/40 bg-primary/10" : "border-[#26352c] bg-[#0d100f] hover:border-[#384f40]"
+                          form.status === id ? "border-primary/40 bg-primary/10" : "border-card-border bg-surface-container-low hover:border-outline-variant"
                         }`}
                       >
                         <span className={`material-symbols-outlined text-[20px] ${form.status === id ? "text-primary" : "text-on-surface-variant"}`}>

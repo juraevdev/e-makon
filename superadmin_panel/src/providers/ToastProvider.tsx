@@ -52,10 +52,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       >
         {toasts.map((toast) => {
           const styles = {
-            success: "border-primary/50 bg-[#122216] text-[#bdf4ba]",
-            error: "border-error/50 bg-[#291113] text-[#ffdad6]",
-            warning: "border-amber-500/50 bg-[#261f12] text-[#fed7aa]",
-            info: "border-sky-500/50 bg-[#10222a] text-[#bae6fd]",
+            success: "border-primary/50 bg-secondary-container text-primary",
+            error: "border-error/50 bg-error-container text-error",
+            warning: "border-amber-500/50 bg-amber-500/15 text-amber-700",
+            info: "border-sky-500/50 bg-tertiary-container text-tertiary",
           }[toast.type];
 
           const icon = {

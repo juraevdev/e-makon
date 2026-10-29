@@ -52,7 +52,7 @@ function loyaltyTier(u: User) {
   if (n >= 5) return { label: "VIP", cls: "border-amber-400/50 bg-amber-400/15 text-amber-300" };
   if (n >= 2) return { label: "Doimiy", cls: "border-primary/40 bg-primary/10 text-primary" };
   if (n === 1) return { label: "1-buyurtma", cls: "border-sky-400/40 bg-sky-400/10 text-sky-300" };
-  return { label: "Buyurtmasiz", cls: "border-[#26352c] bg-[#0e1210] text-on-surface-variant" };
+  return { label: "Buyurtmasiz", cls: "border-card-border bg-surface-container-low text-on-surface-variant" };
 }
 
 export default function MijozlarPage() {
@@ -232,7 +232,7 @@ export default function MijozlarPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 shadow-lg">
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg">
         {loading ? (
           <LoadingBlock />
         ) : error && !data ? (
@@ -249,7 +249,7 @@ export default function MijozlarPage() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-[#263b2a]/50 md:hidden">
+            <ul className="divide-y divide-card-border/50 md:hidden">
               {rows.map((u, idx) => (
                 <li key={u.id}>
                   <button type="button" onClick={() => setDetail(u)} className="flex w-full items-start gap-3 p-4 text-left">
@@ -273,7 +273,7 @@ export default function MijozlarPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#263b2a] text-xs uppercase tracking-wide text-on-surface-variant">
+                  <tr className="border-b border-card-border text-xs uppercase tracking-wide text-on-surface-variant">
                     {["Mijoz", "Telefon", "Buyurtmalar", "Sarflagan", "Oxirgi buyurtma", ""].map((h) => (
                       <th key={h} className="whitespace-nowrap px-5 py-3 font-semibold">
                         {h}
@@ -281,9 +281,9 @@ export default function MijozlarPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#263b2a]/40">
+                <tbody className="divide-y divide-card-border/40">
                   {rows.map((u, idx) => (
-                    <tr key={u.id} className="cursor-pointer transition hover:bg-white/5" onClick={() => setDetail(u)}>
+                    <tr key={u.id} className="cursor-pointer transition hover:bg-surface-container-high/40" onClick={() => setDetail(u)}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <CustomerAvatar user={u} rank={segment === "active" && page === 1 ? idx + 1 : null} />
@@ -358,7 +358,7 @@ export default function MijozlarPage() {
               <SecondaryButton onClick={() => setDetail(null)}>Yopish</SecondaryButton>
               <a
                 href={`tel:${detail.phone}`}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#26352c] bg-[#151c18] px-4 py-2.5 text-sm font-medium text-on-surface hover:bg-[#1f2922]"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-card-border bg-card px-4 py-2.5 text-sm font-medium text-on-surface hover:bg-surface-container-high"
               >
                 <span className="material-symbols-outlined text-[18px]">call</span>
                 Qo&apos;ng&apos;iroq
@@ -373,7 +373,7 @@ export default function MijozlarPage() {
         {detail ? (
           <div className="space-y-5 text-sm">
             <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-[#1b2a1e] text-lg font-bold text-white">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-container to-secondary-container text-lg font-bold text-ink">
                 {initials(customerName(detail))}
               </span>
               <div className="min-w-0 space-y-1">
@@ -392,7 +392,7 @@ export default function MijozlarPage() {
                 ["Birinchi buyurtma", formatDate(detail.first_order_at)],
                 ["Oxirgi buyurtma", formatDate(detail.last_order_at)],
               ].map(([label, value]) => (
-                <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] p-3">
+                <div key={label} className="min-w-0 rounded-xl border border-card-border bg-surface-container-low p-3">
                   <p className="text-xs text-on-surface-variant">{label}</p>
                   <p className="truncate text-base font-bold">{value}</p>
                 </div>
@@ -412,15 +412,15 @@ export default function MijozlarPage() {
               {historyLoading ? (
                 <LoadingBlock />
               ) : history?.length ? (
-                <ol className="relative max-h-80 space-y-3 overflow-y-auto border-l border-[#26352c] pl-4 pr-1">
+                <ol className="relative max-h-80 space-y-3 overflow-y-auto border-l border-card-border pl-4 pr-1">
                   {history.map((o) => (
                     <li key={o.id} className="relative">
                       <span
-                        className={`absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-[#151917] ${
+                        className={`absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-card ${
                           o.status === "completed" ? "bg-primary" : o.status === "cancelled" ? "bg-error" : "bg-amber-400"
                         }`}
                       />
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-card-border bg-surface-container-low px-3 py-2.5">
                         <div className="min-w-0">
                           <p className="truncate font-semibold">
                             #{o.id} · {o.service_name}
@@ -454,7 +454,7 @@ function CustomerAvatar({ user, rank }: { user: User; rank: number | null }) {
     <span className="relative inline-flex shrink-0">
       <span
         className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold ${
-          user.is_active ? "border-primary-container/50 bg-[#1b382b] text-primary" : "border-error/40 bg-[#381617] text-error"
+          user.is_active ? "border-primary-container/50 bg-secondary-container text-primary" : "border-error/40 bg-error-container text-error"
         }`}
       >
         {initials(customerName(user))}

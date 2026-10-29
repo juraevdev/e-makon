@@ -23,8 +23,26 @@ import { downloadExcel } from "@/lib/excel";
 import { formatDate, formatMoney, formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 import { useSearch } from "@/providers/SearchProvider";
+import { useToast } from "@/providers/ToastProvider";
+import { useLocale } from "@/providers/LocaleProvider";
 import { fetchAllPages } from "@/components/people/api";
-import { SearchBox } from "@/components/people/form";
+import {
+  SearchBox,
+  generatePassword,
+  isValidUzPhone,
+  normalizeUzPhone,
+} from "@/components/people/form";
+
+const FIRM_PANEL_URL =
+  process.env.NEXT_PUBLIC_FIRM_PANEL_URL?.replace(/\/$/, "") || "http://localhost:3002";
+
+type FirmCredentials = {
+  firmId: number;
+  firmName: string;
+  phone: string;
+  password: string;
+  panelUrl: string;
+};
 
 const SPECIALTIES = Object.keys(SPECIALTY_LABEL);
 
@@ -81,13 +99,27 @@ function subFee(plan: string, units: number) {
 
 export default function FirmalarPage() {
   const { query } = useSearch();
+  const { t } = useLocale();
+  const { showSuccess, showError, showWarning } = useToast();
   const [filter, setFilter] = useState<"all" | "active" | "ended" | "pending" | "suspended">("all");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabId>("asosiy");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setSetForm] = useState(emptyForm);
+  const [credentials, setCredentials] = useState<FirmCredentials | null>(null);
+  const [copied, setCopied] = useState<"phone" | "password" | "all" | null>(null);
   const setForm = (patch: Partial<typeof emptyForm>) => setSetForm((f) => ({ ...f, ...patch }));
+
+  async function copyText(label: "phone" | "password" | "all", text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      window.setTimeout(() => setCopied(null), 2000);
+    } catch {
+      showError(t("firms.copyFail"));
+    }
+  }
 
   const { data, loading, error, reload, updatedAt } = useAsync(
     () => fetchAllPages<PartnerFirm>("/admin/firms/", { search: query || undefined }),
@@ -167,21 +199,28 @@ export default function FirmalarPage() {
   async function createFirm() {
     setFormError("");
     if (!form.name.trim()) {
-      setFormError("Firma nomi majburiy.");
+      setFormError(t("firms.errName"));
       setTab("asosiy");
       return;
     }
     if (!form.phone.trim()) {
-      setFormError("Telefon majburiy.");
+      setFormError(t("firms.errPhone"));
+      setTab("asosiy");
+      return;
+    }
+    if (!isValidUzPhone(form.phone)) {
+      setFormError(t("firms.errPhoneFmt"));
       setTab("asosiy");
       return;
     }
     const rate = Number(form.commission_rate);
     if (rate < 0.1 || rate > 3) {
-      setFormError("Kampaniya ulushi 0.1%–3% oralig'ida.");
+      setFormError(t("firms.errRate"));
       setTab("moliya");
       return;
     }
+    const phone = normalizeUzPhone(form.phone);
+    const password = generatePassword(12);
     setBusy(true);
     try {
       const days = Number(form.trial_days) || 0;
@@ -190,7 +229,7 @@ export default function FirmalarPage() {
         body: {
           name: form.name.trim(),
           legal_name: form.legal_name.trim(),
-          phone: form.phone.trim(),
+          phone,
           email: form.email.trim(),
           region: form.region.trim(),
           district: form.district.trim(),
@@ -212,12 +251,45 @@ export default function FirmalarPage() {
           body: { days },
         });
       }
+
+      // Firma "xonasi" ochiladi — agent uchun avtomatik login/parol
+      try {
+        await api("/admin/admins/", {
+          method: "POST",
+          body: {
+            phone,
+            password,
+            full_name: `${form.name.trim()} admin`,
+            organization_id: created.id,
+            title: "Firma administratori",
+            can_manage_orders: true,
+            can_manage_staff: true,
+            can_view_analytics: true,
+            is_active: true,
+          },
+        });
+        setCredentials({
+          firmId: created.id,
+          firmName: created.name || form.name.trim(),
+          phone,
+          password,
+          panelUrl: FIRM_PANEL_URL,
+        });
+        showSuccess(t("firms.successCreds"));
+      } catch (adminErr) {
+        showWarning(
+          adminErr instanceof Error
+            ? `${t("firms.adminFailed")} (${adminErr.message})`
+            : t("firms.adminFailed"),
+        );
+      }
+
       setOpen(false);
       setTab("asosiy");
       setSetForm(emptyForm);
       await reload();
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Saqlashda xato");
+      setFormError(e instanceof Error ? e.message : t("firms.errSave"));
     } finally {
       setBusy(false);
     }
@@ -225,18 +297,24 @@ export default function FirmalarPage() {
 
   const all = data ?? [];
   const tabs: { id: TabId; label: string; icon: string }[] = [
-    { id: "asosiy", label: "Asosiy", icon: "badge" },
-    { id: "moliya", label: "Moliya", icon: "payments" },
-    { id: "obuna", label: "Obuna", icon: "card_membership" },
-    { id: "joy", label: "Joylashuv", icon: "location_on" },
+    { id: "asosiy", label: t("firms.tab.main"), icon: "badge" },
+    { id: "moliya", label: t("firms.tab.finance"), icon: "payments" },
+    { id: "obuna", label: t("firms.tab.sub"), icon: "card_membership" },
+    { id: "joy", label: t("firms.tab.place"), icon: "location_on" },
   ];
+  const STATUS_I18N: Record<PartnerFirm["status"], string> = {
+    active: t("firms.status.active"),
+    pending: t("firms.status.pending"),
+    suspended: t("firms.status.suspended"),
+    ended: t("firms.status.ended"),
+  };
   const tabIndex = TAB_ORDER.indexOf(tab);
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">
       <PageHeader
-        title="Xizmat ko'rsatuvchi firmalar"
-        description="Reyting, qarz/daromad, obuna ($9/oy · $90/yil), blok, jarima va savdo taqiqi."
+        title={t("firms.title")}
+        description={t("firms.desc")}
         actions={
           <>
             <LiveBadge updatedAt={updatedAt || undefined} />
@@ -249,26 +327,26 @@ export default function FirmalarPage() {
                 setOpen(true);
               }}
             >
-              Yangi firma
+              {t("firms.newRoom")}
             </PrimaryButton>
           </>
         }
       />
 
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4 xl:flex-row xl:items-center">
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-card-border bg-card/90 p-3 sm:p-4 xl:flex-row xl:items-center">
         <TabBar
           className="xl:shrink-0"
           value={filter}
           onChange={setFilter}
           tabs={[
-            { id: "all", label: "Barchasi", count: all.length },
-            { id: "active", label: "Faol", count: all.filter((f) => f.status === "active").length },
-            { id: "pending", label: "Sinov", count: all.filter((f) => f.status === "pending").length },
-            { id: "suspended", label: "Blok", count: all.filter((f) => f.status === "suspended").length },
-            { id: "ended", label: "Tugatilgan", count: all.filter((f) => f.status === "ended").length },
+            { id: "all", label: t("common.all"), count: all.length },
+            { id: "active", label: STATUS_I18N.active, count: all.filter((f) => f.status === "active").length },
+            { id: "pending", label: STATUS_I18N.pending, count: all.filter((f) => f.status === "pending").length },
+            { id: "suspended", label: STATUS_I18N.suspended, count: all.filter((f) => f.status === "suspended").length },
+            { id: "ended", label: STATUS_I18N.ended, count: all.filter((f) => f.status === "ended").length },
           ]}
         />
-        <SearchBox placeholder="Nomi, telefon, hudud..." className="xl:flex-1" />
+        <SearchBox placeholder={t("common.search")} className="xl:flex-1" />
       </div>
 
       {loading && !data ? (
@@ -276,18 +354,22 @@ export default function FirmalarPage() {
       ) : error && !data ? (
         <p className="text-error">{error}</p>
       ) : !firms.length ? (
-        <EmptyState icon="storefront" title="Firmalar yo'q" action={<PrimaryButton onClick={() => setOpen(true)}>Qo&apos;shish</PrimaryButton>} />
+        <EmptyState
+          icon="storefront"
+          title={t("firms.empty")}
+          action={<PrimaryButton onClick={() => setOpen(true)}>{t("common.add")}</PrimaryButton>}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {firms.map((f) => (
             <Link
               key={f.id}
               href={`/firmalar/${f.id}`}
-              className="flex flex-col justify-between rounded-2xl border border-primary-container/35 bg-gradient-to-b from-[#151a18] to-[#101412] p-5 transition hover:border-primary/60"
+              className="flex flex-col justify-between rounded-2xl border border-card-border bg-card p-5 text-ink shadow-sm transition hover:border-primary/50 hover:shadow-md"
             >
               <div>
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <h3 className="text-lg font-bold text-on-surface">{f.name}</h3>
+                  <h3 className="text-lg font-bold text-ink">{f.name}</h3>
                   <StatusPill
                     variant={
                       f.status === "active"
@@ -298,7 +380,7 @@ export default function FirmalarPage() {
                     }
                     pulse={f.status === "active"}
                   >
-                    {STATUS_LABEL[f.status] ?? "Sinov"}
+                    {STATUS_I18N[f.status] ?? STATUS_I18N.pending}
                   </StatusPill>
                 </div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -325,7 +407,7 @@ export default function FirmalarPage() {
                   </p>
                 ) : null}
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-xs">
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-card-border pt-3 text-xs">
                 <div>
                   <p className="text-on-surface-variant">Daromad (aylanma)</p>
                   <p className="font-semibold">{formatMoney(f.revenue)}</p>
@@ -355,8 +437,8 @@ export default function FirmalarPage() {
       <Modal
         open={open}
         size="lg"
-        title="Yangi firma"
-        description="Kampaniya ma'lumotlari, moliya, obuna va joylashuv"
+        title={t("firms.createTitle")}
+        description={t("firms.createDesc")}
         onClose={() => setOpen(false)}
         footer={
           <>
@@ -367,26 +449,35 @@ export default function FirmalarPage() {
                 onClick={() => setTab(TAB_ORDER[Math.max(0, tabIndex - 1)])}
                 className="flex-1 justify-center sm:flex-none"
               >
-                Orqaga
+                {t("common.back")}
               </SecondaryButton>
               <SecondaryButton
                 disabled={tabIndex === TAB_ORDER.length - 1}
                 onClick={() => setTab(TAB_ORDER[Math.min(TAB_ORDER.length - 1, tabIndex + 1)])}
                 className="flex-1 justify-center sm:flex-none"
               >
-                Oldinga
+                {t("common.next")}
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </SecondaryButton>
             </div>
             <SecondaryButton onClick={() => setOpen(false)} className="justify-center">
-              Bekor qilish
+              {t("common.cancel")}
             </SecondaryButton>
             <PrimaryButton icon="add_business" disabled={busy} onClick={() => void createFirm()} className="justify-center">
-              {busy ? "Saqlanmoqda..." : "Firmani saqlash"}
+              {busy ? t("firms.opening") : t("firms.openRoom")}
             </PrimaryButton>
           </>
         }
       >
+        <div className="mb-4 rounded-xl border border-accent/30 bg-accent-soft/40 px-3 py-2.5 text-xs text-ink-muted dark:bg-accent-soft/20">
+          <p className="font-semibold text-ink">{t("firms.flowTitle")}</p>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+            <li>{t("firms.flow1")}</li>
+            <li>{t("firms.flow2")}</li>
+            <li>{t("firms.flow3")}</li>
+          </ol>
+        </div>
+
         <TabBar className="mb-5" value={tab} onChange={setTab} tabs={tabs} />
 
         {formError ? (
@@ -398,30 +489,30 @@ export default function FirmalarPage() {
 
         {tab === "asosiy" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Firma nomi *">
+            <Field label={`${t("firms.name")} *`}>
               <input className={inputClass} value={form.name} onChange={(e) => setForm({ name: e.target.value })} />
             </Field>
-            <Field label="Yuridik nomi">
+            <Field label={t("firms.legal")}>
               <input className={inputClass} value={form.legal_name} onChange={(e) => setForm({ legal_name: e.target.value })} />
             </Field>
-            <Field label="Telefon *">
+            <Field label={`${t("firms.phoneLogin")} *`}>
               <input className={inputClass} placeholder="+998..." value={form.phone} onChange={(e) => setForm({ phone: e.target.value })} />
             </Field>
-            <Field label="Email">
+            <Field label={t("firms.email")}>
               <input className={inputClass} type="email" value={form.email} onChange={(e) => setForm({ email: e.target.value })} />
             </Field>
-            <Field label="Mutaxassislik">
+            <Field label={t("firms.specialty")}>
               <select className={inputClass} value={form.specialty} onChange={(e) => setForm({ specialty: e.target.value })}>
                 {SPECIALTIES.map((s) => (
                   <option key={s} value={s}>{SPECIALTY_LABEL[s]}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Sinov muddati (kun, 0 = doimiy)">
+            <Field label={t("firms.trial")}>
               <input className={inputClass} type="number" min="0" value={form.trial_days} onChange={(e) => setForm({ trial_days: e.target.value })} />
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Tavsif / xizmatlar">
+              <Field label={t("firms.description")}>
                 <textarea
                   className={`${inputClass} min-h-[80px]`}
                   value={form.description}
@@ -526,6 +617,88 @@ export default function FirmalarPage() {
           </div>
         ) : null}
 
+      </Modal>
+
+      <Modal
+        open={!!credentials}
+        size="md"
+        title={t("firms.readyTitle")}
+        description={t("firms.readyDesc")}
+        onClose={() => setCredentials(null)}
+        footer={
+          <>
+            {credentials ? (
+              <SecondaryButton
+                icon="content_copy"
+                onClick={() =>
+                  void copyText(
+                    "all",
+                    [
+                      `${t("firms.name")}: ${credentials.firmName}`,
+                      `${t("firms.panel")}: ${credentials.panelUrl}`,
+                      `${t("firms.login")}: ${credentials.phone}`,
+                      `${t("login.password")}: ${credentials.password}`,
+                    ].join("\n"),
+                  )
+                }
+              >
+                {copied === "all" ? t("common.copied") : t("firms.copyAll")}
+              </SecondaryButton>
+            ) : null}
+            {credentials ? (
+              <Link
+                href={`/firmalar/${credentials.firmId}`}
+                className="btn-accent inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                onClick={() => setCredentials(null)}
+              >
+                {t("firms.profile")}
+              </Link>
+            ) : null}
+            <PrimaryButton onClick={() => setCredentials(null)}>{t("common.close")}</PrimaryButton>
+          </>
+        }
+      >
+        {credentials ? (
+          <div className="space-y-3">
+            <p className="rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-ink">
+              <strong>{credentials.firmName}</strong> {t("firms.roomOpened")}
+            </p>
+            <div className="rounded-xl border border-card-border bg-card p-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">{t("firms.panel")}</p>
+              <p className="mt-1 break-all font-mono text-sm text-ink">{credentials.panelUrl}</p>
+            </div>
+            <div className="flex items-start justify-between gap-2 rounded-xl border border-card-border bg-card p-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">{t("firms.login")}</p>
+                <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                  {formatPhone(credentials.phone)}
+                </p>
+              </div>
+              <SecondaryButton
+                icon="content_copy"
+                onClick={() => void copyText("phone", credentials.phone)}
+              >
+                {copied === "phone" ? "OK" : t("common.copy")}
+              </SecondaryButton>
+            </div>
+            <div className="flex items-start justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                  {t("firms.passwordOnce")}
+                </p>
+                <p className="mt-1 font-mono text-base font-bold tracking-wide text-ink">
+                  {credentials.password}
+                </p>
+              </div>
+              <SecondaryButton
+                icon="content_copy"
+                onClick={() => void copyText("password", credentials.password)}
+              >
+                {copied === "password" ? "OK" : t("common.copy")}
+              </SecondaryButton>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );

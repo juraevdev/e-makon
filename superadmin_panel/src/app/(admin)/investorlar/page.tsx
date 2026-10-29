@@ -49,12 +49,12 @@ function InvestorCard({ inv, onOpen }: { inv: Investor; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className={`group flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-[#151a18] to-[#101412] p-5 text-left transition hover:border-primary/60 ${
-        inv.status === "ended" ? "border-[#3a2a2b] opacity-80" : "border-primary-container/35"
+      className={`group flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-card to-surface-container-low p-5 text-left transition hover:border-primary/60 ${
+        inv.status === "ended" ? "border-error/40 opacity-80" : "border-primary-container/35"
       }`}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary-container/50 bg-[#1b382b] text-[13px] font-bold text-primary">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary-container/50 bg-secondary-container text-[13px] font-bold text-primary">
           {initials(inv.full_name || inv.company_name || "?")}
         </span>
         <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ function InvestorCard({ inv, onOpen }: { inv: Investor; onOpen: () => void }) {
           </p>
         ) : null}
       </div>
-      <div className="mt-auto space-y-3 border-t border-white/10 pt-3">
+      <div className="mt-auto space-y-3 border-t border-card-border pt-3">
         <div className="flex items-end justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[11px] text-on-surface-variant">Investitsiya</p>
@@ -90,7 +90,7 @@ function InvestorCard({ inv, onOpen }: { inv: Investor; onOpen: () => void }) {
             <p className="text-base font-bold text-primary">{share}%</p>
           </div>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[#26352c]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
           <div className="h-full rounded-full bg-gradient-to-r from-primary-container to-primary" style={{ width: `${share}%` }} />
         </div>
         {inv.status === "ended" ? (
@@ -105,7 +105,7 @@ function InvestorCard({ inv, onOpen }: { inv: Investor; onOpen: () => void }) {
 
 function DetailRow({ icon, label, children }: { icon: string; label: string; children: ReactNode }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-[#26352c] bg-[#0d100f] px-3.5 py-2.5">
+    <div className="flex items-start gap-3 rounded-xl border border-card-border bg-surface-container-low px-3.5 py-2.5">
       <span className="material-symbols-outlined mt-0.5 text-[18px] text-primary">{icon}</span>
       <div className="min-w-0">
         <p className="text-[11px] text-on-surface-variant">{label}</p>
@@ -250,7 +250,7 @@ export default function InvestorlarPage() {
         />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4">
+      <div className="space-y-3 rounded-2xl border border-card-border bg-card/80 p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row">
           <SearchBox placeholder="Ism, kompaniya, telefon yoki email..." className="sm:flex-1" />
           <SelectFilter
@@ -284,7 +284,7 @@ export default function InvestorlarPage() {
       ) : error && !data ? (
         <ErrorPanel title="Investorlarni yuklab bo'lmadi" message={error} onRetry={() => void reload()} />
       ) : !list.length ? (
-        <div className="rounded-2xl border border-card-border bg-[#141816]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="handshake"
             title={all.length ? "Mos investor topilmadi" : "Investorlar yo'q"}
@@ -379,7 +379,7 @@ export default function InvestorlarPage() {
                   <p className="text-xs text-on-surface-variant">Investitsiya</p>
                   <p className="mt-1 text-lg font-bold text-on-surface">{formatMoney(detail.investment_amount, detail.currency)}</p>
                 </div>
-                <div className="rounded-2xl border border-[#26352c] bg-[#0d100f] p-4">
+                <div className="rounded-2xl border border-card-border bg-surface-container-low p-4">
                   <p className="text-xs text-on-surface-variant">Ulush</p>
                   <p className="mt-1 text-lg font-bold text-primary">{detail.share_percent}%</p>
                 </div>

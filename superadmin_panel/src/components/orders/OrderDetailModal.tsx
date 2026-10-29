@@ -172,7 +172,7 @@ export function OrderDetailModal({
         ) : null}
 
         {selected.status !== "cancelled" ? (
-          <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
+          <div className="rounded-2xl border border-card-border bg-surface-container-low p-4">
             <div className="flex items-start justify-between gap-1 overflow-x-auto">
               {WORK_STAGES.map((s, i) => {
                 const current = WORK_STAGES.findIndex((x) => x.key === selected.work_stage);
@@ -182,7 +182,7 @@ export function OrderDetailModal({
                   <div key={s.key} className="flex min-w-[64px] flex-1 flex-col items-center text-center">
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-full border ${
-                        done ? "border-primary bg-primary/20 text-primary" : "border-[#263b2a] text-on-surface-variant"
+                        done ? "border-primary bg-primary/20 text-primary" : "border-card-border text-on-surface-variant"
                       }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">{s.icon}</span>
@@ -242,7 +242,7 @@ export function OrderDetailModal({
         </div>
 
         {selected.payment_status !== "not_required" ? (
-          <div className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
+          <div className="rounded-2xl border border-card-border bg-surface-container-low p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-bold">Mijoz to&apos;lovi</h3>
               <StatusPill variant={PAYMENT_TONE[selected.payment_status]} pulse={selected.payment_status === "checking"}>
@@ -438,7 +438,7 @@ export function OrderDetailModal({
                 <div
                   key={h.id}
                   className={`rounded-xl border px-3 py-2 text-xs ${
-                    fake?.id === h.id ? "border-error/50 bg-error/10" : "border-[#263b2a] bg-[#0e1510]"
+                    fake?.id === h.id ? "border-error/50 bg-error/10" : "border-card-border bg-surface-container-low"
                   }`}
                 >
                   <p className="font-medium">

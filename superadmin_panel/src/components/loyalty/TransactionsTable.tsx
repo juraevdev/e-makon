@@ -93,8 +93,8 @@ export function TransactionsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg shadow-black/20">
-      <div className="space-y-3 border-b border-[#26352c] p-4 sm:p-6">
+    <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg shadow-ink/10">
+      <div className="space-y-3 border-b border-card-border p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold">
             <span className="material-symbols-outlined text-primary">receipt_long</span>
@@ -175,7 +175,7 @@ export function TransactionsTable({
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#26352c] text-xs uppercase tracking-wide text-on-surface-variant">
+                <tr className="border-b border-card-border text-xs uppercase tracking-wide text-on-surface-variant">
                   {["Mijoz", "Turi", "Ball", "Buyurtma", "Izoh", "Sana"].map((h) => (
                     <th key={h} className="whitespace-nowrap px-5 py-3 font-semibold">
                       {h}
@@ -183,7 +183,7 @@ export function TransactionsTable({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#26352c]/40">
+              <tbody className="divide-y divide-card-border/40">
                 {rows.slice(0, limit).map((t) => (
                   <tr key={t.id} className="hover:bg-white/[0.03]">
                     <td className="px-5 py-3">
@@ -206,7 +206,7 @@ export function TransactionsTable({
               </tbody>
             </table>
           </div>
-          <div className="divide-y divide-[#26352c]/40 md:hidden">
+          <div className="divide-y divide-card-border/40 md:hidden">
             {rows.slice(0, limit).map((t) => (
               <div key={t.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -225,7 +225,7 @@ export function TransactionsTable({
             ))}
           </div>
           {rows.length > limit ? (
-            <div className="flex justify-center border-t border-[#26352c] p-4">
+            <div className="flex justify-center border-t border-card-border p-4">
               <SecondaryButton icon="expand_more" onClick={() => setLimit((n) => n + STEP)}>
                 Yana ko&apos;rsatish ({rows.length - limit})
               </SecondaryButton>

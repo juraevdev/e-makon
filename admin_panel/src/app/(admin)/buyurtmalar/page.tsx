@@ -393,7 +393,7 @@ export default function BuyurtmalarPage() {
           e.stopPropagation();
           void autoPlace(o);
         }}
-        className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-400/20 disabled:opacity-50"
+        className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:text-amber-200 hover:bg-amber-400/20 disabled:opacity-50"
       >
         <span className={`material-symbols-outlined text-[16px] ${placingId === o.id ? "animate-spin" : ""}`}>
           {placingId === o.id ? "progress_activity" : "auto_fix_high"}
@@ -419,8 +419,9 @@ export default function BuyurtmalarPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 px-4 py-6 text-ink md:px-8">
       <PageBar
+        title="Buyurtmalar"
         updatedAt={updatedAt}
         description="Ilovadan kelgan buyurtmalar real vaqtda shu yerda paydo bo'ladi. Har bir buyurtmani bo'sh vaqtga joylang, mas'ul xodimni biriktiring va ish bosqichlarini belgilang — mijoz hammasini ilovada ko'radi."
         actions={<ExcelButton onClick={exportTable} disabled={!orders.length} />}
@@ -435,7 +436,7 @@ export default function BuyurtmalarPage() {
             <button
               type="button"
               onClick={() => setFilter("ready")}
-              className="rounded-full border border-amber-400/50 px-3 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-400/20"
+              className="rounded-full border border-amber-400/50 px-3 py-1 text-xs font-semibold text-amber-900 dark:text-amber-100 hover:bg-amber-400/20"
             >
               Ko&apos;rish
             </button>
@@ -471,7 +472,7 @@ export default function BuyurtmalarPage() {
       </div>
 
       {data && data.count > all.length ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
           Oxirgi {all.length} ta buyurtma ko&apos;rsatilmoqda (jami {data.count}). Eskilarini topish uchun qidiruvdan foydalaning.
         </p>
       ) : null}
@@ -484,7 +485,7 @@ export default function BuyurtmalarPage() {
         onChange={setFilter}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90 shadow-lg">
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm">
         {loading ? (
           <LoadingBlock />
         ) : error && !data ? (
@@ -497,7 +498,7 @@ export default function BuyurtmalarPage() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-[#263b2a]/50 md:hidden">
+            <ul className="divide-y divide-card-border/50 md:hidden">
               {orders.map((o) => (
                 <li key={o.id}>
                   <div
@@ -521,7 +522,7 @@ export default function BuyurtmalarPage() {
                     <div className="flex flex-wrap items-center gap-2">{stageCell(o)}</div>
                     <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div>{rowSchedule(o)}</div>
-                      <span className={o.assigned_worker_name ? "text-on-surface-variant" : "text-amber-300"}>
+                      <span className={o.assigned_worker_name ? "text-on-surface-variant" : "text-amber-800 dark:text-amber-300"}>
                         {o.assigned_worker_name || (isClosed(o) ? "—" : "Xodim yo'q")}
                       </span>
                     </div>
@@ -532,7 +533,7 @@ export default function BuyurtmalarPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#263b2a] text-xs uppercase tracking-wide text-on-surface-variant">
+                  <tr className="border-b border-card-border text-xs uppercase tracking-wide text-on-surface-variant">
                     {["Buyurtma", "Xizmat", "Reja", "Xodim", "Ish bosqichi", "To'lov", "Narx"].map((h) => (
                       <th key={h} className="whitespace-nowrap px-5 py-3 font-semibold">
                         {h}
@@ -540,12 +541,12 @@ export default function BuyurtmalarPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#263b2a]/40">
+                <tbody className="divide-y divide-card-border/40">
                   {orders.map((o) => (
                     <tr
                       key={o.id}
                       onClick={() => open(o)}
-                      className={`cursor-pointer transition hover:bg-white/5 ${highlight.has(o.id) ? "bg-amber-400/5" : ""}`}
+                      className={`cursor-pointer transition hover:bg-surface-container-high/40 ${highlight.has(o.id) ? "bg-amber-400/5" : ""}`}
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -574,7 +575,7 @@ export default function BuyurtmalarPage() {
                         ) : isClosed(o) ? (
                           <span className="text-on-surface-variant">—</span>
                         ) : (
-                          <span className="text-amber-300">Biriktirilmagan</span>
+                          <span className="text-amber-800 dark:text-amber-300">Biriktirilmagan</span>
                         )}
                       </td>
                       <td className="px-5 py-4">{stageCell(o)}</td>
@@ -875,7 +876,7 @@ export default function BuyurtmalarPage() {
                       <li key={s.key} className="flex min-w-0 flex-col items-center gap-1 text-center">
                         <span
                           className={`flex h-9 w-9 items-center justify-center rounded-full border sm:h-10 sm:w-10 ${
-                            done ? "border-primary bg-primary/20 text-primary" : "border-[#26352c] text-on-surface-variant"
+                            done ? "border-primary bg-primary/20 text-primary" : "border-card-border text-on-surface-variant"
                           } ${i === reachedIndex ? "animate-pulse" : ""}`}
                         >
                           <span className="material-symbols-outlined text-[18px] sm:text-[20px]">{s.icon}</span>
@@ -914,7 +915,7 @@ export default function BuyurtmalarPage() {
                   ) : null}
                 </div>
                 {blockedByPayment ? (
-                  <p className="mt-2 text-xs text-amber-200">To&apos;lov tasdiqlanmaguncha buyurtmani qabul qilib bo&apos;lmaydi.</p>
+                  <p className="mt-2 text-xs text-amber-900 dark:text-amber-200">To&apos;lov tasdiqlanmaguncha buyurtmani qabul qilib bo&apos;lmaydi.</p>
                 ) : null}
                 {current.distance_km || current.eta_minutes ? (
                   <p className="mt-3 text-xs text-on-surface-variant">
@@ -943,7 +944,7 @@ export default function BuyurtmalarPage() {
               ) : null}
               {paymentHint(current) ? <p className="text-xs text-on-surface-variant">{paymentHint(current)}</p> : null}
               {isAwaitingRelease(current) ? (
-                <p className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
                   Ish yakunlandi deb belgilandi. Tizim ma&apos;muriyati tasdiqlagach pul firmangiz hisobiga o&apos;tkaziladi.
                 </p>
               ) : null}
@@ -951,7 +952,7 @@ export default function BuyurtmalarPage() {
                 <p className="mt-2 text-xs text-primary">Pul firmangiz hisobiga o&apos;tkazilgan.</p>
               ) : null}
               {!closed ? (
-                <details className="mt-3 rounded-xl border border-[#26352c] bg-[#0e1510] p-3">
+                <details className="mt-3 rounded-xl border border-card-border bg-surface-container-low p-3">
                   <summary className="cursor-pointer text-sm font-semibold text-on-surface-variant">Narx va muddatni o&apos;zgartirish</summary>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Field label="Narx (UZS)">
@@ -1023,10 +1024,10 @@ export default function BuyurtmalarPage() {
             {(current.status_history?.length ?? 0) > 0 ? (
               <div>
                 <h3 className="mb-2 text-base font-semibold">Harakatlar tarixi</h3>
-                <ol className="relative max-h-64 space-y-3 overflow-y-auto border-l border-[#26352c] pl-4">
+                <ol className="relative max-h-64 space-y-3 overflow-y-auto border-l border-card-border pl-4">
                   {current.status_history.map((h) => (
                     <li key={h.id} className="relative">
-                      <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[#131b15] bg-primary" />
+                      <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
                       <p className="font-medium">
                         {h.from_status === h.to_status && h.stage_label
                           ? h.stage_label
@@ -1095,7 +1096,7 @@ export default function BuyurtmalarPage() {
                   type="button"
                   onClick={() => setFakeReason(r)}
                   className={`rounded-full border px-2.5 py-1 text-xs ${
-                    fakeReason === r ? "border-error bg-error/15 text-error" : "border-[#26352c] text-on-surface-variant hover:text-on-surface"
+                    fakeReason === r ? "border-error bg-error/15 text-error" : "border-card-border text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
                   {r}
@@ -1155,7 +1156,7 @@ function InfoRow({
   plain?: boolean;
 }) {
   return (
-    <div className={`${plain ? "" : "rounded-xl border border-[#26352c] bg-[#0e1510] px-3.5 py-2.5"} min-w-0 ${className}`}>
+    <div className={`${plain ? "" : "rounded-xl border border-card-border bg-surface-container-low px-3.5 py-2.5"} min-w-0 ${className}`}>
       <p className="text-xs text-on-surface-variant">{label}</p>
       <div className="mt-0.5 break-words font-medium">{value}</div>
     </div>
@@ -1175,7 +1176,7 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-2xl border p-4 ${tone === "danger" ? "border-error/30 bg-error/5" : "border-[#263b2a] bg-[#0e1510]"}`}
+      className={`rounded-2xl border p-4 ${tone === "danger" ? "border-error/30 bg-error/5" : "border-card-border bg-surface-container-low"}`}
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className={`text-base font-semibold ${tone === "danger" ? "text-error" : "text-on-surface"}`}>{title}</h3>

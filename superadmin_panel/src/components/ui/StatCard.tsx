@@ -32,22 +32,20 @@ export function StatCard({
         ) : null}
       </div>
       <div>
-        <p className="mb-1 text-sm font-medium text-on-surface-variant">{label}</p>
-        <h3 className="text-3xl font-bold tracking-tight text-on-surface">
+        <p className="mb-1 text-sm font-medium text-ink-muted">{label}</p>
+        <h3 className="text-3xl font-bold tracking-tight text-ink">
           {value}
           {suffix ? (
-            <span className="ml-1 text-sm font-normal text-on-surface-variant">
-              {suffix}
-            </span>
+            <span className="ml-1 text-sm font-normal text-ink-muted">{suffix}</span>
           ) : null}
         </h3>
-        {hint ? <p className="mt-2 text-xs text-on-surface-variant">{hint}</p> : null}
+        {hint ? <p className="mt-2 text-xs text-ink-muted">{hint}</p> : null}
       </div>
     </>
   );
 
   const className =
-    "flex flex-col justify-between rounded-2xl border border-card-border bg-card p-6 shadow-lg shadow-black/20 transition-all duration-300 hover:border-primary/40";
+    "flex flex-col justify-between rounded-2xl border border-card-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/40";
 
   if (href) {
     return (

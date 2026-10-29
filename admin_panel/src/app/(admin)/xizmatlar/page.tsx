@@ -261,7 +261,7 @@ export default function XizmatlarPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card">
         {loading && !data ? (
           <LoadingBlock />
         ) : error ? (
@@ -277,15 +277,15 @@ export default function XizmatlarPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#26352c] text-xs uppercase text-on-surface-variant">
+                <tr className="border-b border-card-border text-xs uppercase text-on-surface-variant">
                   {["Xizmat", "Katalog turi", "Narx", "Davomiylik", "Tekshiruv", "Ilovada", ""].map((h) => (
                     <th key={h} className="px-5 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#26352c]/50">
+              <tbody className="divide-y divide-card-border/50">
                 {rows.map((s) => (
-                  <tr key={s.id} className="transition hover:bg-white/5">
+                  <tr key={s.id} className="transition hover:bg-surface-container-high/40">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {s.image ? (
@@ -445,13 +445,13 @@ export default function XizmatlarPage() {
               <div className="flex items-center gap-4">
                 {imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imagePreview} alt="" className="h-20 w-28 rounded-xl border border-[#26352c] object-cover" />
+                  <img src={imagePreview} alt="" className="h-20 w-28 rounded-xl border border-card-border object-cover" />
                 ) : (
-                  <span className="flex h-20 w-28 items-center justify-center rounded-xl border border-dashed border-[#26352c] text-on-surface-variant">
+                  <span className="flex h-20 w-28 items-center justify-center rounded-xl border border-dashed border-card-border text-on-surface-variant">
                     <span className="material-symbols-outlined">add_photo_alternate</span>
                   </span>
                 )}
-                <label className="cursor-pointer rounded-lg border border-[#26352c] px-4 py-2 text-sm hover:bg-white/5">
+                <label className="cursor-pointer rounded-lg border border-card-border px-4 py-2 text-sm hover:bg-surface-container-high/40">
                   {imagePreview ? "Rasmni almashtirish" : "Rasm yuklash"}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImage(e.target.files?.[0])} />
                 </label>
@@ -465,7 +465,7 @@ export default function XizmatlarPage() {
           </label>
         </div>
 
-        <div className="mt-4 space-y-2 rounded-xl border border-[#26352c] bg-[#0e1510] p-3 text-xs text-on-surface-variant">
+        <div className="mt-4 space-y-2 rounded-xl border border-card-border bg-surface-container-low p-3 text-xs text-on-surface-variant">
           {form.price ? (
             <p>
               Ilovada: <b className="text-primary">{formatMoney(Number(form.price))}</b> — narx o&apos;zgarmas, maydonga qarab

@@ -12,7 +12,7 @@ type Section = "info" | "visits" | "history";
 
 function InfoTile({ label, value, icon }: { label: string; value: ReactNode; icon: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-3.5 py-3">
+    <div className="flex items-start gap-3 rounded-xl border border-card-border bg-surface-container-low px-3.5 py-3">
       <span className="material-symbols-outlined mt-0.5 text-[20px] text-primary">{icon}</span>
       <div className="min-w-0">
         <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">{label}</p>
@@ -59,7 +59,7 @@ export function CareContractDetail({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 rounded-2xl border border-[#26352c] bg-gradient-to-br from-[#16211a] to-[#0f1411] p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-gradient-to-br from-surface-container to-surface-container-low p-4 sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill variant={CARE_STATUS_TONE[c.status]} pulse={c.status === "pending"}>
@@ -95,7 +95,7 @@ export function CareContractDetail({
             </p>
           </div>
           <div className="col-span-3">
-            <div className="h-1.5 overflow-hidden rounded-full bg-[#26352c]">
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
             </div>
             <p className="mt-1 text-right text-[11px] text-on-surface-variant">{pct}% bajarilgan</p>
@@ -185,7 +185,7 @@ export function CareContractDetail({
           {c.terms ? (
             <div>
               <p className="mb-2 text-sm font-semibold">Shartnoma shartlari</p>
-              <p className="whitespace-pre-line rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 text-sm leading-relaxed">{c.terms}</p>
+              <p className="whitespace-pre-line rounded-xl border border-card-border bg-surface-container-low px-4 py-3 text-sm leading-relaxed">{c.terms}</p>
             </div>
           ) : null}
           {c.order ? <p className="text-xs text-on-surface-variant">Bog&apos;langan buyurtma: #{c.order}</p> : null}
@@ -209,7 +209,7 @@ export function CareContractDetail({
                         ? platform
                           ? "border-amber-500/30 bg-amber-500/10"
                           : "border-primary/30 bg-primary/10"
-                        : "border-[#26352c] bg-[#0e1210]"
+                        : "border-card-border bg-surface-container-low"
                     }`}
                   >
                     <p className="flex flex-wrap items-center gap-1.5 text-xs text-on-surface-variant">
@@ -226,7 +226,7 @@ export function CareContractDetail({
             })}
             {!c.events.length ? <p className="py-6 text-center text-sm text-on-surface-variant">Tarix bo&apos;sh.</p> : null}
           </div>
-          <div className="flex items-end gap-2 rounded-2xl border border-[#26352c] bg-[#0e1210] p-2">
+          <div className="flex items-end gap-2 rounded-2xl border border-card-border bg-surface-container-low p-2">
             <textarea
               rows={2}
               value={comment}
@@ -246,7 +246,7 @@ export function CareContractDetail({
               onClick={() => void sendComment()}
               disabled={sending || !comment.trim()}
               aria-label="Yuborish"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-white transition hover:brightness-110 disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary transition hover:brightness-110 disabled:opacity-40"
             >
               <span className={`material-symbols-outlined ${sending ? "animate-spin" : ""}`}>{sending ? "progress_activity" : "send"}</span>
             </button>

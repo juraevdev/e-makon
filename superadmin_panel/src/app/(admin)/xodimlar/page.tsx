@@ -67,7 +67,7 @@ function Actions({ onEdit, onStatus }: Pick<RowProps, "onEdit" | "onStatus">) {
       <button
         type="button"
         onClick={onEdit}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-primary/50 hover:text-primary"
+        className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-primary/50 hover:text-primary"
       >
         <span className="material-symbols-outlined text-[15px]">edit</span>
         Tahrirlash
@@ -75,7 +75,7 @@ function Actions({ onEdit, onStatus }: Pick<RowProps, "onEdit" | "onStatus">) {
       <button
         type="button"
         onClick={onStatus}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-amber-500/50 hover:text-amber-300"
+        className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-amber-500/50 hover:text-amber-300"
       >
         <span className="material-symbols-outlined text-[15px]">swap_horiz</span>
         Holat
@@ -86,14 +86,14 @@ function Actions({ onEdit, onStatus }: Pick<RowProps, "onEdit" | "onStatus">) {
 
 function EmployeeRow({ emp, firm, onEdit, onStatus }: RowProps) {
   return (
-    <tr className="transition-colors hover:bg-[#18211b]/50">
+    <tr className="transition-colors hover:bg-surface-container-high/50">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
             <Avatar initials={initials(emp.user.full_name || emp.user.phone)} tone={emp.is_active ? "primary" : "neutral"} />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{emp.user.full_name || "Ism kiritilmagan"}</p>
+            <p className="truncate text-sm font-semibold text-ink">{emp.user.full_name || "Ism kiritilmagan"}</p>
             <p className="font-mono text-xs text-on-surface-variant">{formatPhone(emp.user.phone)}</p>
           </div>
         </div>
@@ -126,8 +126,8 @@ function EmployeeRow({ emp, firm, onEdit, onStatus }: RowProps) {
 function EmployeeCard({ emp, firm, onEdit, onStatus }: RowProps) {
   return (
     <div
-      className={`flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-[#151a18] to-[#101412] p-5 transition hover:border-primary/50 ${
-        emp.is_active ? "border-primary-container/35" : "border-[#3a2a2b]"
+      className={`flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-card to-surface-container-low p-5 transition hover:border-primary/50 ${
+        emp.is_active ? "border-primary-container/35" : "border-error/40"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -152,7 +152,7 @@ function EmployeeCard({ emp, firm, onEdit, onStatus }: RowProps) {
           <FirmCell emp={emp} firm={firm} />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/5 bg-black/10 p-2 text-center text-xs">
+      <div className="grid grid-cols-3 gap-2 rounded-xl border border-card-border/60 bg-surface-container-low/80 p-2 text-center text-xs">
         <div>
           <p className="text-on-surface-variant">Reyting</p>
           <p className="font-bold text-amber-300">★ {Number(emp.rating || 0).toFixed(1)}</p>
@@ -169,14 +169,14 @@ function EmployeeCard({ emp, firm, onEdit, onStatus }: RowProps) {
       {emp.skills?.length ? (
         <div className="flex flex-wrap gap-1">
           {emp.skills.slice(0, 4).map((s) => (
-            <span key={s} className="rounded-md border border-[#26352c] bg-[#0d100f] px-1.5 py-0.5 text-[10px] text-on-surface-variant">
+            <span key={s} className="rounded-md border border-card-border bg-surface-container-low px-1.5 py-0.5 text-[10px] text-on-surface-variant">
               {s}
             </span>
           ))}
           {emp.skills.length > 4 ? <span className="text-[10px] text-on-surface-variant">+{emp.skills.length - 4}</span> : null}
         </div>
       ) : null}
-      <div className="mt-auto border-t border-white/5 pt-3">
+      <div className="mt-auto border-t border-card-border/60 pt-3">
         <Actions onEdit={onEdit} onStatus={onStatus} />
       </div>
     </div>
@@ -313,11 +313,11 @@ export default function XodimlarPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#26352c]/40 pb-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-card-border/40 pb-4 sm:flex-row sm:items-center">
         <div className="min-w-0">
           <Breadcrumbs items={[{ label: "Bosh sahifa", href: "/" }, { label: "Xodimlar" }]} />
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-white md:text-2xl">Xodimlar boshqaruvi</h2>
+            <h2 className="text-xl font-bold tracking-tight text-ink md:text-2xl">Xodimlar boshqaruvi</h2>
             <LiveBadge updatedAt={updatedAt || undefined} />
           </div>
           <p className="mt-0.5 text-xs text-on-surface-variant md:text-sm">
@@ -339,7 +339,7 @@ export default function XodimlarPage() {
         <MiniStat icon="person_off" label="Ishdan bo'shagan" value={counts.dismissed} tone="error" active={status === "dismissed"} onClick={() => pickStatus("dismissed")} />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4">
+      <div className="space-y-3 rounded-2xl border border-card-border bg-card/80 p-3 sm:p-4">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <SearchBox placeholder="Ism, telefon yoki lavozim..." className="lg:flex-1" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex">
@@ -391,7 +391,7 @@ export default function XodimlarPage() {
       ) : error && !data ? (
         <ErrorPanel title="Xodimlarni yuklab bo'lmadi" message={error} onRetry={() => void reload()} />
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-card-border bg-[#141816]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="engineering"
             title={hasFilters ? "Mos xodim topilmadi" : "Hali xodim yo'q"}
@@ -433,7 +433,7 @@ export default function XodimlarPage() {
               </DataTable>
             </div>
           ) : null}
-          <div className="overflow-hidden rounded-2xl border border-[#26352c]">
+          <div className="overflow-hidden rounded-2xl border border-card-border">
             <Pagination
               current={current}
               pages={pageNumbers(current, totalPages)}

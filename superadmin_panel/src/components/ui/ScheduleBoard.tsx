@@ -20,7 +20,7 @@ function shiftDay(iso: string, delta: number) {
 const TONE: Record<ScheduleSlot["status"], string> = {
   free: "border-emerald-500/60 bg-emerald-500/15 text-emerald-200",
   busy: "border-red-500/70 bg-red-500/20 text-red-200",
-  past: "border-[#26352c] bg-[#0e1510] text-on-surface-variant opacity-60",
+  past: "border-card-border bg-surface-container-low text-on-surface-variant opacity-60",
 };
 
 /** Firma kunlik bandligi: bo'sh soatlar yashil, band (hamma xodim ishda) soatlar qizil. */
@@ -52,7 +52,7 @@ export function ScheduleBoard({
   const freeHours = data?.slots.filter((s) => s.status === "free").length ?? 0;
 
   return (
-    <div className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-5 shadow-lg">
+    <div className="rounded-2xl border border-card-border bg-card/90 p-5 shadow-lg">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-base font-bold">
@@ -68,7 +68,7 @@ export function ScheduleBoard({
           <button
             type="button"
             onClick={() => setDate((d) => shiftDay(d, -1))}
-            className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border p-2 text-on-surface-variant hover:text-on-surface"
             aria-label="Oldingi kun"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -77,12 +77,12 @@ export function ScheduleBoard({
             type="date"
             value={date}
             onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="rounded-xl border border-[#26352c] bg-[#0d100f] px-3 py-1.5 text-sm text-on-surface outline-none focus:border-primary"
+            className="rounded-xl border border-card-border bg-surface-container-low px-3 py-1.5 text-sm text-on-surface outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={() => setDate((d) => shiftDay(d, 1))}
-            className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border p-2 text-on-surface-variant hover:text-on-surface"
             aria-label="Keyingi kun"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -90,7 +90,7 @@ export function ScheduleBoard({
           <button
             type="button"
             onClick={() => setDate(localIso(new Date()))}
-            className="rounded-full border border-[#26352c] px-3 py-1.5 text-xs text-on-surface-variant hover:text-on-surface"
+            className="rounded-full border border-card-border px-3 py-1.5 text-xs text-on-surface-variant hover:text-on-surface"
           >
             Bugun
           </button>
@@ -105,7 +105,7 @@ export function ScheduleBoard({
           <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Band{data ? ` · ${busyHours} soat` : ""}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#40493d]" /> O&apos;tgan
+          <span className="h-2.5 w-2.5 rounded-full bg-outline-variant" /> O&apos;tgan
         </span>
       </div>
 
@@ -137,7 +137,7 @@ export function ScheduleBoard({
                       o.assigned_worker_name ? ` · ${o.assigned_worker_name}` : ""
                     }`}
                     onClick={() => onOpenOrder?.(o.id)}
-                    className="rounded-md bg-black/30 px-1.5 py-0.5 text-[11px] font-semibold hover:bg-black/50"
+                    className="rounded-md bg-ink/20 px-1.5 py-0.5 text-[11px] font-semibold hover:bg-ink/40"
                   >
                     #{o.id}
                   </button>

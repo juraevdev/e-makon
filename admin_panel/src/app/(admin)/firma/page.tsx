@@ -132,7 +132,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
   }
 
   return (
-    <section className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-6">
+    <section className="rounded-2xl border border-card-border bg-card/90 p-6">
       <p className={EYEBROW}>Kontaktlar</p>
       <h3 className={`mt-1.5 ${SECTION_TITLE}`}>Aloqa ma&apos;lumotlari</h3>
       <p className={`mb-5 ${SECTION_LEAD}`}>Mijozlar ilovada shu ma&apos;lumotlarni ko&apos;radi.</p>
@@ -169,7 +169,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
               href={mapsLink(form.location_lat, form.location_lng) ?? undefined}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#26352c] px-4 py-2 text-[13.5px] font-semibold tracking-[0.01em] text-primary hover:bg-primary/10"
+              className="inline-flex items-center gap-1.5 rounded-full border border-card-border px-4 py-2 text-[13.5px] font-semibold tracking-[0.01em] text-primary hover:bg-primary/10"
             >
               <span className="material-symbols-outlined text-[18px]">map</span>
               Yandex xaritada ko&apos;rish
@@ -220,7 +220,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
             </Field>
           ))}
         </div>
-        <div className="rounded-3xl border border-[#26352c] bg-[#0b0f0c] p-4">
+        <div className="rounded-3xl border border-card-border bg-surface-container-low p-4">
           <p className={`mb-3 ${EYEBROW}`}>Ilovada ko&apos;rinishi</p>
           <p className="text-[16px] font-bold leading-snug tracking-[-0.01em]">{firm.name}</p>
           <p className="mt-0.5 text-[12.5px] font-medium tabular-nums text-on-surface-variant/80">
@@ -233,7 +233,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
                 href={socialUrl(s.key, form[s.key])}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-[0.01em] text-white"
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-[0.01em] text-ink"
                 style={{ background: s.color }}
               >
                 <span className="material-symbols-outlined text-[14px]">{s.icon}</span>
@@ -298,7 +298,7 @@ export default function FirmaPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
-      <section className="rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-6">
+      <section className="rounded-2xl border border-card-border bg-card/90 p-6">
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
             <span className="material-symbols-outlined text-[28px]">storefront</span>
@@ -313,7 +313,7 @@ export default function FirmaPage() {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {info.map((i) => (
-            <div key={i.label} className="rounded-xl border border-[#263b2a] bg-[#0e1510] px-4 py-3.5">
+            <div key={i.label} className="rounded-xl border border-card-border bg-surface-container-low px-4 py-3.5">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/65">{i.label}</p>
               <p className="mt-1.5 text-[15.5px] font-bold leading-snug tracking-[-0.005em] tabular-nums text-on-surface">{i.value}</p>
             </div>
@@ -324,8 +324,8 @@ export default function FirmaPage() {
       <ContactSection key={firm.updated_at} firm={firm} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-          <div className="flex items-center justify-between border-b border-[#263b2a] px-5 py-4">
+        <section className="overflow-hidden rounded-2xl border border-card-border bg-card/90">
+          <div className="flex items-center justify-between border-b border-card-border px-5 py-4">
             <h3 className={`flex items-center ${SECTION_TITLE}`}>
               Ma&apos;muriyat xabarlari
               {unread ? (
@@ -343,7 +343,7 @@ export default function FirmaPage() {
           {!stats?.messages.length ? (
             <EmptyState icon="mail" title="Xabarlar yo'q" />
           ) : (
-            <div className="max-h-[420px] divide-y divide-[#263b2a]/40 overflow-y-auto">
+            <div className="max-h-[420px] divide-y divide-card-border/40 overflow-y-auto">
               {stats.messages.map((m) => (
                 <div key={m.id} className={`px-5 py-3 ${m.is_read ? "" : "bg-primary/5"}`}>
                   <div className="mb-1 flex items-center gap-2">
@@ -358,12 +358,12 @@ export default function FirmaPage() {
           )}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-          <h3 className={`border-b border-[#263b2a] px-5 py-4 ${SECTION_TITLE}`}>Jarimalar</h3>
+        <section className="overflow-hidden rounded-2xl border border-card-border bg-card/90">
+          <h3 className={`border-b border-card-border px-5 py-4 ${SECTION_TITLE}`}>Jarimalar</h3>
           {!stats?.fines.length ? (
             <EmptyState icon="gavel" title="Jarimalar yo'q" />
           ) : (
-            <div className="divide-y divide-[#263b2a]/40">
+            <div className="divide-y divide-card-border/40">
               {stats.fines.map((f) => (
                 <div key={f.id} className="flex items-center justify-between px-5 py-3">
                   <div>
@@ -381,12 +381,12 @@ export default function FirmaPage() {
         </section>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-[#263b2a] bg-[#131b15]/90">
-        <h3 className={`border-b border-[#263b2a] px-5 py-4 ${SECTION_TITLE}`}>Mijoz baholari</h3>
+      <section className="overflow-hidden rounded-2xl border border-card-border bg-card/90">
+        <h3 className={`border-b border-card-border px-5 py-4 ${SECTION_TITLE}`}>Mijoz baholari</h3>
         {!stats?.reviews.length ? (
           <EmptyState icon="star" title="Hali baholar yo'q" />
         ) : (
-          <div className="divide-y divide-[#263b2a]/40">
+          <div className="divide-y divide-card-border/40">
             {stats.reviews.map((r) => (
               <div key={r.id} className="px-5 py-3">
                 <p className="text-[14.5px] font-semibold leading-snug">

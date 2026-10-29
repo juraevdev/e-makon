@@ -87,7 +87,7 @@ export default function XaritaPage() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
-      <div className="relative z-0 h-[512px] flex-1 border-b border-surface-variant bg-[#0c1210] lg:h-auto lg:border-r lg:border-b-0">
+      <div className="relative z-0 h-[512px] flex-1 border-b border-surface-variant bg-surface-container-low lg:h-auto lg:border-r lg:border-b-0">
         <div
           className="absolute inset-0 opacity-40"
           style={{
@@ -109,7 +109,7 @@ export default function XaritaPage() {
             </div>
           );
         })}
-        <div className="absolute bottom-4 left-4 z-10 min-w-[220px] rounded-2xl border border-[#26352c] bg-[#0c0f0f]/90 p-4">
+        <div className="absolute bottom-4 left-4 z-10 min-w-[220px] rounded-2xl border border-card-border bg-card/90 p-4">
           <h3 className="mb-3 text-[11px] font-bold tracking-wider text-primary uppercase">Holat belgisi</h3>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
@@ -125,7 +125,7 @@ export default function XaritaPage() {
       </div>
 
       <aside className="z-10 flex h-full w-full flex-col overflow-hidden bg-surface lg:w-[400px]">
-        <div className="border-b border-[#26352c] p-4">
+        <div className="border-b border-card-border p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold">Jonli xarita</h2>
             <LiveBadge updatedAt={updatedAt || undefined} />
@@ -140,7 +140,7 @@ export default function XaritaPage() {
         </div>
         <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-4">
           {(filter === "orders" ? [] : data.workers).map((w) => (
-            <div key={w.id} className="rounded-2xl border border-[#26352c] bg-[#131916]/90 p-4">
+            <div key={w.id} className="rounded-2xl border border-card-border bg-card/90 p-4">
               <h3 className="font-bold text-on-surface">{w.name}</h3>
               <p className="text-xs text-outline">{SPECIALTY_LABEL[w.specialty] || w.specialty}</p>
               <p className="mt-2 text-xs text-on-surface-variant">{formatPhone(w.phone)}</p>
@@ -148,7 +148,7 @@ export default function XaritaPage() {
             </div>
           ))}
           {(filter === "workers" ? [] : data.orders).map((o) => (
-            <div key={`o-${o.id}`} className="rounded-2xl border border-amber-500/20 bg-[#1a1910]/90 p-4">
+            <div key={`o-${o.id}`} className="rounded-2xl border border-amber-500/20 bg-amber-500/10/90 p-4">
               <h3 className="font-bold">#{o.id} · {o.service}</h3>
               <p className="text-xs text-outline">{o.customer} · {ORDER_STATUS_LABEL[o.status]}</p>
               <p className="truncate text-xs">{o.address}</p>

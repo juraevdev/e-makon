@@ -99,7 +99,7 @@ export function VisitTimeline({
       </div>
 
       {!groups.length ? (
-        <p className="rounded-xl border border-dashed border-[#26352c] px-4 py-8 text-center text-sm text-on-surface-variant">
+        <p className="rounded-xl border border-dashed border-card-border px-4 py-8 text-center text-sm text-on-surface-variant">
           Bu bo&apos;limda tashrif yo&apos;q.
         </p>
       ) : null}
@@ -111,7 +111,7 @@ export function VisitTimeline({
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
               {MONTHS[first.getMonth()]} {first.getFullYear()} · {items.length} ta
             </p>
-            <ol className="relative space-y-2 border-l border-[#26352c] pl-5">
+            <ol className="relative space-y-2 border-l border-card-border pl-5">
               {items.map((v) => {
                 const tone = VISIT_TONE[v.status] ?? VISIT_TONE.scheduled;
                 const day = parseDay(v.visit_date);
@@ -121,10 +121,10 @@ export function VisitTimeline({
                 return (
                   <li key={v.id} className="relative">
                     <span
-                      className={`absolute -left-[26px] top-3.5 h-3 w-3 rounded-full ring-4 ring-[#151917] ${tone.dot} ${isToday ? "animate-pulse" : ""}`}
+                      className={`absolute -left-[26px] top-3.5 h-3 w-3 rounded-full ring-4 ring-card ${tone.dot} ${isToday ? "animate-pulse" : ""}`}
                     />
                     <div
-                      className={`rounded-xl border px-3.5 py-2.5 ${isToday ? "border-primary/50 bg-primary/5" : "border-[#26352c] bg-[#0e1210]"}`}
+                      className={`rounded-xl border px-3.5 py-2.5 ${isToday ? "border-primary/50 bg-primary/5" : "border-card-border bg-surface-container-low"}`}
                     >
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                         <div className="min-w-[132px]">
@@ -162,7 +162,7 @@ export function VisitTimeline({
                               type="button"
                               onClick={() => startEdit(v)}
                               title="Tahrirlash"
-                              className="rounded-lg p-1.5 text-on-surface-variant hover:bg-white/5 hover:text-on-surface"
+                              className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface"
                             >
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
@@ -170,14 +170,14 @@ export function VisitTimeline({
                         ) : null}
                       </div>
                       {v.report_notes && !open ? (
-                        <p className="mt-2 whitespace-pre-line rounded-lg bg-[#151c18] px-3 py-2 text-xs">
+                        <p className="mt-2 whitespace-pre-line rounded-lg bg-card px-3 py-2 text-xs">
                           <span className="font-semibold text-on-surface-variant">Hisobot: </span>
                           {v.report_notes}
                           {v.report_sent_at ? <span className="ml-1 text-on-surface-variant">· {formatDateTime(v.report_sent_at)}</span> : null}
                         </p>
                       ) : null}
                       {open ? (
-                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-[#26352c] pt-3 sm:grid-cols-2">
+                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-card-border pt-3 sm:grid-cols-2">
                           <Field label="Holat">
                             <select
                               className={inputClass}

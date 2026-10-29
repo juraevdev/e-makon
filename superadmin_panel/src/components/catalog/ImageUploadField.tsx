@@ -59,8 +59,8 @@ export function ImageUploadField({
           pick(e.dataTransfer.files);
         }}
         className={`relative w-full overflow-hidden rounded-2xl border border-dashed ${
-          shownError ? "border-error/60" : "border-[#2f4536]"
-        } bg-[#0d100f] ${aspect}`}
+          shownError ? "border-error/60" : "border-card-border"
+        } bg-surface-container-low ${aspect}`}
       >
         {preview ? (
           <>
@@ -70,7 +70,7 @@ export function ImageUploadField({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/80"
+                className="inline-flex items-center gap-1 rounded-full bg-ink/55 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/70"
               >
                 <span className="material-symbols-outlined text-[16px]">photo_camera</span>
                 Almashtirish
@@ -81,7 +81,7 @@ export function ImageUploadField({
                   setLocalError("");
                   onClear();
                 }}
-                className="inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-error hover:bg-black/80"
+                className="inline-flex items-center gap-1 rounded-full bg-ink/55 px-3 py-1.5 text-xs font-semibold text-error hover:bg-ink/70"
               >
                 <span className="material-symbols-outlined text-[16px]">delete</span>
                 Olib tashlash

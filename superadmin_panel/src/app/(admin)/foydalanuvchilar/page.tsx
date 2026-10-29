@@ -36,7 +36,7 @@ const emptyForm = { phone: "+998", first_name: "", last_name: "", home_address: 
 
 function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-[#26352c] bg-[#0d100f] px-3.5 py-2.5">
+    <div className="rounded-xl border border-card-border bg-surface-container-low px-3.5 py-2.5">
       <p className="text-[11px] text-on-surface-variant">{label}</p>
       <div className="mt-0.5 break-words text-sm font-medium text-on-surface">{children}</div>
     </div>
@@ -164,7 +164,7 @@ export default function FoydalanuvchilarPage() {
         }
       />
 
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4 lg:flex-row lg:items-center">
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-card-border bg-card/80 p-3 sm:p-4 lg:flex-row lg:items-center">
         <TabBar
           className="lg:shrink-0"
           value={tab}
@@ -204,18 +204,18 @@ export default function FoydalanuvchilarPage() {
           }
         >
           {data.results.map((u) => (
-            <tr key={u.id} className={`transition-colors hover:bg-[#18211b]/50 ${u.is_active ? "" : "bg-[#1c1415]/40"}`}>
+            <tr key={u.id} className={`transition-colors hover:bg-surface-container-high/50 ${u.is_active ? "" : "bg-error-container/40/40"}`}>
               <td className="px-4 py-3">
                 <Avatar initials={initials(u.full_name || u.phone)} tone={u.is_active ? "primary" : "error"} />
               </td>
-              <td className="px-4 py-3 font-semibold whitespace-nowrap text-white">{u.full_name || "Ism kiritilmagan"}</td>
+              <td className="px-4 py-3 font-semibold whitespace-nowrap text-ink">{u.full_name || "Ism kiritilmagan"}</td>
               <td className="px-4 py-3 font-mono text-[13px] whitespace-nowrap text-on-surface-variant">{formatPhone(u.phone)}</td>
               <td className="max-w-[260px] truncate px-4 py-3 text-[13px] text-on-surface-variant">
                 {u.formatted_address || u.home_address || "—"}
               </td>
               <td className="px-4 py-3 text-[13px] font-semibold text-on-surface">{u.orders_count ?? 0}</td>
               <td className="px-4 py-3">
-                <span className="rounded-full border border-primary/25 bg-[#173822]/80 px-3 py-1 text-[12px] font-semibold whitespace-nowrap text-primary">
+                <span className="rounded-full border border-primary/25 bg-secondary-container/80 px-3 py-1 text-[12px] font-semibold whitespace-nowrap text-primary">
                   {u.loyalty_points} ball
                 </span>
               </td>

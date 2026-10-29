@@ -131,7 +131,7 @@ export function NotificationCenter() {
       >
         <span className="material-symbols-outlined text-[22px]">notifications</span>
         {total ? (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[11px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[11px] font-bold text-ink">
             {total > 99 ? "99+" : total}
           </span>
         ) : null}
@@ -141,9 +141,9 @@ export function NotificationCenter() {
         <div
           role="dialog"
           aria-label="Bildirishnomalar"
-          className="fixed right-2 top-16 z-[70] flex max-h-[min(75dvh,560px)] w-[min(92vw,380px)] flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#121614] shadow-2xl shadow-black/50 sm:absolute sm:right-0 sm:top-full sm:mt-2"
+          className="fixed right-2 top-16 z-[70] flex max-h-[min(75dvh,560px)] w-[min(92vw,380px)] flex-col overflow-hidden rounded-2xl border border-card-border bg-card shadow-2xl shadow-black/50 sm:absolute sm:right-0 sm:top-full sm:mt-2"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#26352c] px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-card-border px-4 py-3">
             <div className="min-w-0">
               <p className="text-base font-semibold text-on-surface">Bildirishnomalar</p>
               <p className="text-xs text-on-surface-variant">Har {POLL_MS / 1000} soniyada yangilanadi</p>
@@ -152,7 +152,7 @@ export function NotificationCenter() {
               <button
                 type="button"
                 onClick={() => void readAll()}
-                className="shrink-0 rounded-full border border-[#26352c] px-3 py-1 text-xs text-on-surface-variant hover:text-primary"
+                className="shrink-0 rounded-full border border-card-border px-3 py-1 text-xs text-on-surface-variant hover:text-primary"
               >
                 Hammasi o&apos;qildi
               </button>
@@ -211,7 +211,7 @@ export function NotificationCenter() {
                     key={n.id}
                     type="button"
                     onClick={() => void openNotification(n)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/5 ${
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-surface-container-high/40 ${
                       n.read ? "" : "bg-primary/5"
                     }`}
                   >
@@ -238,7 +238,7 @@ export function NotificationCenter() {
             <Link
               href="/buyurtmalar"
               onClick={() => setOpen(false)}
-              className="shrink-0 border-t border-[#26352c] px-4 py-2.5 text-center text-sm font-semibold text-primary hover:bg-primary/5"
+              className="shrink-0 border-t border-card-border px-4 py-2.5 text-center text-sm font-semibold text-primary hover:bg-primary/5"
             >
               Buyurtmalarga o&apos;tish
             </Link>
@@ -251,7 +251,7 @@ export function NotificationCenter() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="border-b border-[#26352c]/60 last:border-b-0">
+    <div className="border-b border-card-border/60 last:border-b-0">
       <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{title}</p>
       {children}
     </div>
@@ -277,7 +277,7 @@ function Item({
 }) {
   const iconTone = { primary: "text-primary", warning: "text-amber-300", error: "text-error" }[tone];
   return (
-    <Link href={href} onClick={onNavigate} className="flex items-start gap-3 px-4 py-3 transition hover:bg-white/5">
+    <Link href={href} onClick={onNavigate} className="flex items-start gap-3 px-4 py-3 transition hover:bg-surface-container-high/40">
       <span className={`material-symbols-outlined mt-0.5 shrink-0 text-[20px] ${iconTone}`}>{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block break-words text-sm font-medium text-on-surface">{title}</span>
