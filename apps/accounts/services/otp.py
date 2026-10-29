@@ -44,21 +44,26 @@ class OTPService:
     def _dispatch_sms(phone: str, code: str) -> None:
         # TODO: integrate Eskiz / Playmobile / Twilio via SMS_PROVIDER settings.
         provider = getattr(settings, "SMS_PROVIDER", "") or ""
+        accept_any = getattr(settings, "OTP_ACCEPT_ANY_CODE", False)
         if not provider:
-            if not settings.OTP_DEBUG_RETURN_CODE:
-                raise OTPError(
-                    "SMS xizmati sozlanmagan. Keyinroq urinib ko'ring.",
-                    code="sms_unavailable",
+            if settings.OTP_DEBUG_RETURN_CODE or accept_any:
+                # Dev/local yoki vaqtinchalik accept-any: SMS yo'q — kodni logga yozamiz.
+                logger.warning(
+                    "========== OTP (SMS YO'Q) ==========\n"
+                    "Telefon: %s\n"
+                    "Kod:     %s\n"
+                    "====================================",
+                    phone,
+                    code,
                 )
-            # Dev/local: no SMS — print code clearly in API terminal.
-            logger.warning(
-                "========== OTP (SMS YO'Q) ==========\n"
-                "Telefon: %s\n"
-                "Kod:     %s\n"
-                "====================================",
-                phone,
-                code,
+                return None
+            raise OTPError(
+                "SMS xizmati sozlanmagan. Keyinroq urinib ko'ring.",
+                code="sms_unavailable",
             )
+        if accept_any:
+            # Test rejimi: provider sozlangan bo'lsa ham SMS majburiy emas.
+            logger.warning("OTP_ACCEPT_ANY_CODE: SMS skip (%s)", phone)
             return None
         # Provider sozlangan, lekin dispatch hali ulanmagan — "yuborildi" deb yolg'on gapirmaymiz.
         raise OTPError(

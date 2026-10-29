@@ -141,6 +141,7 @@ export default function HisobotlarPage() {
   const topMax = Math.max(...topServices.map((s) => s.orders || 0), 1);
 
   function onExcel() {
+    if (!data) return;
     downloadExcel(`hisobot_${data.date_from}_${data.date_to}`, [
       {
         name: "Umumiy",

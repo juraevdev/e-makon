@@ -1,7 +1,7 @@
 import type { WeatherMood } from "@/lib/nav";
 
 /** Toshkent — geolocation rad etilsa default (O‘zbekiston). */
-export const DEFAULT_COORDS = { lat: 41.2995, lng: 69.2401, label: "tashkent" as const };
+export const DEFAULT_COORDS = { lat: 41.2995, lng: 69.2401, place: "tashkent" as const };
 
 export type PlaceKey = "you" | "tashkent";
 
@@ -45,7 +45,7 @@ export function mapWeatherCode(code: number, windKmh: number, tempC: number): We
 export async function fetchLiveWeather(
   lat: number,
   lng: number,
-  place: PlaceKey = DEFAULT_COORDS.label,
+  place: PlaceKey = DEFAULT_COORDS.place,
 ): Promise<LiveWeather> {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +

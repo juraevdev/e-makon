@@ -33,7 +33,7 @@ const FALLBACK: LiveWeather = {
   isDay: true,
   lat: DEFAULT_COORDS.lat,
   lng: DEFAULT_COORDS.lng,
-  place: DEFAULT_COORDS.label,
+  place: DEFAULT_COORDS.place,
   updatedAt: 0,
 };
 
