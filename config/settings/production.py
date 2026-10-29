@@ -5,6 +5,8 @@ from .base import REDIS_URL, SECRET_KEY, env
 
 DEBUG = False
 OTP_DEBUG_RETURN_CODE = False
+# Hozircha test uchun .env da True qilish mumkin; default False.
+OTP_ACCEPT_ANY_CODE = env.bool("OTP_ACCEPT_ANY_CODE", default=False)
 # Customers can self-confirm "test" payments when enabled; production must opt in explicitly.
 PAYMENTS_TEST_MODE = env.bool("PAYMENTS_TEST_MODE", default=False)
 

@@ -134,6 +134,18 @@ class OTPService:
         Every counter change is a single conditional UPDATE, so concurrent guesses
         cannot exceed OTP_MAX_ATTEMPTS and a code can be consumed only once.
         """
+        code = (code or "").strip()
+        length = int(settings.OTP_CODE_LENGTH)
+        # Lokal/dev: SMS yo'q — istalgan N xonali raqamli kod bilan kirish.
+        if getattr(settings, "OTP_ACCEPT_ANY_CODE", False):
+            if not (code.isdigit() and len(code) == length):
+                raise OTPError(f"Kod {length} xonali raqam bo'lsin.")
+            now = timezone.now()
+            OTPChallenge.objects.filter(
+                phone=phone, purpose=purpose, is_used=False
+            ).update(is_used=True, updated_at=now)
+            return
+
         max_attempts = int(settings.OTP_MAX_ATTEMPTS)
         challenge = (
             OTPChallenge.objects.filter(phone=phone, purpose=purpose, is_used=False)
@@ -156,7 +168,7 @@ class OTPService:
             live.update(is_used=True, updated_at=now)
             raise OTPError(INVALID_CHALLENGE_MESSAGE)
 
-        if not hmac.compare_digest(challenge.code_hash, _hash_code((code or "").strip())):
+        if not hmac.compare_digest(challenge.code_hash, _hash_code(code)):
             live.filter(attempts__gte=max_attempts).update(is_used=True, updated_at=now)
             raise OTPError(WRONG_CODE_MESSAGE)
 

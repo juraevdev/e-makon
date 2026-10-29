@@ -214,6 +214,8 @@ EMAKON_BOT_SERVICE_KEY = env("EMAKON_BOT_SERVICE_KEY", default="")
 NOTIFICATION_QUEUE_KEY = env("NOTIFICATION_QUEUE_KEY", default="emakon:notifications")
 
 OTP_DEBUG_RETURN_CODE = env.bool("OTP_DEBUG_RETURN_CODE", default=DEBUG)
+# Dev only: har qanday N xonali raqamli kodni qabul qilish (productionda hech qachon True).
+OTP_ACCEPT_ANY_CODE = env.bool("OTP_ACCEPT_ANY_CODE", default=False)
 OTP_CODE_TTL_SECONDS = env.int("OTP_CODE_TTL_SECONDS", default=300)
 OTP_CODE_LENGTH = env.int("OTP_CODE_LENGTH", default=6)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
