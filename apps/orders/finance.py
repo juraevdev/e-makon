@@ -68,24 +68,26 @@ class FinanceService:
     @staticmethod
     @transaction.atomic
     def ensure(order: Order, *, note: str = "", actor=None) -> OrderEscrow:
+        order = Order.objects.select_for_update().get(pk=order.pk)
         if order.quoted_price is None:
             raise AppError("Buyurtmada narx (quoted_price) yo'q.")
         amount = Decimal(order.quoted_price)
         rate = _rate_for_order(order)
         fee, payout = _split(amount, rate)
 
-        escrow, created = OrderEscrow.objects.get_or_create(
-            order=order,
-            defaults={
-                "status": OrderEscrow.Status.AWAITING_PAYMENT,
-                "amount": amount,
-                "currency": order.currency or "UZS",
-                "commission_rate": rate,
-                "platform_fee": fee,
-                "firm_payout": payout,
-                "note": note or "",
-            },
-        )
+        escrow = OrderEscrow.objects.filter(order=order).select_for_update().first()
+        created = escrow is None
+        if created:
+            escrow = OrderEscrow.objects.create(
+                order=order,
+                status=OrderEscrow.Status.AWAITING_PAYMENT,
+                amount=amount,
+                currency=order.currency or "UZS",
+                commission_rate=rate,
+                platform_fee=fee,
+                firm_payout=payout,
+                note=note or "",
+            )
         if not created and escrow.status != OrderEscrow.Status.AWAITING_PAYMENT:
             # Money already moved: the held/released/refunded amount is the source of truth.
             return escrow
@@ -107,7 +109,9 @@ class FinanceService:
     @staticmethod
     @transaction.atomic
     def mark_paid(order: Order, *, note: str = "", actor=None) -> OrderEscrow:
+        order = Order.objects.select_for_update().get(pk=order.pk)
         escrow = FinanceService.ensure(order, note=note, actor=actor)
+        escrow = OrderEscrow.objects.select_for_update().get(pk=escrow.pk)
         if escrow.status not in {
             OrderEscrow.Status.AWAITING_PAYMENT,
             OrderEscrow.Status.DISPUTED,
@@ -140,8 +144,9 @@ class FinanceService:
     @staticmethod
     @transaction.atomic
     def release(order: Order, *, note: str = "", actor=None) -> OrderEscrow:
+        order = Order.objects.select_for_update().get(pk=order.pk)
         try:
-            escrow = order.escrow
+            escrow = OrderEscrow.objects.select_for_update().get(order=order)
         except OrderEscrow.DoesNotExist as exc:
             raise AppError("Escrow ochilmagan.") from exc
         if escrow.status != OrderEscrow.Status.HELD:
@@ -186,8 +191,9 @@ class FinanceService:
         punish_firm: bool = False,
         actor=None,
     ) -> OrderEscrow:
+        order = Order.objects.select_for_update().get(pk=order.pk)
         try:
-            escrow = order.escrow
+            escrow = OrderEscrow.objects.select_for_update().get(order=order)
         except OrderEscrow.DoesNotExist as exc:
             raise AppError("Escrow ochilmagan.") from exc
         if escrow.status not in {

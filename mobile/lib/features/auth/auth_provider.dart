@@ -42,18 +42,19 @@ class AuthProvider extends ChangeNotifier {
         user = await _withLocalExtras(UserModel.fromJson(Map<String, dynamic>.from(data as Map)));
         demoSession = false;
       } on ApiException catch (e) {
-        // Faqat server sessiyani rad etsa (401/403) chiqaramiz; tarmoq yoki 5xx xatosida sessiya saqlanadi.
+        // Faqat server sessiyani rad etsa (401/403) chiqaramiz; tarmoq/5xx da token saqlanadi.
         final rejected = e.statusCode == 401 || e.statusCode == 403;
-        if (!rejected && await _api.hasToken) {
-          user = await _loadLocalProfile() ??
-              UserModel(id: 0, phone: '', fullName: 'Foydalanuvchi', role: 'customer');
-        } else {
+        if (rejected) {
           await _api.clearTokens();
           user = null;
+        } else {
+          // Soxta id:0 yasamaymiz — faqat avval saqlangan haqiqiy profil.
+          final local = await _loadLocalProfile();
+          user = (local != null && local.id > 0) ? local : null;
         }
       } catch (_) {
         final token = await _api.accessToken;
-        if (token == 'demo-access') {
+        if (token == 'demo-access' && ApiConfig.useLocalData) {
           user = await _loadLocalProfile() ??
               UserModel(
                 id: 0,
@@ -64,8 +65,9 @@ class AuthProvider extends ChangeNotifier {
               );
           demoSession = true;
         } else {
-          await _api.clearTokens();
-          user = null;
+          final local = await _loadLocalProfile();
+          user = (local != null && local.id > 0) ? local : null;
+          if (user == null) await _api.clearTokens();
         }
       }
     }
@@ -351,10 +353,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// ApiClient tokenni yangilay olmadi — foydalanuvchi qayta kirishi kerak.
-  void sessionExpired() {
+  Future<void> sessionExpired() async {
     user = null;
     demoSession = false;
     error = 'Sessiya muddati tugadi. Iltimos, qayta kiring';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profileKey);
     notifyListeners();
   }
 

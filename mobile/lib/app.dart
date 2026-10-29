@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -31,7 +33,7 @@ class _EmakonAppState extends State<EmakonApp> {
   late final ReviewsProvider _reviews = ReviewsProvider(_api);
   late final ChatProvider _chat = ChatProvider(_api);
   late final LoyaltyProvider _loyalty = LoyaltyProvider(_api, _auth);
-  late final GoRouter _router = createRouter();
+  late final GoRouter _router = createRouter(_auth);
   late final AppLifecycleListener _lifecycle;
   bool _wasLoggedIn = false;
   int? _userId;
@@ -41,7 +43,7 @@ class _EmakonAppState extends State<EmakonApp> {
     super.initState();
     _api.onSessionExpired = () {
       if (!_auth.isLoggedIn) return;
-      _auth.sessionExpired();
+      unawaited(_auth.sessionExpired());
       _router.go('/login');
     };
     _auth.addListener(_onAuthChanged);
@@ -68,6 +70,8 @@ class _EmakonAppState extends State<EmakonApp> {
     if (_wasLoggedIn && !now) {
       _orders.reset();
       _chat.reset();
+      _messages.reset();
+      _favorites.clear();
     }
     _wasLoggedIn = now;
 

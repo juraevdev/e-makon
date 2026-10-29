@@ -236,9 +236,8 @@ CLICK_SERVICE_ID = env("CLICK_SERVICE_ID", default="")
 CLICK_MERCHANT_ID = env("CLICK_MERCHANT_ID", default="")
 CLICK_CHECKOUT_URL = env("CLICK_CHECKOUT_URL", default="https://my.click.uz/services/pay")
 PAYMENT_RETURN_URL = env("PAYMENT_RETURN_URL", default="")
-# Click/Payme ulanmaguncha mijoz "sinov to'lovi" bilan buyurtmani firmaga yubora oladi.
-# Productionda haqiqiy to'lov tizimi ulangach False qiling.
-PAYMENTS_TEST_MODE = env.bool("PAYMENTS_TEST_MODE", default=True)
+# Sinov to'lovi faqat aniq yoqilganda (local.py / env). Production default: o'chiq.
+PAYMENTS_TEST_MODE = env.bool("PAYMENTS_TEST_MODE", default=False)
 
 # File uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

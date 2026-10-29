@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -15,6 +16,7 @@ import {
   clearTokens,
   getAccessToken,
   logoutRequest,
+  onSessionExpired,
   saveTokens,
 } from "@/lib/api/client";
 import type { User } from "@/lib/api/types";
@@ -39,43 +41,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const cancelledRef = useRef(false);
 
   const refreshMe = useCallback(async () => {
     const me = await api<User>("/auth/me/");
     if (me.role !== PANEL_ROLE) throw new Error(WRONG_ROLE_MESSAGE);
-    setUser(me);
+    if (!cancelledRef.current) setUser(me);
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
+    let timedOut = false;
 
     (async () => {
       try {
         if (!getAccessToken()) {
-          if (!cancelled) setUser(null);
+          if (!cancelledRef.current) setUser(null);
           return;
         }
-        await Promise.race([
-          refreshMe(),
-          new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error("Auth timeout")), AUTH_BOOT_TIMEOUT_MS);
-          }),
-        ]);
+        const boot = refreshMe();
+        const timeout = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            timedOut = true;
+            reject(new Error("Auth timeout"));
+          }, AUTH_BOOT_TIMEOUT_MS);
+        });
+        await Promise.race([boot, timeout]);
+        // Timeout yutgan bo'lsa ham boot ni yakunlab qo'yamiz (cancelled tekshiruvi bilan).
+        void boot.catch(() => undefined);
       } catch (err) {
         const authRejected =
           (err instanceof ApiError && (err.status === 401 || err.status === 403)) ||
           (err instanceof Error && err.message === WRONG_ROLE_MESSAGE);
-        if (authRejected) clearTokens();
-        if (!cancelled) setUser(null);
+        if (authRejected || timedOut) clearTokens();
+        if (!cancelledRef.current) setUser(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelledRef.current) setLoading(false);
       }
     })();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
   }, [refreshMe]);
+
+  useEffect(() => {
+    return onSessionExpired(() => {
+      clearTokens();
+      setUser(null);
+      router.replace("/login");
+    });
+  }, [router]);
 
   useEffect(() => {
     if (loading) return;

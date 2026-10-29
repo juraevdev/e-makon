@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db.models import Q
 from rest_framework import serializers
 
 from apps.accounts.models import User
@@ -114,6 +115,7 @@ class CareContractSerializer(serializers.ModelSerializer):
             "id",
             "order",
             "customer",
+            "total_amount",
             "status",
             "platform_note",
             "rejection_reason",
@@ -179,10 +181,18 @@ class CareContractSerializer(serializers.ModelSerializer):
         if not raw:
             return
         phone = normalize_phone(raw)
-        customer = User.objects.filter(phone=phone, role=User.Role.CUSTOMER).first()
+        qs = User.objects.filter(phone=phone, role=User.Role.CUSTOMER)
+        org = self.context.get("organization")
+        if org is not None:
+            # Faqat shu firma bilan bog'langan yoki hali firma biriktirilmagan mijoz.
+            qs = qs.filter(Q(organization_id=org.pk) | Q(organization_id__isnull=True))
+        customer = qs.first()
         if customer is not None:
             validated_data["customer"] = customer
             validated_data.setdefault("phone_number", phone)
+            if org is not None and customer.organization_id is None:
+                customer.organization = org
+                customer.save(update_fields=["organization"])
 
     def create(self, validated_data):
         self._link_customer(validated_data)

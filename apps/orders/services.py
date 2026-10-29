@@ -205,13 +205,15 @@ class OrderService:
                         order=order,
                     )
             except IntegrityError:
-                # Concurrent create with same key — return the winner.
+                # Concurrent create with same key — return the winner, drop orphan.
                 existing = (
                     OrderIdempotency.objects.select_related("order")
                     .filter(customer=customer, key=idempotency_key)
                     .first()
                 )
                 if existing:
+                    if order.pk != existing.order_id:
+                        Order.objects.filter(pk=order.pk).delete()
                     return existing.order, False
                 raise ConflictError("Idempotency conflict.") from None
 

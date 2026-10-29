@@ -164,6 +164,10 @@ class PartnerFirmSerializer(serializers.ModelSerializer):
     orders_count = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    # Superadmin firma yaratishda birinchi admin akkaunti (ixtiyoriy emas — panel majburiy yuboradi).
+    admin_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    admin_full_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    admin_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Organization
@@ -211,6 +215,9 @@ class PartnerFirmSerializer(serializers.ModelSerializer):
             "orders_count",
             "revenue",
             "platform_share",
+            "admin_phone",
+            "admin_full_name",
+            "admin_password",
             "created_at",
             "updated_at",
         )
@@ -276,9 +283,55 @@ class PartnerFirmSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        from django.db import IntegrityError, transaction
+
+        from apps.accounts.models import User
+        from apps.core.phone import normalize_phone
+        from apps.staff.models import AdminProfile
+
+        admin_phone = (validated_data.pop("admin_phone", None) or "").strip()
+        admin_full_name = (validated_data.pop("admin_full_name", None) or "").strip()
+        admin_password = (validated_data.pop("admin_password", None) or "").strip()
+
         name = validated_data.get("name") or "firm"
         validated_data["slug"] = unique_slug_from_name(name)
-        return super().create(validated_data)
+
+        with transaction.atomic():
+            firm = super().create(validated_data)
+            if admin_phone or admin_password or admin_full_name:
+                phone = normalize_phone(admin_phone)
+                if len(phone) < 10:
+                    raise serializers.ValidationError(
+                        {"admin_phone": "Admin telefon raqami noto'g'ri."}
+                    )
+                if len(admin_password) < 8:
+                    raise serializers.ValidationError(
+                        {"admin_password": "Admin paroli kamida 8 belgi bo'lsin."}
+                    )
+                try:
+                    user = User.objects.create_user(
+                        phone=phone,
+                        password=admin_password,
+                        full_name=admin_full_name or firm.name,
+                        role=User.Role.ADMIN,
+                        is_staff=True,
+                        organization=firm,
+                    )
+                except IntegrityError as exc:
+                    raise serializers.ValidationError(
+                        {"admin_phone": "Bu telefon raqam boshqa hisobga biriktirilgan."}
+                    ) from exc
+                AdminProfile.objects.create(
+                    user=user,
+                    organization=firm,
+                    title="Firma admini",
+                    can_manage_staff=True,
+                    can_manage_orders=True,
+                    can_view_analytics=True,
+                )
+                firm.owner = user
+                firm.save(update_fields=["owner", "updated_at"])
+            return firm
 
 
 SOCIAL_FIELDS = (

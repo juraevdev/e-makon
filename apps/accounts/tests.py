@@ -154,18 +154,12 @@ class OTPBruteForceTests(TestCase):
         self.assertNotIn("admin", messages[0].lower())
 
     @override_settings(OTP_DEBUG_RETURN_CODE=False, SMS_PROVIDER="")
-    def test_code_is_not_logged_or_returned_without_debug(self):
-        with mock.patch(
-            "apps.accounts.services.otp._generate_code", return_value="987654"
-        ), self.assertLogs("apps.accounts.services.otp", level="DEBUG") as logs:
-            resp = self.client.post(
-                "/api/v1/auth/otp/request/", {"phone": self.PHONE}, format="json"
-            )
-        self.assertEqual(resp.status_code, 200)
-        self.assertNotIn("debug_code", resp.json()["data"])
-        output = "\n".join(logs.output)
-        self.assertNotIn("987654", output)
-        self.assertNotIn("554433", output)
+    def test_request_fails_without_sms_provider_when_debug_off(self):
+        resp = self.client.post(
+            "/api/v1/auth/otp/request/", {"phone": self.PHONE}, format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("SMS", resp.json().get("message", ""))
 
 
 class TokenLifecycleTests(TestCase):

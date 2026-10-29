@@ -29,6 +29,12 @@ class EmployeeSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(write_only=True, required=False)
     full_name = serializers.CharField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    organization_id = serializers.PrimaryKeyRelatedField(
+        source="organization",
+        queryset=Organization.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
     employment_status_label = serializers.CharField(
         source="get_employment_status_display", read_only=True
     )
@@ -41,6 +47,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "user",
+            "organization_id",
             "specialty",
             "specialty_label",
             "rating",
@@ -67,6 +74,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "user",
+            "rating",
             "is_active",
             "employment_status",
             "dismissed_at",
@@ -95,7 +103,15 @@ class EmployeeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"phone": "Telefon raqam majburiy."})
         full_name = validated_data.pop("full_name", "")
         password = validated_data.pop("password", "") or None
-        org = self.context.get("organization") or get_or_create_default_organization()
+        ctx_org = self.context.get("organization")
+        org = validated_data.pop("organization", None)
+        # Firma admin faqat o'z tashkilotiga yozadi; superadmin organization_id yuboradi.
+        if ctx_org is not None:
+            org = ctx_org
+        if org is None:
+            raise serializers.ValidationError(
+                {"organization_id": "Xodim uchun firma tanlash majburiy."}
+            )
         try:
             user = User.objects.create_user(
                 phone=phone,

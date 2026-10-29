@@ -302,8 +302,8 @@ class OrderModel {
 
   bool providerReady(String provider) => paymentOptions[provider] == true;
 
-  /// Click/Payme ulanmagan davrda sinov to'lovi ruxsat etilgan.
-  bool get testPaymentAllowed => paymentOptions['test'] == true || paymentOptions.isEmpty;
+  /// Faqat server `payment_options.test == true` bo'lsa (PAYMENTS_TEST_MODE).
+  bool get testPaymentAllowed => paymentOptions['test'] == true;
 
   final int? firmId;
 

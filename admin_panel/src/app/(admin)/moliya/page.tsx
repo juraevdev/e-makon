@@ -20,7 +20,7 @@ const ESCROW_TONE: Record<OrderEscrow["status"], "success" | "warning" | "error"
 };
 
 export default function MoliyaPage() {
-  const { firm } = useFirm();
+  const { firm, error: firmError } = useFirm();
 
   const { data, loading, error, reload, updatedAt } = useAsync(
     async () => {
@@ -31,6 +31,7 @@ export default function MoliyaPage() {
     { keepPrevious: true },
   );
 
+  if (firmError && !firm) return <p className="p-8 text-error">{firmError}</p>;
   if (!firm || (loading && !data)) return <LoadingBlock />;
   if (error && !data) return <p className="p-8 text-error">{error}</p>;
   if (!data) return null;

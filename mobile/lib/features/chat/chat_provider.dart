@@ -93,10 +93,12 @@ class ChatProvider extends ChangeNotifier {
       final list = _threads.putIfAbsent(partnerId, () => []);
       final confirmed = list.where((m) => !m.pending && m.id > 0);
       final lastId = confirmed.isEmpty ? 0 : confirmed.map((m) => m.id).reduce((a, b) => a > b ? a : b);
+      // Server `/messages/` ochilganda customer_unread=0 qiladi — bo'sh javob ham o'qilgan deb hisoblanadi.
       final data = await _api.get(
         '/chats/$roomId/messages/',
         query: lastId > 0 ? {'after': '$lastId'} : null,
       );
+      _markRoomRead(roomId);
       if (data is! List || data.isEmpty) return false;
       final known = list.map((m) => m.id).toSet();
       final fresh = data

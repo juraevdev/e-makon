@@ -61,12 +61,14 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   double? _lat;
   double? _lng;
 
-  /// Shu ekrandagi barcha yuborish urinishlari uchun bitta kalit — javob yo'qolib qayta bosilsa,
-  /// server ikkinchi buyurtma ochmaydi.
-  late final String _idempotencyKey = () {
+  /// Shu ekrandagi muvaffaqiyatli yuborish urinishlari uchun kalit.
+  /// Slot band bo'lganda yangilanadi — yangi sana/vaqt bilan eski javob qaytmasin.
+  String _idempotencyKey = _newIdempotencyKey();
+
+  static String _newIdempotencyKey() {
     final rnd = Random.secure();
     return List.generate(16, (_) => rnd.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
-  }();
+  }
 
   /// Xizmatni ko'rsatadigan firmalar (`offer.price` — qat'iy narx). null — yuklanmoqda.
   List<PartnerModel>? _firms;
@@ -122,9 +124,10 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _firms = List.of(feed.partners);
+        // Filtrsiz barcha partnerlarni ko'rsatmaymiz — noto'g'ri firma tanlash xavfi.
+        _firms = [];
         _firmsHavePrices = false;
-        _firmsError = 'Firmalar narxini yuklab bo‘lmadi';
+        _firmsError = 'Firmalar narxini yuklab bo‘lmadi. Qayta urinib ko‘ring.';
       });
     }
   }
@@ -272,6 +275,15 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
     });
   }
 
+  String _normalizedOrderPhone() {
+    final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '';
+    if (digits.length == 9) return '+998$digits';
+    if (digits.length == 12 && digits.startsWith('998')) return '+$digits';
+    if (_phone.text.trim().startsWith('+') && digits.length >= 12) return '+$digits';
+    return '';
+  }
+
   bool _validateStep1() {
     if (_address.text.trim().isEmpty) {
       setState(() => _error = 'Manzil majburiy');
@@ -287,6 +299,11 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
     }
     if (_slot == null) {
       setState(() => _error = 'Bo‘sh (yashil) vaqtni tanlang');
+      return false;
+    }
+    final phone = _phone.text.trim();
+    if (phone.isNotEmpty && _normalizedOrderPhone().isEmpty) {
+      setState(() => _error = 'Telefon +998 XX XXX XX XX formatida bo‘lsin');
       return false;
     }
     setState(() => _error = null);
@@ -311,7 +328,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             address: _address.text.trim(),
             notes: _notes.text.trim(),
             idempotencyKey: _idempotencyKey,
-            phone: _phone.text.trim(),
+            phone: _normalizedOrderPhone(),
             partnerName: _partner?.name ?? '',
             firmId: _partner != null && _partner!.fromServer ? _partner!.id : null,
             distanceKm: dist > 0 ? dist : 0,
@@ -340,6 +357,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
           _error = e.message;
           _slot = null;
           _step = 1;
+          _idempotencyKey = _newIdempotencyKey();
         });
         _loadSlots();
         return;

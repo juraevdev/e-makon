@@ -45,6 +45,9 @@ const emptyForm = {
   debt_amount: "0",
   location_lat: "",
   location_lng: "",
+  admin_full_name: "",
+  admin_phone: "+998",
+  admin_password: "",
 };
 
 type TabId = "asosiy" | "moliya" | "obuna" | "joy";
@@ -171,8 +174,23 @@ export default function FirmalarPage() {
       setTab("asosiy");
       return;
     }
-    if (!form.phone.trim()) {
-      setFormError("Telefon majburiy.");
+    if (!form.phone.trim() || form.phone.replace(/\D/g, "").length < 12) {
+      setFormError("Firma telefonini to'liq kiriting (+998 XX XXX XX XX).");
+      setTab("asosiy");
+      return;
+    }
+    if (!form.admin_full_name.trim() || form.admin_full_name.trim().length < 2) {
+      setFormError("Firma admini ismi majburiy.");
+      setTab("asosiy");
+      return;
+    }
+    if (form.admin_phone.replace(/\D/g, "").length < 12) {
+      setFormError("Admin telefonini to'liq kiriting.");
+      setTab("asosiy");
+      return;
+    }
+    if (form.admin_password.trim().length < 8) {
+      setFormError("Admin paroli kamida 8 belgi bo'lsin.");
       setTab("asosiy");
       return;
     }
@@ -204,6 +222,9 @@ export default function FirmalarPage() {
           location_lat: form.location_lat ? Number(form.location_lat) : null,
           location_lng: form.location_lng ? Number(form.location_lng) : null,
           status: days > 0 ? "pending" : "active",
+          admin_full_name: form.admin_full_name.trim(),
+          admin_phone: form.admin_phone.trim(),
+          admin_password: form.admin_password.trim(),
         },
       });
       if (days > 0 && created?.id) {
@@ -428,6 +449,39 @@ export default function FirmalarPage() {
                   onChange={(e) => setForm({ description: e.target.value })}
                 />
               </Field>
+            </div>
+            <div className="sm:col-span-2 rounded-xl border border-[#263b2a] bg-[#0e1510] p-3">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                Firma admini (Admin panelga kirish)
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Admin ismi *">
+                  <input
+                    className={inputClass}
+                    value={form.admin_full_name}
+                    onChange={(e) => setForm({ admin_full_name: e.target.value })}
+                  />
+                </Field>
+                <Field label="Admin telefon *">
+                  <input
+                    className={inputClass}
+                    placeholder="+998..."
+                    value={form.admin_phone}
+                    onChange={(e) => setForm({ admin_phone: e.target.value })}
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Admin paroli * (kamida 8 belgi)">
+                    <input
+                      className={inputClass}
+                      type="password"
+                      autoComplete="new-password"
+                      value={form.admin_password}
+                      onChange={(e) => setForm({ admin_password: e.target.value })}
+                    />
+                  </Field>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}

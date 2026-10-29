@@ -6,7 +6,7 @@ import { inputClass } from "@/components/ui";
 
 export default function LoginPage() {
   const { login, loading, user } = useAuth();
-  const [phone, setPhone] = useState("+998901000000");
+  const [phone, setPhone] = useState("+998");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

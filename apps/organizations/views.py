@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.db.models import Count, Q, Sum
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -36,9 +38,14 @@ class FirmViewSet(viewsets.ModelViewSet):
 
     # Firm admins may only read their own firm and edit its contact profile via `me`.
     FIRM_ADMIN_ACTIONS = {"list", "retrieve", "stats", "ledger", "me", "read_messages"}
+    # Moliyaviy ko'rsatkichlar — analytics; profil/list — faol AdminProfile yetarli.
+    ANALYTICS_ACTIONS = {"stats", "ledger"}
 
     def get_permissions(self):
         if self.action in self.FIRM_ADMIN_ACTIONS:
+            self.required_capability = (
+                "can_view_analytics" if self.action in self.ANALYTICS_ACTIONS else None
+            )
             return [IsAuthenticated(), IsAdmin(), RequiresAdminCapability()]
         return [IsAuthenticated(), IsSuperAdmin()]
 

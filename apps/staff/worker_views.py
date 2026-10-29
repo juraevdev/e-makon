@@ -157,6 +157,13 @@ class WorkerCareVisitViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     @action(detail=True, methods=["post"])
     def report(self, request, pk=None):
+        profile = getattr(request.user, "employee_profile", None)
+        if (
+            profile is None
+            or not profile.is_active
+            or profile.employment_status == EmployeeProfile.EmploymentStatus.DISMISSED
+        ):
+            raise AppError("Xodim profili faol emas.", status_code=403)
         visit = self.get_queryset().filter(pk=pk).first()
         if visit is None:
             raise AppError("Tashrif topilmadi.", status_code=404)

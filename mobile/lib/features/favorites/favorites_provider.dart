@@ -41,4 +41,11 @@ class FavoritesProvider extends ChangeNotifier {
     notifyListeners();
     await _persist();
   }
+
+  Future<void> clear() async {
+    serviceIds.clear();
+    partnerIds.clear();
+    notifyListeners();
+    await _persist();
+  }
 }

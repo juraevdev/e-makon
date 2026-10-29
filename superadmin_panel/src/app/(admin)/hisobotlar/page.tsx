@@ -37,13 +37,13 @@ async function downloadPdfReport(query: Record<string, string>) {
   <p class="muted">Yaratilgan: ${e(bundle.generated_at)} · Davr: ${e(s.date_from)} — ${e(s.date_to)}</p>
   <h2>Umumiy ko'rsatkichlar</h2>
   <table>
-    <tr><th>Firmalar</th><td>${s.firms_total} (faol ${s.firms_active})</td></tr>
-    <tr><th>Investorlar</th><td>${s.investors_active} / ${s.investors_total}</td></tr>
-    <tr><th>Faol buyurtmalar</th><td>${s.active_orders}</td></tr>
-    <tr><th>Davr buyurtmalari</th><td>${s.orders_in_period}</td></tr>
-    <tr><th>Umumiy aylanma</th><td>${s.revenue_done} UZS</td></tr>
-    <tr><th>Davr aylanmasi</th><td>${s.revenue_period} UZS</td></tr>
-    <tr><th>Kampaniya ulushi</th><td>${s.platform_share_total} UZS</td></tr>
+    <tr><th>Firmalar</th><td>${e(s.firms_total)} (faol ${e(s.firms_active)})</td></tr>
+    <tr><th>Investorlar</th><td>${e(s.investors_active)} / ${e(s.investors_total)}</td></tr>
+    <tr><th>Faol buyurtmalar</th><td>${e(s.active_orders)}</td></tr>
+    <tr><th>Davr buyurtmalari</th><td>${e(s.orders_in_period)}</td></tr>
+    <tr><th>Umumiy aylanma</th><td>${e(s.revenue_done)} UZS</td></tr>
+    <tr><th>Davr aylanmasi</th><td>${e(s.revenue_period)} UZS</td></tr>
+    <tr><th>Kampaniya ulushi</th><td>${e(s.platform_share_total)} UZS</td></tr>
   </table>
   <h2>Firma aylanmalari</h2>
   <table><tr><th>Firma</th><th>Buyurtma</th><th>Aylanma</th><th>Stavka</th><th>Ulush</th></tr>
@@ -87,6 +87,8 @@ export default function HisobotlarPage() {
     setPdfBusy(true);
     try {
       await downloadPdfReport(query);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "PDF yuklab bo'lmadi");
     } finally {
       setPdfBusy(false);
     }

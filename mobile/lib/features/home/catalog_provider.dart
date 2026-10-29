@@ -61,6 +61,14 @@ class MessagesProvider extends ChangeNotifier {
     notifyListeners();
     if (serverOk) _api?.post('/notifications/read-all/').ignore();
   }
+
+  void reset() {
+    messages = [];
+    loading = false;
+    serverOk = false;
+    error = null;
+    notifyListeners();
+  }
 }
 
 class HomeFeedProvider extends ChangeNotifier {

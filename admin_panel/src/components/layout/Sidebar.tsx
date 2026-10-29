@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAsync } from "@/hooks/useAsync";
 import { api, asPage } from "@/lib/api/client";
-import { navItems } from "@/lib/nav";
+import { canAccessNav, navItems } from "@/lib/nav";
 import { FIRM_STATUS_LABEL } from "@/lib/domain";
+import { useAuth } from "@/providers/AuthProvider";
 import { useFirm } from "@/providers/FirmProvider";
 
 type SidebarProps = {
@@ -15,7 +16,15 @@ type SidebarProps = {
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const { firm } = useFirm();
+  const visibleNav = navItems.filter((item) =>
+    canAccessNav(item, {
+      can_manage_orders: user?.can_manage_orders,
+      can_manage_staff: user?.can_manage_staff,
+      can_view_analytics: user?.can_view_analytics,
+    }),
+  );
   const { data: chat } = useAsync(
     () => api<{ unread: number }>("/admin/chats/unread/").catch(() => ({ unread: 0 })),
     [],
@@ -69,7 +78,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           ) : null}
         </div>
         <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto px-3">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const badge = badges[item.href] ?? 0;
             return (

@@ -257,7 +257,7 @@ function ContactSection({ firm }: { firm: PartnerFirm }) {
 }
 
 export default function FirmaPage() {
-  const { firm } = useFirm();
+  const { firm, error: firmError } = useFirm();
   const { showError } = useToast();
 
   const { data: stats, reload } = useAsync(async () => {
@@ -276,6 +276,9 @@ export default function FirmaPage() {
     }
   }
 
+  if (firmError && !firm) {
+    return <p className="p-8 text-error">{firmError}</p>;
+  }
   if (!firm) return <LoadingBlock />;
 
   const info: { label: string; value: string }[] = [

@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../core/network/models.dart';
+import '../features/auth/auth_provider.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/auth/register_screen.dart';
@@ -19,9 +20,29 @@ import '../features/orders/payment_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/main_shell.dart';
 
-GoRouter createRouter() {
+const _publicPaths = {'/splash', '/onboarding', '/login', '/register', '/otp'};
+
+GoRouter createRouter(AuthProvider auth) {
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: auth,
+    redirect: (context, state) {
+      final loc = state.matchedLocation;
+      if (auth.bootstrapping) {
+        return loc == '/splash' ? null : '/splash';
+      }
+      if (!auth.onboardingDone && loc != '/onboarding' && loc != '/splash') {
+        return '/onboarding';
+      }
+      final loggedIn = auth.isLoggedIn;
+      if (!loggedIn && !_publicPaths.contains(loc)) {
+        return '/login';
+      }
+      if (loggedIn && (loc == '/login' || loc == '/register' || loc == '/otp')) {
+        return '/home';
+      }
+      return null;
+    },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),

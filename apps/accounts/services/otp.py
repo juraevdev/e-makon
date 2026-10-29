@@ -46,8 +46,10 @@ class OTPService:
         provider = getattr(settings, "SMS_PROVIDER", "") or ""
         if not provider:
             if not settings.OTP_DEBUG_RETURN_CODE:
-                logger.error("OTP SMS provider is not configured; code was not delivered.")
-                return None
+                raise OTPError(
+                    "SMS xizmati sozlanmagan. Keyinroq urinib ko'ring.",
+                    code="sms_unavailable",
+                )
             # Dev/local: no SMS — print code clearly in API terminal.
             logger.warning(
                 "========== OTP (SMS YO'Q) ==========\n"
@@ -58,8 +60,11 @@ class OTPService:
                 code,
             )
             return None
-        # Provider-specific dispatch can be wired here without changing OTP flow.
-        return None
+        # Provider sozlangan, lekin dispatch hali ulanmagan — "yuborildi" deb yolg'on gapirmaymiz.
+        raise OTPError(
+            "SMS xizmati hali ulanmagan. Administrator bilan bog'laning.",
+            code="sms_not_wired",
+        )
 
     @staticmethod
     def _assert_customer_eligible(phone: str) -> None:

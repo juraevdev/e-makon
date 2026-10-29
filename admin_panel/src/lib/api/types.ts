@@ -57,6 +57,9 @@ export type User = {
   last_order_at?: string | null;
   first_order_at?: string | null;
   total_spent?: number | null;
+  can_manage_staff?: boolean | null;
+  can_manage_orders?: boolean | null;
+  can_view_analytics?: boolean | null;
 };
 
 export type ServiceFeature = { icon: string; label: string };

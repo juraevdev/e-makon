@@ -150,11 +150,23 @@ export default function DashboardPage() {
   const [dateTo, setDateTo] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
 
+  const chartQuery = useMemo(() => {
+    if (period === "custom") {
+      return { period: "custom", date_from: dateFrom || undefined, date_to: dateTo || undefined };
+    }
+    return { period };
+  }, [period, dateFrom, dateTo]);
+
   const {
     data: overview,
     loading: overviewLoading,
+    refreshing: overviewRefreshing,
     error: overviewError,
-  } = useAsync(() => api<DashboardData>("/admin/dashboard/", { query: { period: "month" } }), []);
+  } = useAsync(
+    () => api<DashboardData>("/admin/dashboard/", { query: chartQuery }),
+    [period, dateFrom, dateTo],
+    { keepPrevious: true },
+  );
 
   const { data: orders } = useAsync(async () => {
     const groups = await Promise.all(
@@ -165,23 +177,10 @@ export default function DashboardPage() {
     return groups.flat();
   }, []);
 
-  const chartQuery = useMemo(() => {
-    if (period === "custom") {
-      return { period: "custom", date_from: dateFrom || undefined, date_to: dateTo || undefined };
-    }
-    return { period };
-  }, [period, dateFrom, dateTo]);
-
-  const {
-    data: chartData,
-    loading: chartLoading,
-    refreshing: chartRefreshing,
-    error: chartError,
-  } = useAsync(
-    () => api<DashboardData>("/admin/dashboard/", { query: chartQuery }),
-    [period, dateFrom, dateTo],
-    { keepPrevious: true },
-  );
+  const chartData = overview;
+  const chartLoading = overviewLoading;
+  const chartRefreshing = overviewRefreshing;
+  const chartError = overviewError;
 
   const attention = useMemo(() => {
     const list = orders ?? [];
@@ -319,6 +318,8 @@ export default function DashboardPage() {
                         Object.entries(chartQuery).filter(([, v]) => v != null) as [string, string][],
                       ),
                     );
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : "PDF yuklab bo'lmadi");
                   } finally {
                     setPdfBusy(false);
                   }

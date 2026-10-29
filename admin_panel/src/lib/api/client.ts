@@ -7,6 +7,38 @@ export class ApiError extends Error {
   }
 }
 
+function formatApiError(json: unknown, status: number): string {
+  const fallback = `Xatolik (${status})`;
+  if (!json || typeof json !== "object") return fallback;
+  const obj = json as { message?: string; detail?: string; errors?: unknown };
+  const base = String(obj.message || obj.detail || fallback);
+  const errors = obj.errors;
+  if (!errors || typeof errors !== "object") return base;
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(errors as Record<string, unknown>)) {
+    if (Array.isArray(value)) parts.push(`${key}: ${value.map(String).join(", ")}`);
+    else if (value && typeof value === "object") parts.push(`${key}: ${JSON.stringify(value)}`);
+    else if (value != null) parts.push(`${key}: ${String(value)}`);
+  }
+  if (!parts.length) return base;
+  if (base === "Validation error" || base === fallback) return parts.join("; ");
+  return `${base}: ${parts.join("; ")}`;
+}
+
+const SESSION_EXPIRED_EVENT = "emakon:session-expired";
+
+export function onSessionExpired(handler: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const fn = () => handler();
+  window.addEventListener(SESSION_EXPIRED_EVENT, fn);
+  return () => window.removeEventListener(SESSION_EXPIRED_EVENT, fn);
+}
+
+function notifySessionExpired() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+}
+
 const ACCESS_KEY = "emakon_access";
 const REFRESH_KEY = "emakon_refresh";
 
@@ -176,17 +208,14 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     if (next) {
       headers.Authorization = `Bearer ${next}`;
       res = await send(headers);
+    } else if (!getAccessToken()) {
+      notifySessionExpired();
     }
   }
 
   const json = await parseBody(res);
   if (!res.ok) {
-    let message = `Xatolik (${res.status})`;
-    if (json && typeof json === "object") {
-      const obj = json as { message?: string; detail?: string; errors?: unknown };
-      message = String(obj.message || obj.detail || message);
-    }
-    throw new ApiError(message, res.status);
+    throw new ApiError(formatApiError(json, res.status), res.status);
   }
   if (method.toUpperCase() !== "GET") notifyDataChanged(path);
   return unwrap(json) as T;

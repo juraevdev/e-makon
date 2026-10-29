@@ -6,7 +6,7 @@ import { api } from "@/lib/api/client";
 import { SPECIALTY_LABEL } from "@/lib/domain";
 import { formatPhone } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
-import { errorMessage } from "./api";
+import { errorMessage, useFirmOptions } from "./api";
 import {
   FieldError,
   FormSection,
@@ -25,6 +25,7 @@ type FormState = {
   full_name: string;
   phone: string;
   password: string;
+  organization_id: string;
   position: string;
   specialty: string;
   hired_at: string;
@@ -35,13 +36,22 @@ type FormState = {
   notes: string;
 };
 
-type ErrorKey = "full_name" | "phone" | "password" | "position" | "emergency_phone" | "birth_date" | "hired_at";
+type ErrorKey =
+  | "full_name"
+  | "phone"
+  | "password"
+  | "organization_id"
+  | "position"
+  | "emergency_phone"
+  | "birth_date"
+  | "hired_at";
 type FormErrors = Partial<Record<ErrorKey, string>>;
 
 const ERROR_TAB: Record<ErrorKey, TabId> = {
   full_name: "asosiy",
   phone: "asosiy",
   password: "asosiy",
+  organization_id: "asosiy",
   position: "asosiy",
   hired_at: "shaxsiy",
   birth_date: "shaxsiy",
@@ -55,6 +65,7 @@ function toForm(emp: EmployeeFull | null): FormState {
     full_name: emp?.user.full_name || "",
     phone: emp?.user.phone || "+998",
     password: "",
+    organization_id: emp?.user.organization_id != null ? String(emp.user.organization_id) : "",
     position: emp?.position || "",
     specialty: emp?.specialty || "general",
     hired_at: emp?.hired_at || "",
@@ -74,6 +85,7 @@ function validate(form: FormState, editing: boolean): FormErrors {
   const pwd = form.password.trim();
   if (!editing && !pwd) errors.password = "Yangi xodim uchun parol majburiy";
   else if (pwd && pwd.length < 6) errors.password = "Kamida 6 ta belgi";
+  if (!editing && !form.organization_id) errors.organization_id = "Firmani tanlang";
   if (form.position.length > 120) errors.position = "Lavozim 120 belgidan oshmasin";
   if (form.emergency_phone.trim() && !isValidUzPhone(form.emergency_phone)) errors.emergency_phone = "Telefon formati noto'g'ri";
   if (form.birth_date && form.birth_date > today) errors.birth_date = "Kelajakdagi sana bo'lishi mumkin emas";
@@ -96,6 +108,7 @@ export function EmployeeFormModal({
   onSaved: () => void | Promise<void>;
 }) {
   const { showSuccess, showError } = useToast();
+  const { firms } = useFirmOptions();
   const editing = !!employee;
   const [tab, setTab] = useState<TabId>("asosiy");
   const [form, setFormState] = useState<FormState>(() => toForm(employee));
@@ -150,6 +163,9 @@ export function EmployeeFormModal({
       if (form.hired_at) payload.hired_at = form.hired_at;
       else if (editing) payload.hired_at = null;
       if (form.password.trim()) payload.password = form.password.trim();
+      if (!editing && form.organization_id) {
+        payload.organization_id = Number(form.organization_id);
+      }
 
       if (employee) {
         await api(`/admin/employees/${employee.id}/`, { method: "PATCH", body: payload });
@@ -249,6 +265,36 @@ export function EmployeeFormModal({
                     onChange={(e) => setForm({ phone: e.target.value })}
                   />
                 </Field>
+                {!editing ? (
+                  <Field
+                    label="Firma"
+                    required
+                    className="sm:col-span-2"
+                    hint={<FieldError message={errors.organization_id} />}
+                  >
+                    <select
+                      className={inputClass + errorRing(errors.organization_id)}
+                      value={form.organization_id}
+                      onChange={(e) => setForm({ organization_id: e.target.value })}
+                    >
+                      <option value="">Firma tanlang…</option>
+                      {firms.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                          {f.region ? ` · ${f.region}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                ) : (
+                  <Field label="Firma" className="sm:col-span-2">
+                    <input
+                      className={inputClass}
+                      disabled
+                      value={firmName(employee?.user.organization_id)}
+                    />
+                  </Field>
+                )}
                 <Field
                   label={editing ? "Yangi parol" : "Parol"}
                   required={!editing}

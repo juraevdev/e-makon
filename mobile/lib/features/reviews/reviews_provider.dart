@@ -19,7 +19,7 @@ class ReviewsProvider extends ChangeNotifier {
 
   String? errorFor(int partnerId) => _errors[partnerId];
 
-  double average(int partnerId, {double fallback = 4.8}) {
+  double average(int partnerId, {double fallback = 0}) {
     final list = _byPartner[partnerId];
     if (list == null || list.isEmpty) return fallback;
     return list.map((e) => e.stars).reduce((a, b) => a + b) / list.length;

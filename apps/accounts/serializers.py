@@ -12,6 +12,9 @@ class UserSerializer(serializers.ModelSerializer):
     last_order_at = serializers.SerializerMethodField()
     first_order_at = serializers.SerializerMethodField()
     total_spent = serializers.SerializerMethodField()
+    can_manage_staff = serializers.SerializerMethodField()
+    can_manage_orders = serializers.SerializerMethodField()
+    can_view_analytics = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -44,8 +47,30 @@ class UserSerializer(serializers.ModelSerializer):
             "last_order_at",
             "first_order_at",
             "total_spent",
+            "can_manage_staff",
+            "can_manage_orders",
+            "can_view_analytics",
         )
         read_only_fields = fields
+
+    def _admin_flag(self, obj: User, name: str) -> bool | None:
+        if obj.role == User.Role.SUPERADMIN:
+            return True
+        if obj.role != User.Role.ADMIN:
+            return None
+        profile = getattr(obj, "admin_profile", None)
+        if profile is None or not profile.is_active:
+            return False
+        return bool(getattr(profile, name, False))
+
+    def get_can_manage_staff(self, obj: User) -> bool | None:
+        return self._admin_flag(obj, "can_manage_staff")
+
+    def get_can_manage_orders(self, obj: User) -> bool | None:
+        return self._admin_flag(obj, "can_manage_orders")
+
+    def get_can_view_analytics(self, obj: User) -> bool | None:
+        return self._admin_flag(obj, "can_view_analytics")
 
     def get_first_order_at(self, obj: User):
         value = getattr(obj, "first_order_at_anno", None)

@@ -125,10 +125,15 @@ class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = ProfileUpdateSerializer
 
     def get_object(self):
-        return self.request.user
+        return (
+            User.objects.select_related("admin_profile")
+            .filter(pk=self.request.user.pk)
+            .first()
+            or self.request.user
+        )
 
     def retrieve(self, request, *args, **kwargs):
-        return success_response(UserSerializer(request.user, context={"request": request}).data)
+        return success_response(UserSerializer(self.get_object(), context={"request": request}).data)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
