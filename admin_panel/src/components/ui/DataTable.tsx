@@ -15,12 +15,12 @@ export function DataTable({
 }: DataTableProps) {
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917] shadow-xl ${className}`}
+      className={`overflow-hidden rounded-2xl border border-card-border bg-card shadow-xl ${className}`}
     >
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-[#26352c]/60 bg-[#0e1211] text-[11px] font-semibold tracking-wider text-on-surface-variant uppercase">
+            <tr className="border-b border-card-border/60 bg-surface-container-low text-[11px] font-semibold tracking-wider text-on-surface-variant uppercase">
               {headers.map((header, i) => (
                 <th key={i} className="px-4 py-3.5 whitespace-nowrap">
                   {header}
@@ -28,7 +28,7 @@ export function DataTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#26352c]/30">{children}</tbody>
+          <tbody className="divide-y divide-card-border/30">{children}</tbody>
         </table>
       </div>
       {footer}
@@ -52,7 +52,7 @@ export function RowActions({
           key={icon}
           type="button"
           onClick={() => onAction?.(icon)}
-          className={`flex h-8 w-8 items-center justify-center border border-[#26352c] bg-[#1a221e] text-on-surface-variant shadow-sm transition-all hover:border-primary/60 hover:text-primary ${
+          className={`flex h-8 w-8 items-center justify-center border border-card-border bg-surface-container text-on-surface-variant shadow-sm transition-all hover:border-primary/60 hover:text-primary ${
             icon === "more_vert" ? "rounded-full" : "rounded-lg"
           } ${icon === "block" || icon === "delete" ? "hover:border-error/60 hover:text-error" : ""}`}
         >
@@ -71,9 +71,9 @@ export function Avatar({
   tone?: "primary" | "error" | "neutral";
 }) {
   const tones = {
-    primary: "bg-[#1b382b] text-primary border-primary-container/50",
-    error: "bg-[#381617] text-error border-error/40",
-    neutral: "bg-surface-variant text-on-surface-variant border-white/10",
+    primary: "bg-secondary-container text-primary border-primary-container/50",
+    error: "bg-error-container text-error border-error/40",
+    neutral: "bg-surface-variant text-on-surface-variant border-card-border",
   };
   return (
     <div

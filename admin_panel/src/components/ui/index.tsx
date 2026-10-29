@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { StatCard } from "./StatCard";
 import { StatusPill } from "./StatusPill";
@@ -9,6 +11,7 @@ import { Skeleton, StatRowSkeleton, TableSkeleton } from "./Skeleton";
 import { ShelvedModule } from "./ShelvedModule";
 import { ScheduleBoard } from "./ScheduleBoard";
 import { Modal } from "./Modal";
+import { UiText, useUiT } from "./UiText";
 
 export {
   Modal,
@@ -25,6 +28,8 @@ export {
   StatRowSkeleton,
   TableSkeleton,
   ShelvedModule,
+  UiText,
+  useUiT,
 };
 
 export function FilterChip({
@@ -48,8 +53,8 @@ export function FilterChip({
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all ${
         active
-          ? "border-primary/40 bg-[#203326]/50 font-semibold text-primary shadow-[0_0_15px_rgba(46,125,50,0.25)]"
-          : "border-[#26352c] bg-[#111614] text-on-surface-variant hover:border-[#384f40] hover:text-on-surface"
+          ? "border-accent/40 bg-accent-soft font-semibold text-accent"
+          : "border-card-border bg-card text-ink-muted hover:border-primary/30 hover:text-ink"
       }`}
     >
       {icon ? (
@@ -61,8 +66,8 @@ export function FilterChip({
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
             active
-              ? "bg-primary/20 text-primary-fixed"
-              : "bg-surface-container-highest text-on-surface-variant"
+              ? "bg-primary/15 text-primary"
+              : "bg-surface-container-high text-ink-muted"
           }`}
         >
           {count}
@@ -83,7 +88,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-card-border bg-card/90 shadow-lg shadow-black/20 backdrop-blur-md transition-all hover:border-[#384c3e] ${
+      className={`rounded-2xl border border-card-border bg-card/95 shadow-md shadow-black/5 backdrop-blur-md transition-all hover:border-primary/25 dark:shadow-black/30 ${
         padding ? "p-6" : ""
       } ${className}`}
     >
@@ -129,8 +134,8 @@ export function Pagination({
 }) {
   const last = pages[pages.length - 1] ?? 1;
   return (
-    <div className="flex flex-col items-center justify-between gap-4 border-t border-[#26352c]/50 bg-[#0e1211]/90 px-6 py-4 backdrop-blur-sm md:flex-row">
-      <div className="flex items-center gap-2 text-[13px] text-on-surface-variant">
+    <div className="flex flex-col items-center justify-between gap-4 border-t border-card-border/70 bg-card/90 px-6 py-4 backdrop-blur-sm md:flex-row">
+      <div className="flex items-center gap-2 text-[13px] text-ink-muted">
         <span className="material-symbols-outlined text-[18px] text-primary">
           info
         </span>
@@ -141,7 +146,7 @@ export function Pagination({
           type="button"
           disabled={current <= 1}
           onClick={() => onPageChange?.(current - 1)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#26352c] text-on-surface-variant disabled:opacity-30"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-card-border bg-card text-ink-muted disabled:opacity-30"
         >
           <span className="material-symbols-outlined text-[18px]">chevron_left</span>
         </button>
@@ -152,8 +157,8 @@ export function Pagination({
             onClick={() => onPageChange?.(page)}
             className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs font-bold transition-all ${
               page === current
-                ? "border-primary/60 bg-gradient-to-r from-primary-container to-[#3e9843] text-white shadow-[0_0_12px_rgba(46,125,50,0.6)]"
-                : "border-[#26352c] text-on-surface-variant hover:border-primary/40 hover:bg-[#1a231d] hover:text-primary"
+                ? "border-primary/60 bg-primary text-on-primary shadow-[0_0_12px_rgba(58,82,54,0.35)]"
+                : "border-card-border bg-card text-ink-muted hover:border-primary/40 hover:bg-surface-container-low hover:text-primary"
             }`}
           >
             {page}
@@ -163,7 +168,7 @@ export function Pagination({
           type="button"
           disabled={current >= last}
           onClick={() => onPageChange?.(current + 1)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#26352c] text-on-surface-variant transition-all hover:border-primary/40 hover:text-white disabled:opacity-30"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-card-border bg-card text-ink-muted transition-all hover:border-primary/40 hover:text-ink disabled:opacity-30"
         >
           <span className="material-symbols-outlined text-[18px]">chevron_right</span>
         </button>
@@ -192,7 +197,7 @@ export function PrimaryButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border border-primary/40 bg-[#1b2a1e] px-5 py-2.5 text-sm font-semibold text-primary shadow-[0_0_15px_rgba(46,125,50,0.25)] transition-all hover:border-primary hover:bg-[#233827] hover:text-white disabled:opacity-50 ${className}`}
+      className={`btn-accent inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed ${className}`}
     >
       {icon ? (
         <span className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -222,7 +227,7 @@ export function SecondaryButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border border-[#26352c] bg-[#151c18] px-4 py-2.5 text-sm font-medium text-on-surface transition-all hover:bg-[#1f2922] disabled:opacity-50 ${className}`}
+      className={`inline-flex items-center gap-2 rounded-full border border-card-border bg-card px-4 py-2.5 text-sm font-medium text-ink transition-all hover:border-primary/30 hover:bg-surface-container-low disabled:opacity-50 ${className}`}
     >
       {icon ? (
         <span className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -255,11 +260,11 @@ export function EmptyState({
   );
 }
 
-export function LoadingBlock({ label = "Yuklanmoqda..." }: { label?: string }) {
+export function LoadingBlock({ label }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 px-6 py-16 text-on-surface-variant">
+    <div className="flex items-center justify-center gap-3 px-6 py-16 text-ink-muted">
       <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
-      {label}
+      {label ?? <UiText k="common.loading" fallback="…" />}
     </div>
   );
 }
@@ -279,12 +284,12 @@ export function Field({
 }) {
   return (
     <label className={`flex min-w-0 flex-col gap-1.5 text-sm ${className}`}>
-      <span className="font-medium text-on-surface-variant">
+      <span className="font-medium text-ink">
         {label}
         {required ? <span className="ml-0.5 text-error">*</span> : null}
       </span>
       {children}
-      {hint ? <span className="text-xs text-on-surface-variant/80">{hint}</span> : null}
+      {hint ? <span className="text-xs text-ink-muted">{hint}</span> : null}
     </label>
   );
 }
@@ -310,7 +315,7 @@ export function TabBar<T extends string>({
 }) {
   return (
     <div className={`-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] ${className}`}>
-      <div role="tablist" className="inline-flex min-w-full gap-1 rounded-2xl border border-[#26352c] bg-[#0f1311] p-1 sm:min-w-0">
+      <div role="tablist" className="emakon-tab-track inline-flex min-w-full gap-1 rounded-2xl border p-1 sm:min-w-0">
         {tabs.map((tab) => {
           const active = tab.id === value;
           return (
@@ -322,8 +327,8 @@ export function TabBar<T extends string>({
               onClick={() => onChange(tab.id)}
               className={`inline-flex flex-1 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:flex-none ${
                 active
-                  ? "bg-[#1f3324] text-primary shadow-[0_0_12px_rgba(46,125,50,0.25)]"
-                  : "text-on-surface-variant hover:bg-[#161d19] hover:text-on-surface"
+                  ? "emakon-tab-active"
+                  : "text-ink-muted hover:bg-surface-container-low hover:text-ink"
               }`}
             >
               {tab.icon ? <span className="material-symbols-outlined text-[18px]">{tab.icon}</span> : null}
@@ -331,7 +336,7 @@ export function TabBar<T extends string>({
               {tab.count !== undefined ? (
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${
-                    active ? "bg-primary/20 text-primary-fixed" : "bg-surface-container-highest text-on-surface-variant"
+                    active ? "bg-primary/20 text-primary" : "bg-surface-container-highest text-ink-muted"
                   }`}
                 >
                   {tab.count}
@@ -348,7 +353,7 @@ export function TabBar<T extends string>({
 export function ExcelButton({
   onClick,
   disabled,
-  label = "Excel",
+  label,
   className = "",
 }: {
   onClick: () => void;
@@ -356,38 +361,49 @@ export function ExcelButton({
   label?: string;
   className?: string;
 }) {
+  const t = useUiT();
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title="Excel (.xlsx) faylga yuklab olish"
-      className={`inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40 ${className}`}
+      title={t("common.excelHint")}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40 ${className}`}
+      style={{
+        color: "var(--excel-fg)",
+        background: "var(--excel-bg)",
+        borderColor: "var(--excel-border)",
+      }}
     >
       <span className="material-symbols-outlined text-[18px]">table_view</span>
-      {label}
+      {label ?? t("common.excel")}
     </button>
   );
 }
 
 /** "Jonli" ko'rsatkichi: ma'lumot fon rejimida avtomatik yangilanayotganini bildiradi. */
 export function LiveBadge({ updatedAt, className = "" }: { updatedAt?: number; className?: string }) {
+  const t = useUiT();
   const time = updatedAt
-    ? new Date(updatedAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    ? new Date(updatedAt).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
     : null;
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ${className}`}
-      title="Ma'lumotlar har bir necha soniyada avtomatik yangilanadi"
+      title={t("common.liveHint")}
     >
       <span className="relative flex h-2 w-2">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
       </span>
-      Jonli{time ? ` · ${time}` : ""}
+      {t("common.live")}
+      {time ? ` · ${time}` : ""}
     </span>
   );
 }
 
-export const inputClass =
-  "w-full rounded-xl border border-[#26352c] bg-[#0d100f] px-3.5 py-2.5 text-sm text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary";
+export const inputClass = "emakon-input";

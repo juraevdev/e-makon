@@ -144,9 +144,9 @@ export function TicketsHub({ search }: { search: string }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-[#26352c] bg-[#121614] shadow-lg shadow-black/20">
-      <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-[#26352c] md:flex md:w-[340px] xl:w-[380px] ${selected ? "hidden" : "flex"}`}>
-        <div className="space-y-2.5 border-b border-[#26352c] p-3">
+    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-lg shadow-ink/10">
+      <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-card-border md:flex md:w-[340px] xl:w-[380px] ${selected ? "hidden" : "flex"}`}>
+        <div className="space-y-2.5 border-b border-card-border p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold">
               Murojaatlar <span className="text-on-surface-variant">({data?.count ?? 0})</span>
@@ -195,15 +195,15 @@ export function TicketsHub({ search }: { search: string }) {
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedId(t.id)}
-                  className={`flex w-full gap-3 border-b border-[#26352c]/50 px-3 py-3 text-left transition ${
-                    t.id === selectedId ? "bg-primary/10" : "hover:bg-white/5"
+                  className={`flex w-full gap-3 border-b border-card-border/50 px-3 py-3 text-left transition ${
+                    t.id === selectedId ? "bg-primary/10" : "hover:bg-surface-container-high/40"
                   }`}
                 >
                   <div className="relative shrink-0">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1d2a21] text-sm font-bold text-primary">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-sm font-bold text-primary">
                       {initials(t.customer_name || t.customer_phone)}
                     </div>
-                    {waiting ? <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#121614] bg-amber-400" /> : null}
+                    {waiting ? <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-amber-400" /> : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
@@ -287,12 +287,12 @@ function TicketPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="space-y-2 border-b border-[#26352c] px-3 py-3 sm:px-4">
+      <header className="space-y-2 border-b border-card-border px-3 py-3 sm:px-4">
         <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={onBack}
-            className="rounded-full p-1.5 text-on-surface-variant hover:bg-white/5 hover:text-on-surface md:hidden"
+            className="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface md:hidden"
             aria-label="Ortga"
           >
             <span className="material-symbols-outlined">arrow_back</span>
@@ -350,7 +350,7 @@ function TicketPane({
         </div>
       </header>
 
-      <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#0e1210] px-3 py-4 sm:px-5">
+      <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-surface-container-low px-3 py-4 sm:px-5">
         {t.messages.map((m, i) => {
           const fromCustomer = m.sender === t.customer_id;
           const newDay = i === 0 || dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at);
@@ -358,7 +358,7 @@ function TicketPane({
             <div key={m.id}>
               {newDay ? (
                 <div className="flex justify-center py-2">
-                  <span className="rounded-full border border-[#26352c] bg-[#151917] px-3 py-0.5 text-[11px] text-on-surface-variant">
+                  <span className="rounded-full border border-card-border bg-card px-3 py-0.5 text-[11px] text-on-surface-variant">
                     {dayLabel(m.created_at)}
                   </span>
                 </div>
@@ -369,8 +369,8 @@ function TicketPane({
                     m.is_internal
                       ? "border border-dashed border-amber-500/50 bg-amber-500/10"
                       : fromCustomer
-                        ? "rounded-bl-md border border-[#26352c] bg-[#1b231e]"
-                        : "rounded-br-md bg-primary-container/90 text-white"
+                        ? "rounded-bl-md border border-card-border bg-surface-container"
+                        : "rounded-br-md bg-primary-container/90 text-on-primary"
                   }`}
                 >
                   <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold opacity-75">
@@ -388,14 +388,14 @@ function TicketPane({
         {!t.messages.length ? <p className="py-10 text-center text-sm text-on-surface-variant">Xabarlar yo&apos;q</p> : null}
       </div>
 
-      <div className="space-y-2 border-t border-[#26352c] p-3">
+      <div className="space-y-2 border-t border-card-border p-3">
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {TEMPLATES.map((tpl) => (
             <button
               key={tpl}
               type="button"
               onClick={() => setText(tpl)}
-              className="shrink-0 truncate rounded-full border border-[#26352c] px-3 py-1 text-[11px] text-on-surface-variant hover:border-primary/40 hover:text-on-surface sm:max-w-[240px]"
+              className="shrink-0 truncate rounded-full border border-card-border px-3 py-1 text-[11px] text-on-surface-variant hover:border-primary/40 hover:text-on-surface sm:max-w-[240px]"
               title={tpl}
             >
               {tpl}
@@ -422,7 +422,7 @@ function TicketPane({
             disabled={sending || !text.trim()}
             aria-label="Yuborish"
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${
-              internal ? "bg-amber-400 text-black" : "bg-primary-container text-white hover:brightness-110"
+              internal ? "bg-amber-400 text-black" : "bg-primary-container text-on-primary hover:brightness-110"
             }`}
           >
             <span className={`material-symbols-outlined ${sending ? "animate-spin" : ""}`}>{sending ? "progress_activity" : "send"}</span>

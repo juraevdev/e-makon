@@ -261,7 +261,7 @@ export function BannerFormModal({
                 className={`rounded-xl border px-3 py-2.5 text-left transition ${
                   form.status === st
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-[#26352c] bg-[#0d100f] text-on-surface-variant hover:text-on-surface"
+                    : "border-card-border bg-surface-container-low text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 <span className="block text-sm font-semibold">{BANNER_STATUS_LABEL[st]}</span>

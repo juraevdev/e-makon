@@ -14,13 +14,13 @@ export function ServiceThumb({
         src={service.image}
         alt={service.name}
         loading="lazy"
-        className={`${className} shrink-0 rounded-xl border border-[#26352c] object-cover`}
+        className={`${className} shrink-0 rounded-xl border border-card-border object-cover`}
       />
     );
   }
   return (
     <span
-      className={`${className} flex shrink-0 items-center justify-center rounded-xl border border-[#26352c] bg-primary-container/20 text-primary`}
+      className={`${className} flex shrink-0 items-center justify-center rounded-xl border border-card-border bg-primary-container/20 text-primary`}
     >
       {service.emoji ? (
         <span className="text-xl">{service.emoji}</span>

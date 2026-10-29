@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 170" fill="none">
+  <defs>
+    <linearGradient id="mBody" x1="20" y1="20" x2="140" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f0c040"/>
+      <stop offset="35%" stop-color="#e87820"/>
+      <stop offset="70%" stop-color="#c42818"/>
+      <stop offset="100%" stop-color="#8a1010"/>
+    </linearGradient>
+    <radialGradient id="mCore" cx="50%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#ffe08a" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#f0a030" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#a01810" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="mSoft" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="1.5" dy="2.2" stdDeviation="1.6" flood-color="#3a1008" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <!-- stem -->
+  <path d="M80 128 C78 142 76 154 72 166 C76 168 84 168 88 166 C84 154 82 142 80 128Z" fill="#2a1810"/>
+  <g filter="url(#mSoft)">
+    <!-- classic 5-lobe maple silhouette -->
+    <path d="M80 14
+      L92 38 L118 22 L112 48 L148 52 L118 72
+      L138 98 L108 92 L118 128 L92 108
+      L80 142
+      L68 108 L42 128 L52 92 L22 98 L42 72
+      L12 52 L48 48 L42 22 L68 38 Z" fill="url(#mBody)"/>
+    <path d="M80 14
+      L92 38 L118 22 L112 48 L148 52 L118 72
+      L138 98 L108 92 L118 128 L92 108
+      L80 142
+      L68 108 L42 128 L52 92 L22 98 L42 72
+      L12 52 L48 48 L42 22 L68 38 Z" fill="url(#mCore)"/>
+  </g>
+  <!-- veins -->
+  <g stroke="#3a1810" stroke-width="1.15" stroke-linecap="round" opacity="0.8" fill="none">
+    <path d="M80 30 L80 140"/>
+    <path d="M80 55 L118 40"/>
+    <path d="M80 55 L42 40"/>
+    <path d="M80 78 L130 70"/>
+    <path d="M80 78 L30 70"/>
+    <path d="M80 100 L112 118"/>
+    <path d="M80 100 L48 118"/>
+  </g>
+  <g stroke="#4a2010" stroke-width="0.55" opacity="0.55" fill="none">
+    <path d="M92 48 L108 36"/>
+    <path d="M68 48 L52 36"/>
+    <path d="M100 82 L122 78"/>
+    <path d="M60 82 L38 78"/>
+    <path d="M94 112 L108 124"/>
+    <path d="M66 112 L52 124"/>
+  </g>
+</svg>

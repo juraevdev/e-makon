@@ -19,7 +19,7 @@ const REJECT_REASONS = [
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2">
+    <div className="min-w-0 rounded-xl border border-card-border bg-surface-container-low px-3 py-2">
       <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">{label}</p>
       <div className="mt-0.5 break-words text-sm font-semibold">{children}</div>
     </div>
@@ -87,9 +87,9 @@ export function ServicePreviewModal({
       <div className="space-y-4">
         {s.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={s.image} alt={s.name} className="aspect-[16/9] w-full rounded-2xl border border-[#26352c] object-cover" />
+          <img src={s.image} alt={s.name} className="aspect-[16/9] w-full rounded-2xl border border-card-border object-cover" />
         ) : (
-          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[#26352c] p-4 text-sm text-on-surface-variant">
+          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-card-border p-4 text-sm text-on-surface-variant">
             <ServiceThumb service={s} className="h-12 w-12" />
             Rasm yuklanmagan
           </div>
@@ -98,7 +98,7 @@ export function ServicePreviewModal({
           <div className="flex gap-2 overflow-x-auto pb-1">
             {gallery.map((src) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={src} src={src} alt="" className="h-20 w-28 shrink-0 rounded-xl border border-[#26352c] object-cover" />
+              <img key={src} src={src} alt="" className="h-20 w-28 shrink-0 rounded-xl border border-card-border object-cover" />
             ))}
           </div>
         ) : null}
@@ -115,7 +115,7 @@ export function ServicePreviewModal({
         </div>
 
         {peerPrices.length ? (
-          <p className="rounded-xl bg-[#0e1210] px-3 py-2 text-xs text-on-surface-variant">
+          <p className="rounded-xl bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
             Shu turdagi {peerPrices.length} ta tasdiqlangan firma narxi: {formatMoney(Math.min(...peerPrices))} –{" "}
             {formatMoney(Math.max(...peerPrices))}
             {priceOf(s) > Math.max(...peerPrices) * 1.5 ? (
@@ -139,7 +139,7 @@ export function ServicePreviewModal({
         {s.features?.length ? (
           <div className="flex flex-wrap gap-2">
             {s.features.map((f) => (
-              <span key={f.label} className="inline-flex items-center gap-1 rounded-full border border-[#26352c] px-3 py-1 text-xs">
+              <span key={f.label} className="inline-flex items-center gap-1 rounded-full border border-card-border px-3 py-1 text-xs">
                 <span className="material-symbols-outlined text-[14px] text-primary">{f.icon || "check"}</span>
                 {f.label}
               </span>
@@ -201,7 +201,7 @@ export function RejectServiceModal({
               key={r}
               type="button"
               onClick={() => setNote((n) => (n.includes(r) ? n : n.trim() ? `${n.trim()}. ${r}` : r))}
-              className="rounded-full border border-[#26352c] bg-[#0e1210] px-3 py-1.5 text-xs text-on-surface-variant hover:border-error/40 hover:text-on-surface"
+              className="rounded-full border border-card-border bg-surface-container-low px-3 py-1.5 text-xs text-on-surface-variant hover:border-error/40 hover:text-on-surface"
             >
               {r}
             </button>

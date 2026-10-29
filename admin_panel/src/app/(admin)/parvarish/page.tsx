@@ -585,7 +585,7 @@ export default function ParvarishPage() {
         }
       />
 
-      <ol className="grid grid-cols-2 gap-2 rounded-2xl border border-[#263b2a] bg-[#131b15]/90 p-3 text-sm lg:grid-cols-4">
+      <ol className="grid grid-cols-2 gap-2 rounded-2xl border border-card-border bg-card/90 p-3 text-sm lg:grid-cols-4">
         {[
           { icon: "edit_note", title: "1. Shartnoma tuzing", text: "Mijoz, jadval va narxni kiriting" },
           { icon: "send", title: "2. Tasdiqqa yuboring", text: "E-MAKON ma'muriyati tekshiradi" },
@@ -652,7 +652,7 @@ export default function ParvarishPage() {
       ) : error && !data ? (
         <p className="text-sm text-error">{error}</p>
       ) : !rows.length ? (
-        <div className="rounded-2xl border border-[#26352c] bg-[#141816]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="handshake"
             title="Shartnomalar yo'q"
@@ -675,7 +675,7 @@ export default function ParvarishPage() {
                 key={c.id}
                 type="button"
                 onClick={() => openDetail(c)}
-                className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[#26352c] bg-[#141816] p-5 text-left transition hover:border-primary/50"
+                className="flex min-w-0 flex-col gap-4 rounded-2xl border border-card-border bg-card p-5 text-left transition hover:border-primary/50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -726,7 +726,7 @@ export default function ParvarishPage() {
                     </span>
                     <span>{pct}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#0e1210]">
+                  <div className="h-2 overflow-hidden rounded-full bg-surface-container-low">
                     <div className="h-full rounded-full bg-gradient-to-r from-primary-container to-primary" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
@@ -737,7 +737,7 @@ export default function ParvarishPage() {
                       ? "bg-error/10 text-error"
                       : guide.tone === "warning"
                         ? "bg-amber-500/10 text-amber-100"
-                        : "bg-[#0e1210] text-on-surface-variant"
+                        : "bg-surface-container-low text-on-surface-variant"
                   }`}
                 >
                   <span className="material-symbols-outlined shrink-0 text-[16px]">{guide.icon}</span>
@@ -789,13 +789,13 @@ export default function ParvarishPage() {
                 ["Bajarildi", `${detail.visits_done} / ${detail.planned_visits} (${detailPct}%)`],
                 ["Jami summa", formatMoney(detail.total_amount)],
               ].map(([label, value]) => (
-                <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] px-3 py-2.5">
+                <div key={label} className="min-w-0 rounded-xl border border-card-border bg-surface-container-low px-3 py-2.5">
                   <p className="text-xs text-on-surface-variant">{label}</p>
                   <p className="truncate font-semibold">{value}</p>
                 </div>
               ))}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#0e1210]">
+            <div className="h-2 overflow-hidden rounded-full bg-surface-container-low">
               <div className="h-full rounded-full bg-gradient-to-r from-primary-container to-primary" style={{ width: `${detailPct}%` }} />
             </div>
 
@@ -812,7 +812,7 @@ export default function ParvarishPage() {
             ) : null}
 
             {availableActions.length || ["draft", "pending", "rejected"].includes(detail.status) ? (
-              <section className="rounded-2xl border border-[#263b2a] bg-[#0e1510] p-4">
+              <section className="rounded-2xl border border-card-border bg-surface-container-low p-4">
                 <h3 className="mb-3 text-base font-semibold">Amallar</h3>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {(["draft", "pending", "rejected"] as CareStatus[]).includes(detail.status) ? (
@@ -839,7 +839,7 @@ export default function ParvarishPage() {
                   ) : null}
                 </div>
                 {prompt ? (
-                  <div className="mt-3 space-y-3 rounded-xl border border-[#26352c] bg-[#121614] p-3">
+                  <div className="mt-3 space-y-3 rounded-xl border border-card-border bg-card p-3">
                     <Field
                       label={ACTIONS[prompt.action].needsNote === "required" ? "Sabab" : "Izoh (ixtiyoriy)"}
                       required={ACTIONS[prompt.action].needsNote === "required"}
@@ -909,20 +909,20 @@ export default function ParvarishPage() {
                       {visitGroups.map((g) => (
                         <div key={g.key}>
                           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{g.label}</p>
-                          <ol className="relative space-y-2 border-l border-[#26352c] pl-4">
+                          <ol className="relative space-y-2 border-l border-card-border pl-4">
                             {g.items.map((v) => {
                               const isToday = v.visit_date === today;
                               const editable = detail.status === "active" && !CLOSED_VISIT.includes(v.status);
                               return (
                                 <li key={v.id} className="relative">
                                   <span
-                                    className={`absolute -left-[21px] top-3.5 h-2.5 w-2.5 rounded-full border-2 border-[#151917] ${VISIT_DOT[v.status]} ${
+                                    className={`absolute -left-[21px] top-3.5 h-2.5 w-2.5 rounded-full border-2 border-card ${VISIT_DOT[v.status]} ${
                                       isToday ? "animate-pulse" : ""
                                     }`}
                                   />
                                   <div
                                     className={`rounded-xl border p-3 ${
-                                      isToday ? "border-primary/50 bg-primary/5" : "border-[#26352c] bg-[#0e1210]"
+                                      isToday ? "border-primary/50 bg-primary/5" : "border-card-border bg-surface-container-low"
                                     }`}
                                   >
                                     <div className="flex flex-wrap items-center gap-2">
@@ -931,7 +931,7 @@ export default function ParvarishPage() {
                                       {isToday ? <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-black">Bugun</span> : null}
                                       <StatusPill variant={VISIT_TONE[v.status]}>{CARE_VISIT_STATUS_LABEL[v.status]}</StatusPill>
                                       <select
-                                        className="ml-auto max-w-[180px] rounded-lg border border-[#26352c] bg-[#121614] px-2 py-1 text-xs"
+                                        className="ml-auto max-w-[180px] rounded-lg border border-card-border bg-card px-2 py-1 text-xs"
                                         value={v.planned_worker ?? ""}
                                         aria-label="Xodim"
                                         disabled={!editable}
@@ -966,13 +966,13 @@ export default function ParvarishPage() {
                                         </button>
                                         <button
                                           type="button"
-                                          className="inline-flex items-center gap-1 rounded-full border border-[#26352c] px-3 py-1 text-xs hover:border-error/50 hover:text-error"
+                                          className="inline-flex items-center gap-1 rounded-full border border-card-border px-3 py-1 text-xs hover:border-error/50 hover:text-error"
                                           onClick={() => void updateVisit(v, { status: "not_done" }, "Bajarilmadi deb belgilandi")}
                                         >
                                           <span className="material-symbols-outlined text-[16px]">close</span>
                                           Bajarilmadi
                                         </button>
-                                        <label className="inline-flex items-center gap-1 rounded-full border border-[#26352c] px-3 py-1 text-xs">
+                                        <label className="inline-flex items-center gap-1 rounded-full border border-card-border px-3 py-1 text-xs">
                                           <span className="material-symbols-outlined text-[16px]">event_repeat</span>
                                           Ko&apos;chirish:
                                           <input
@@ -1022,7 +1022,7 @@ export default function ParvarishPage() {
                   ["Ilovadagi mijoz", detail.customer ? "Bog'langan — tashriflar haqida xabar oladi" : "Bog'lanmagan"],
                   ["Tasdiqlangan", detail.approved_at ? formatDateTime(detail.approved_at) : "—"],
                 ].map(([label, value]) => (
-                  <div key={label} className="min-w-0 rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3">
+                  <div key={label} className="min-w-0 rounded-xl border border-card-border bg-surface-container-low px-4 py-3">
                     <p className="text-xs text-on-surface-variant">{label}</p>
                     <p className="break-words font-medium">{value}</p>
                   </div>
@@ -1039,7 +1039,7 @@ export default function ParvarishPage() {
                   </a>
                 ) : null}
                 {detail.terms ? (
-                  <div className="whitespace-pre-line rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3 sm:col-span-2">
+                  <div className="whitespace-pre-line rounded-xl border border-card-border bg-surface-container-low px-4 py-3 sm:col-span-2">
                     <p className="mb-1 text-xs text-on-surface-variant">Shartnoma shartlari</p>
                     {detail.terms}
                   </div>
@@ -1049,21 +1049,21 @@ export default function ParvarishPage() {
 
             {tab === "log" ? (
               <div className="space-y-3">
-                <ol className="relative max-h-[360px] space-y-3 overflow-y-auto border-l border-[#26352c] pl-5 pr-1">
+                <ol className="relative max-h-[360px] space-y-3 overflow-y-auto border-l border-card-border pl-5 pr-1">
                   {[...detail.events].reverse().map((e) => {
                     const platform = e.actor_role === "superadmin";
                     return (
                       <li key={e.id} className="relative">
                         <span
                           className={`absolute -left-[31px] top-1 flex h-5 w-5 items-center justify-center rounded-full border ${
-                            platform ? "border-amber-500/50 bg-amber-500/20 text-amber-300" : "border-primary/40 bg-[#121614] text-primary"
+                            platform ? "border-amber-500/50 bg-amber-500/20 text-amber-300" : "border-primary/40 bg-card text-primary"
                           }`}
                         >
                           <span className="material-symbols-outlined text-[13px]">{EVENT_ICON[e.action] || "circle"}</span>
                         </span>
                         <div
                           className={`rounded-xl border px-3.5 py-2.5 ${
-                            platform ? "border-amber-500/30 bg-amber-500/5" : "border-[#26352c] bg-[#0e1210]"
+                            platform ? "border-amber-500/30 bg-amber-500/5" : "border-card-border bg-surface-container-low"
                           }`}
                         >
                           <p className="text-xs text-on-surface-variant">
@@ -1178,7 +1178,7 @@ export default function ParvarishPage() {
                   type="button"
                   onClick={() => setForm({ ...form, client_type: t })}
                   className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${
-                    form.client_type === t ? "border-primary bg-primary/10 font-semibold text-primary" : "border-[#26352c] text-on-surface-variant"
+                    form.client_type === t ? "border-primary bg-primary/10 font-semibold text-primary" : "border-card-border text-on-surface-variant"
                   }`}
                 >
                   <span className="material-symbols-outlined">{t === "organization" ? "apartment" : "home"}</span>
@@ -1268,7 +1268,7 @@ export default function ParvarishPage() {
                               preferred_weekdays: on ? form.preferred_weekdays.filter((x) => x !== i) : [...form.preferred_weekdays, i].sort(),
                             })
                           }
-                          className={`h-10 w-12 rounded-xl border text-sm ${on ? "border-primary bg-primary/15 font-bold text-primary" : "border-[#26352c] text-on-surface-variant"}`}
+                          className={`h-10 w-12 rounded-xl border text-sm ${on ? "border-primary bg-primary/15 font-bold text-primary" : "border-card-border text-on-surface-variant"}`}
                         >
                           {d}
                         </button>
@@ -1293,7 +1293,7 @@ export default function ParvarishPage() {
                     key={m}
                     type="button"
                     onClick={() => setForm({ ...form, end_date: addMonths(form.start_date, m) })}
-                    className="rounded-full border border-[#26352c] px-3 py-1 text-xs text-on-surface-variant hover:border-primary/40 hover:text-primary"
+                    className="rounded-full border border-card-border px-3 py-1 text-xs text-on-surface-variant hover:border-primary/40 hover:text-primary"
                   >
                     {m < 12 ? `${m} oy` : `${m / 12} yil`}
                   </button>
@@ -1316,7 +1316,7 @@ export default function ParvarishPage() {
                               : [...form.assigned_worker_ids, w.user.id],
                           })
                         }
-                        className={`rounded-full border px-3 py-1.5 text-xs ${on ? "border-primary bg-primary/15 text-primary" : "border-[#26352c] text-on-surface-variant"}`}
+                        className={`rounded-full border px-3 py-1.5 text-xs ${on ? "border-primary bg-primary/15 text-primary" : "border-card-border text-on-surface-variant"}`}
                       >
                         {w.user.full_name || w.user.phone}
                       </button>
@@ -1414,7 +1414,7 @@ function ActionCard({
             ? "border-error/30 hover:border-error/60 hover:bg-error/5"
             : primary
               ? "border-primary/40 bg-primary/5 hover:border-primary"
-              : "border-[#26352c] hover:border-primary/40"
+              : "border-card-border hover:border-primary/40"
       }`}
     >
       <span className={`material-symbols-outlined shrink-0 ${danger ? "text-error" : "text-primary"}`}>{icon}</span>

@@ -4,15 +4,16 @@ export type StatusVariant = "success" | "warning" | "error" | "neutral" | "info"
 
 const statusStyles: Record<StatusVariant, string> = {
   success: "bg-primary/15 text-primary border-primary/30",
-  warning: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  warning:
+    "bg-amber-500/15 text-amber-800 border-amber-600/35 dark:text-amber-200 dark:border-amber-500/30",
   error: "bg-error/15 text-error border-error/30",
-  neutral: "bg-surface-container-high text-on-surface-variant border-white/10",
-  info: "bg-tertiary/15 text-tertiary-fixed-dim border-tertiary/30",
+  neutral: "bg-surface-container-high text-on-surface-variant border-card-border",
+  info: "bg-tertiary/15 text-tertiary border-tertiary/30 dark:text-tertiary-fixed-dim",
 };
 
 const statusDots: Record<StatusVariant, string> = {
   success: "bg-primary",
-  warning: "bg-amber-400",
+  warning: "bg-amber-500",
   error: "bg-error",
   neutral: "bg-on-surface-variant",
   info: "bg-tertiary",

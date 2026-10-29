@@ -75,9 +75,9 @@ export function ChatHub({ search }: { search: string }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-[#26352c] bg-[#121614] shadow-lg shadow-black/20">
-      <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-[#26352c] md:flex md:w-[340px] xl:w-[380px] ${active ? "hidden" : "flex"}`}>
-        <div className="space-y-2.5 border-b border-[#26352c] p-3">
+    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-lg shadow-ink/10">
+      <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-card-border md:flex md:w-[340px] xl:w-[380px] ${active ? "hidden" : "flex"}`}>
+        <div className="space-y-2.5 border-b border-card-border p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold">
               Suhbatlar <span className="text-on-surface-variant">({rooms?.count ?? 0})</span>
@@ -137,16 +137,16 @@ export function ChatHub({ search }: { search: string }) {
                     setActiveId(r.id);
                     setPickedRoom(r);
                   }}
-                  className={`flex w-full gap-3 border-b border-[#26352c]/50 px-3 py-3 text-left transition ${
-                    r.id === activeId ? "bg-primary/10" : "hover:bg-white/5"
+                  className={`flex w-full gap-3 border-b border-card-border/50 px-3 py-3 text-left transition ${
+                    r.id === activeId ? "bg-primary/10" : "hover:bg-surface-container-high/40"
                   }`}
                 >
                   <div className="relative shrink-0">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1d2a21] text-sm font-bold text-primary">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-sm font-bold text-primary">
                       {initials(r.customer_name || r.customer_phone)}
                     </div>
                     {r.firm_unread ? (
-                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#121614] bg-amber-400" />
+                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-amber-400" />
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -194,7 +194,7 @@ export function ChatHub({ search }: { search: string }) {
             })
           )}
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-[#26352c] px-3 py-2 text-[10px] text-on-surface-variant">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-card-border px-3 py-2 text-[10px] text-on-surface-variant">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-amber-400" /> Firma o&apos;qimagan
           </span>

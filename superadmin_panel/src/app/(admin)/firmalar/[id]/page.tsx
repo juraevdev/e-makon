@@ -173,7 +173,7 @@ export default function FirmaProfilPage() {
               type="button"
               disabled={!data.prev_id}
               onClick={() => data.prev_id && router.push(`/firmalar/${data.prev_id}`)}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] px-2 py-1 text-xs text-on-surface-variant disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-lg border border-card-border px-2 py-1 text-xs text-on-surface-variant disabled:opacity-40"
             >
               <span className="material-symbols-outlined text-[16px]">arrow_back</span>
               Orqaga
@@ -182,7 +182,7 @@ export default function FirmaProfilPage() {
               type="button"
               disabled={!data.next_id}
               onClick={() => data.next_id && router.push(`/firmalar/${data.next_id}`)}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] px-2 py-1 text-xs text-on-surface-variant disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-lg border border-card-border px-2 py-1 text-xs text-on-surface-variant disabled:opacity-40"
             >
               Oldinga
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -222,7 +222,7 @@ export default function FirmaProfilPage() {
           { label: "Userga qaytarilgan", value: formatMoney(data.finance.refunded) },
           { label: "Qarz", value: formatMoney(data.finance.debt) },
         ].map((k) => (
-          <div key={k.label} className="rounded-2xl border border-[#26352c] bg-[#151917] p-4">
+          <div key={k.label} className="rounded-2xl border border-card-border bg-card p-4">
             <p className="text-xs text-on-surface-variant">{k.label}</p>
             <p className="mt-1 text-lg font-bold">{k.value}</p>
           </div>
@@ -238,7 +238,7 @@ export default function FirmaProfilPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+        <div className="rounded-2xl border border-card-border bg-card p-6">
           <h2 className="mb-4 text-lg font-bold">Profil</h2>
           <div className="space-y-2 text-sm">
             <p><span className="text-on-surface-variant">Yuridik nomi: </span>{f.legal_name || "—"}</p>
@@ -285,7 +285,7 @@ export default function FirmaProfilPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+        <div className="rounded-2xl border border-card-border bg-card p-6">
           <h2 className="mb-4 text-lg font-bold">Ulush va qarz</h2>
           <p className="mb-3 text-sm text-on-surface-variant">
             Tavsiya: <strong className="text-primary">{data.suggested_rate}%</strong> (0.1%–3%)
@@ -318,7 +318,7 @@ export default function FirmaProfilPage() {
             </SecondaryButton>
           </div>
 
-          <div className="mt-5 border-t border-[#26352c] pt-4">
+          <div className="mt-5 border-t border-card-border pt-4">
             <Field label="Qarz (UZS)">
               <div className="flex gap-2">
                 <input className={inputClass} type="number" min="0" value={debt} onChange={(e) => setDebtDraft(e.target.value)} />
@@ -340,7 +340,7 @@ export default function FirmaProfilPage() {
             </Field>
           </div>
 
-          <div className="mt-5 space-y-3 border-t border-[#26352c] pt-4">
+          <div className="mt-5 space-y-3 border-t border-card-border pt-4">
             <Field label="Sinov (kun)">
               <div className="flex gap-2">
                 <input className={inputClass} type="number" min="0" value={trialDays} onChange={(e) => setTrialDays(e.target.value)} />
@@ -385,7 +385,7 @@ export default function FirmaProfilPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+        <div className="rounded-2xl border border-card-border bg-card p-6">
           <h2 className="mb-2 text-lg font-bold">Xabar / ogohlantirish / hisobot</h2>
           <p className="mb-4 text-xs text-on-surface-variant">
             Jarima va savdo taqiqi faqat ogohlantirish yoki hisobotdan keyin beriladi.
@@ -422,7 +422,7 @@ export default function FirmaProfilPage() {
           </div>
           <ul className="mt-4 max-h-48 space-y-2 overflow-y-auto text-sm">
             {data.messages.map((m) => (
-              <li key={m.id} className="rounded-xl border border-[#26352c]/80 p-3">
+              <li key={m.id} className="rounded-xl border border-card-border/80 p-3">
                 <p className="text-[11px] text-on-surface-variant">
                   {m.kind} · {m.sender_name} · {formatDateTime(m.created_at)}
                 </p>
@@ -434,7 +434,7 @@ export default function FirmaProfilPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+          <div className="rounded-2xl border border-card-border bg-card p-6">
             <h2 className="mb-4 text-lg font-bold">Jarima</h2>
             <Field label="Summa (UZS)">
               <input className={inputClass} type="number" min="0" value={fineAmount} onChange={(e) => setFineAmount(e.target.value)} />
@@ -461,7 +461,7 @@ export default function FirmaProfilPage() {
             </div>
             <ul className="mt-4 max-h-36 space-y-2 overflow-y-auto text-sm">
               {data.fines.map((fine) => (
-                <li key={fine.id} className="flex justify-between gap-2 border-b border-[#26352c]/50 py-2">
+                <li key={fine.id} className="flex justify-between gap-2 border-b border-card-border/50 py-2">
                   <span>{fine.reason}</span>
                   <span className={fine.is_paid ? "text-primary" : "text-error"}>{formatMoney(fine.amount)}</span>
                 </li>
@@ -469,7 +469,7 @@ export default function FirmaProfilPage() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+          <div className="rounded-2xl border border-card-border bg-card p-6">
             <h2 className="mb-4 text-lg font-bold">Savdo taqiqi</h2>
             <Field label="Kunlar">
               <input className={inputClass} type="number" min="1" value={banDays} onChange={(e) => setBanDays(e.target.value)} />
@@ -501,7 +501,7 @@ export default function FirmaProfilPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+      <div className="rounded-2xl border border-card-border bg-card p-6">
         <h2 className="mb-4 text-lg font-bold">Hisob-kitob (avtomatik ledger)</h2>
         <p className="mb-3 text-xs text-on-surface-variant">
           Foiz oshirish, jarima, escrow to&apos;lov/qaytarish — hammasi shu yerda yoziladi.
@@ -511,7 +511,7 @@ export default function FirmaProfilPage() {
         ) : (
           <ul className="max-h-72 space-y-2 overflow-y-auto text-sm">
             {data.finance.ledger.map((e) => (
-              <li key={e.id} className="flex flex-wrap items-start justify-between gap-2 border-b border-[#26352c]/50 py-2">
+              <li key={e.id} className="flex flex-wrap items-start justify-between gap-2 border-b border-card-border/50 py-2">
                 <div>
                   <p className="font-medium text-primary">{e.entry_type_label}</p>
                   <p className="text-on-surface-variant">{e.note || `${e.debit_label} → ${e.credit_label}`}</p>
@@ -525,14 +525,14 @@ export default function FirmaProfilPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+        <div className="rounded-2xl border border-card-border bg-card p-6">
           <h2 className="mb-4 text-lg font-bold">Mijoz baholari</h2>
           {!data.reviews.length ? (
             <p className="text-sm text-on-surface-variant">Hali baho yo&apos;q</p>
           ) : (
             <ul className="max-h-64 space-y-3 overflow-y-auto">
               {data.reviews.map((r) => (
-                <li key={r.id} className="rounded-xl border border-[#26352c]/60 p-3 text-sm">
+                <li key={r.id} className="rounded-xl border border-card-border/60 p-3 text-sm">
                   <div className="flex justify-between gap-2">
                     <span className="font-medium">{r.customer_name || r.customer_phone}</span>
                     <span className="text-amber-300">{"★".repeat(r.score)}</span>
@@ -545,11 +545,11 @@ export default function FirmaProfilPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+        <div className="rounded-2xl border border-card-border bg-card p-6">
           <h2 className="mb-4 text-lg font-bold">Nazorat tarixi</h2>
           <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
             {data.moderation_logs.map((log) => (
-              <li key={log.id} className="border-b border-[#26352c]/40 py-2">
+              <li key={log.id} className="border-b border-card-border/40 py-2">
                 <p className="font-medium text-primary">{log.action_label}</p>
                 <p className="text-on-surface-variant">{log.note || "—"}</p>
                 <p className="text-[11px] text-on-surface-variant">
@@ -561,11 +561,11 @@ export default function FirmaProfilPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#26352c] bg-[#151917] p-6">
+      <div className="rounded-2xl border border-card-border bg-card p-6">
         <h2 className="mb-4 text-lg font-bold">Xizmatlar bo&apos;yicha</h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {data.by_service.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-xl border border-[#26352c]/60 p-3">
+            <div key={s.id} className="flex items-center justify-between rounded-xl border border-card-border/60 p-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">{s.icon}</span>
                 <span className="text-sm font-medium">{s.name}</span>
@@ -579,18 +579,18 @@ export default function FirmaProfilPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
-        <h2 className="border-b border-[#26352c] p-6 text-lg font-bold">So&apos;nggi buyurtmalar</h2>
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card">
+        <h2 className="border-b border-card-border p-6 text-lg font-bold">So&apos;nggi buyurtmalar</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#26352c] text-xs uppercase text-on-surface-variant">
+              <tr className="border-b border-card-border text-xs uppercase text-on-surface-variant">
                 {["ID", "Mijoz", "Xizmat", "Narx", "Ulush", "Holat", "Sana"].map((h) => (
                   <th key={h} className="px-5 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#26352c]/40">
+            <tbody className="divide-y divide-card-border/40">
               {data.recent_orders.map((o) => (
                 <tr key={o.id}>
                   <td className="px-5 py-3 text-primary">#{o.id}</td>

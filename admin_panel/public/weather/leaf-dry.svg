@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 160" fill="none">
+  <defs>
+    <linearGradient id="dBody" x1="30" y1="20" x2="120" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c48848"/>
+      <stop offset="45%" stop-color="#9a5a28"/>
+      <stop offset="100%" stop-color="#5a3018"/>
+    </linearGradient>
+    <filter id="dSoft" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="1.2" dy="2" stdDeviation="1.4" flood-color="#2a1808" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <path d="M74 122 C72 138 68 150 62 158 C68 160 78 160 84 158 C78 150 76 138 74 122Z" fill="#3a2410"/>
+  <g filter="url(#dSoft)">
+    <!-- dry maple with irregular holes -->
+    <path fill-rule="evenodd" d="M75 16
+      L88 40 L112 24 L106 50 L140 54 L112 72
+      L130 96 L102 90 L112 124 L88 106
+      L75 136
+      L62 106 L38 124 L48 90 L20 96 L38 72
+      L10 54 L44 50 L38 24 L62 40 Z
+      M58 52 C62 48 70 50 72 56 C68 60 60 58 58 52Z
+      M96 68 C100 64 108 66 110 72 C106 76 98 74 96 68Z
+      M70 88 C74 84 82 86 84 92 C80 96 72 94 70 88Z
+      M52 100 C55 97 60 99 61 103 C58 106 53 104 52 100Z" fill="url(#dBody)"/>
+  </g>
+  <!-- brittle vein skeleton -->
+  <g stroke="#2a180c" stroke-width="1.05" stroke-linecap="round" opacity="0.75" fill="none">
+    <path d="M75 28 L75 132"/>
+    <path d="M75 52 L110 38"/>
+    <path d="M75 52 L40 38"/>
+    <path d="M75 74 L122 68"/>
+    <path d="M75 74 L28 68"/>
+    <path d="M75 96 L106 114"/>
+    <path d="M75 96 L44 114"/>
+  </g>
+  <g stroke="#3a2410" stroke-width="0.5" opacity="0.45" fill="none">
+    <path d="M88 46 L104 34"/>
+    <path d="M62 46 L46 34"/>
+    <path d="M92 108 L104 118"/>
+    <path d="M58 108 L46 118"/>
+  </g>
+</svg>

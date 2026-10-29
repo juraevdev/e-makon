@@ -164,7 +164,7 @@ function ActionButtons({ admin, self, onEdit, onToggle }: RowProps) {
       <button
         type="button"
         onClick={onEdit}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#26352c] bg-[#121614] px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-primary/50 hover:text-primary"
+        className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:border-primary/50 hover:text-primary"
       >
         <span className="material-symbols-outlined text-[15px]">edit</span>
         Tahrirlash
@@ -206,8 +206,8 @@ function AdminCard(props: RowProps) {
   const { admin, self, firm } = props;
   return (
     <div
-      className={`flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-[#151a18] to-[#101412] p-5 transition hover:border-primary/50 ${
-        admin.is_active ? "border-primary-container/35" : "border-[#3a2a2b]"
+      className={`flex flex-col gap-4 rounded-2xl border bg-gradient-to-b from-card to-surface-container-low p-5 transition hover:border-primary/50 ${
+        admin.is_active ? "border-primary-container/35" : "border-error/40"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -239,7 +239,7 @@ function AdminCard(props: RowProps) {
         </p>
       </div>
       <CapChips admin={admin} />
-      <div className="mt-auto border-t border-white/5 pt-3">
+      <div className="mt-auto border-t border-card-border/60 pt-3">
         <ActionButtons {...props} />
       </div>
     </div>
@@ -249,14 +249,14 @@ function AdminCard(props: RowProps) {
 function AdminRow(props: RowProps) {
   const { admin: a, self, firm } = props;
   return (
-    <tr className="transition-colors hover:bg-[#18211b]/50">
+    <tr className="transition-colors hover:bg-surface-container-high/50">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
             <Avatar initials={initials(a.user.full_name || a.user.phone)} tone={a.is_active ? "primary" : "neutral"} />
           </div>
           <div className="min-w-0">
-            <p className="flex items-center gap-2 truncate text-sm font-semibold text-white">
+            <p className="flex items-center gap-2 truncate text-sm font-semibold text-ink">
               {a.user.full_name || "Ism ko'rsatilmagan"}
               {self ? <SelfBadge /> : null}
             </p>
@@ -497,11 +497,11 @@ export default function AdministratorlarPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8">
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#26352c]/40 pb-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-card-border/40 pb-4 sm:flex-row sm:items-center">
         <div className="min-w-0">
           <Breadcrumbs items={[{ label: "Bosh sahifa", href: "/" }, { label: "Administratorlar" }]} />
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-white md:text-2xl">Administratorlar nazorati</h2>
+            <h2 className="text-xl font-bold tracking-tight text-ink md:text-2xl">Administratorlar nazorati</h2>
             <LiveBadge updatedAt={updatedAt || undefined} />
           </div>
           <p className="mt-0.5 text-xs text-on-surface-variant md:text-sm">
@@ -566,7 +566,7 @@ export default function AdministratorlarPage() {
         />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[#26352c] bg-[#121614]/80 p-3 sm:p-4">
+      <div className="space-y-3 rounded-2xl border border-card-border bg-card/80 p-3 sm:p-4">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <SearchBox placeholder="Ism, telefon, lavozim yoki firma..." className="lg:flex-1" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-auto">
@@ -633,7 +633,7 @@ export default function AdministratorlarPage() {
       ) : error && !data ? (
         <ErrorPanel title="Administratorlarni yuklab bo'lmadi" message={error} onRetry={() => void reload()} />
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-card-border bg-[#141816]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="admin_panel_settings"
             title={all.length ? "Mos administrator topilmadi" : "Hali administrator yo'q"}
@@ -667,7 +667,7 @@ export default function AdministratorlarPage() {
               </DataTable>
             </div>
           ) : null}
-          <div className="overflow-hidden rounded-2xl border border-[#26352c]">
+          <div className="overflow-hidden rounded-2xl border border-card-border">
             <Pagination
               current={current}
               pages={pageNumbers(current, totalPages)}
@@ -790,10 +790,10 @@ export default function AdministratorlarPage() {
             title="Vakolatlar"
             description="Admin panelning qaysi bo'limlarini boshqara olishini belgilang"
             action={
-              <label className="inline-flex cursor-pointer select-none items-center gap-2 rounded-full border border-[#26352c] bg-[#0d100f] px-3 py-1.5 text-xs font-semibold text-on-surface">
+              <label className="inline-flex cursor-pointer select-none items-center gap-2 rounded-full border border-card-border bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-[#2e7d32]"
+                  className="h-4 w-4 accent-primary"
                   checked={allCapsOn}
                   ref={(el) => {
                     if (el) el.indeterminate = someCapsOn && !allCapsOn;
@@ -814,7 +814,7 @@ export default function AdministratorlarPage() {
                     <label className="mb-2 flex cursor-pointer select-none items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
                       <input
                         type="checkbox"
-                        className="h-3.5 w-3.5 accent-[#2e7d32]"
+                        className="h-3.5 w-3.5 accent-primary"
                         checked={groupAll}
                         ref={(el) => {
                           if (el) el.indeterminate = groupSome && !groupAll;
@@ -829,12 +829,12 @@ export default function AdministratorlarPage() {
                         <label
                           key={c.key}
                           className={`flex cursor-pointer select-none items-start gap-3 rounded-xl border p-3 transition-all ${
-                            form[c.key] ? "border-primary/40 bg-primary/5" : "border-[#26352c] bg-[#0d100f] hover:border-[#384f40]"
+                            form[c.key] ? "border-primary/40 bg-primary/5" : "border-card-border bg-surface-container-low hover:border-outline-variant"
                           }`}
                         >
                           <input
                             type="checkbox"
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-[#2e7d32]"
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                             checked={form[c.key]}
                             onChange={(e) => setCaps([c.key], e.target.checked)}
                           />

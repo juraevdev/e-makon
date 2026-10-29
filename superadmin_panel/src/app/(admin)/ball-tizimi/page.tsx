@@ -167,7 +167,7 @@ export default function BallTizimiPage() {
 
       <LoyaltySettingsCard settings={settings.data} error={settings.error} saving={savingSettings} onSave={saveSettings} />
 
-      <section className="rounded-2xl border border-card-border bg-card/90 p-4 shadow-lg shadow-black/20 sm:p-6">
+      <section className="rounded-2xl border border-card-border bg-card/90 p-4 shadow-lg shadow-ink/10 sm:p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold">
             <span className="material-symbols-outlined text-primary">card_giftcard</span>
@@ -215,13 +215,13 @@ export default function BallTizimiPage() {
                 <div
                   key={r.id}
                   className={`flex flex-col rounded-2xl border p-4 transition ${
-                    r.is_active ? "border-[#2b3f31] bg-gradient-to-b from-[#16211a] to-[#101512]" : "border-[#26352c] bg-[#0f1311] opacity-75"
+                    r.is_active ? "border-card-border bg-gradient-to-b from-surface-container to-surface-container-low" : "border-card-border bg-surface-container-low opacity-75"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <span
                       className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${
-                        r.is_active ? "border-primary/30 bg-primary/10 text-primary" : "border-[#26352c] text-on-surface-variant"
+                        r.is_active ? "border-primary/30 bg-primary/10 text-primary" : "border-card-border text-on-surface-variant"
                       }`}
                     >
                       <span className="material-symbols-outlined text-[26px]">{r.icon || "redeem"}</span>
@@ -243,7 +243,7 @@ export default function BallTizimiPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-1 border-t border-[#26352c] pt-3">
+                  <div className="mt-4 flex items-center gap-1 border-t border-card-border pt-3">
                     <button
                       type="button"
                       role="switch"
@@ -252,7 +252,7 @@ export default function BallTizimiPage() {
                       onClick={() => void toggleReward(r)}
                       className="mr-auto inline-flex items-center gap-2 text-xs text-on-surface-variant disabled:opacity-50"
                     >
-                      <span className={`relative h-5 w-9 rounded-full transition ${r.is_active ? "bg-primary" : "bg-[#2a352e]"}`}>
+                      <span className={`relative h-5 w-9 rounded-full transition ${r.is_active ? "bg-primary" : "bg-surface-container-high"}`}>
                         <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${r.is_active ? "left-[18px]" : "left-0.5"}`} />
                       </span>
                       {r.is_active ? "Faol" : "O'chiq"}
@@ -261,7 +261,7 @@ export default function BallTizimiPage() {
                       type="button"
                       onClick={() => setEditing(r)}
                       title="Tahrirlash"
-                      className="rounded-lg p-2 text-on-surface-variant hover:bg-white/5 hover:text-on-surface"
+                      className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface"
                     >
                       <span className="material-symbols-outlined text-[20px]">edit</span>
                     </button>

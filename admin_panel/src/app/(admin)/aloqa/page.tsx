@@ -123,9 +123,9 @@ function ChatRooms() {
   const totalUnread = (rooms ?? []).reduce((sum, r) => sum + (r.firm_unread || 0), 0);
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#26352c] bg-[#121614]">
-      <aside className={`w-full shrink-0 flex-col border-r border-[#26352c] md:flex md:w-80 ${active ? "hidden" : "flex"}`}>
-        <div className="flex items-center justify-between gap-2 border-b border-[#26352c] p-3">
+    <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-card-border bg-card">
+      <aside className={`w-full shrink-0 flex-col border-r border-card-border md:flex md:w-80 ${active ? "hidden" : "flex"}`}>
+        <div className="flex items-center justify-between gap-2 border-b border-card-border p-3">
           <p className="text-sm font-semibold">
             Suhbatlar {totalUnread ? <span className="ml-1 rounded-full bg-primary px-2 text-xs text-black">{totalUnread}</span> : null}
           </p>
@@ -146,8 +146,8 @@ function ChatRooms() {
                 key={r.id}
                 type="button"
                 onClick={() => setActiveId(r.id)}
-                className={`flex w-full items-center gap-3 border-b border-[#26352c]/50 px-3 py-3 text-left transition ${
-                  r.id === activeId ? "bg-primary/10" : "hover:bg-white/5"
+                className={`flex w-full items-center gap-3 border-b border-card-border/50 px-3 py-3 text-left transition ${
+                  r.id === activeId ? "bg-primary/10" : "hover:bg-surface-container-high/40"
                 }`}
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
@@ -180,7 +180,7 @@ function ChatRooms() {
           </div>
         ) : (
           <>
-            <header className="flex items-center gap-3 border-b border-[#26352c] px-4 py-3">
+            <header className="flex items-center gap-3 border-b border-card-border px-4 py-3">
               <button type="button" className="md:hidden" onClick={() => setActiveId(null)}>
                 <span className="material-symbols-outlined">arrow_back</span>
               </button>
@@ -195,7 +195,7 @@ function ChatRooms() {
               </div>
             </header>
 
-            <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#0e1210] p-4">
+            <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-surface-container-low p-4">
               {thread.roomId !== activeId || !thread.loaded ? (
                 <LoadingBlock />
               ) : !items.length ? (
@@ -210,8 +210,8 @@ function ChatRooms() {
                           m.sender_role === "platform"
                             ? "border border-amber-500/30 bg-amber-500/10"
                             : ours
-                              ? "rounded-br-sm bg-primary-container text-white"
-                              : "rounded-bl-sm bg-[#1d2620]"
+                              ? "rounded-br-sm bg-primary-container text-on-primary"
+                              : "rounded-bl-sm bg-surface-container"
                         }`}
                       >
                         {m.sender_role === "platform" ? <p className="mb-0.5 text-[10px] font-semibold text-amber-300">E-Makon</p> : null}
@@ -225,14 +225,14 @@ function ChatRooms() {
               )}
             </div>
 
-            <div className="border-t border-[#26352c] p-3">
+            <div className="border-t border-card-border p-3">
               <div className="custom-scrollbar mb-2 flex gap-2 overflow-x-auto pb-1">
                 {QUICK_REPLIES.map((q) => (
                   <button
                     key={q}
                     type="button"
                     onClick={() => setText(q)}
-                    className="shrink-0 rounded-full border border-[#26352c] px-3 py-1 text-xs text-on-surface-variant hover:border-primary/40 hover:text-primary"
+                    className="shrink-0 rounded-full border border-card-border px-3 py-1 text-xs text-on-surface-variant hover:border-primary/40 hover:text-primary"
                   >
                     {q.length > 34 ? `${q.slice(0, 34)}…` : q}
                   </button>
@@ -325,13 +325,13 @@ function Tickets() {
       ) : !data?.length ? (
         <EmptyState icon="mail" title="Hali ticket yo'q" description="Mijoz ilovadan rasmiy murojaat yuborsa, shu yerda ochiladi." />
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#141a16]">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-card-border bg-card">
           {data.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setSelected(t)}
-              className="flex items-center gap-4 border-b border-[#26352c]/50 px-5 py-4 text-left hover:bg-[#19221c]/60"
+              className="flex items-center gap-4 border-b border-card-border/50 px-5 py-4 text-left hover:bg-surface-container/60"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                 {initials(t.customer_name || t.customer_phone)}
@@ -356,9 +356,9 @@ function Tickets() {
             <p className="text-sm text-on-surface-variant">
               {selected.customer_name} · {formatPhone(selected.customer_phone)}
             </p>
-            <div className="max-h-64 space-y-3 overflow-y-auto rounded-xl border border-[#26352c] p-3">
+            <div className="max-h-64 space-y-3 overflow-y-auto rounded-xl border border-card-border p-3">
               {selected.messages.map((m) => (
-                <div key={m.id} className={`rounded-xl p-3 text-sm ${m.is_internal ? "bg-amber-500/10" : "bg-[#1a231d]"}`}>
+                <div key={m.id} className={`rounded-xl p-3 text-sm ${m.is_internal ? "bg-amber-500/10" : "bg-surface-container"}`}>
                   <p className="mb-1 text-xs text-on-surface-variant">
                     {m.sender_name || "Foydalanuvchi"} · {formatDateTime(m.created_at)}
                   </p>
@@ -376,7 +376,7 @@ function Tickets() {
               <button
                 type="button"
                 disabled={busy}
-                className="rounded-full border border-[#26352c] px-4 py-2 text-sm disabled:opacity-50"
+                className="rounded-full border border-card-border px-4 py-2 text-sm disabled:opacity-50"
                 onClick={() => void setStatus("resolved")}
               >
                 Yechilgan
@@ -384,7 +384,7 @@ function Tickets() {
               <button
                 type="button"
                 disabled={busy || selected.status === "closed"}
-                className="rounded-full border border-[#26352c] px-4 py-2 text-sm disabled:opacity-50"
+                className="rounded-full border border-card-border px-4 py-2 text-sm disabled:opacity-50"
                 onClick={() => setConfirmClose(true)}
               >
                 Yopish

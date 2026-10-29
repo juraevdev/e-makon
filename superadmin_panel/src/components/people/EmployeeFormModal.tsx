@@ -341,7 +341,7 @@ export function EmployeeFormModal({
                   </datalist>
                 </Field>
                 <div className="sm:col-span-2">
-                  <div className="flex items-start gap-3 rounded-xl border border-[#26352c] bg-[#0d100f] px-4 py-3">
+                  <div className="flex items-start gap-3 rounded-xl border border-card-border bg-surface-container-low px-4 py-3">
                     <span className="material-symbols-outlined text-[20px] text-primary">storefront</span>
                     <div className="min-w-0 text-sm">
                       <p className="font-semibold text-on-surface">

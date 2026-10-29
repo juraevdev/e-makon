@@ -106,7 +106,7 @@ export function EmployeeStatusDialog({
                   setError("");
                 }}
                 className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                  selected ? TONE_CLS[meta.tone] : "border-[#26352c] bg-[#0d100f] text-on-surface hover:border-[#384f40]"
+                  selected ? TONE_CLS[meta.tone] : "border-card-border bg-surface-container-low text-on-surface hover:border-outline-variant"
                 }`}
               >
                 <span className="flex items-center gap-1.5 text-sm font-semibold">

@@ -5,14 +5,14 @@ import 'package:flutter/widgets.dart';
 
 /// Ekran ko'rinib turganda [liveRefresh] ni har [liveInterval] da chaqiradi.
 ///
-/// Ilova fonda bo'lsa, boshqa tab tanlangan yoki ustidan boshqa sahifa ochilgan bo'lsa
-/// (TickerMode o'chiq) so'rov yuborilmaydi; ekran qayta ko'ringanda darhol yangilanadi.
+/// Ilova fonda bo'lsa yoki [TickerMode] o'chiq bo'lsa so'rov yuborilmaydi;
+/// ekran qayta faol bo'lganda darhol yangilanadi.
 mixin LiveRefresh<T extends StatefulWidget> on State<T> {
   Timer? _liveTimer;
   AppLifecycleListener? _lifecycle;
-  ValueListenable<TickerModeData>? _tickerMode;
   bool _appActive = true;
   bool _liveBusy = false;
+  bool _tickerEnabled = true;
 
   Duration get liveInterval;
 
@@ -21,7 +21,7 @@ mixin LiveRefresh<T extends StatefulWidget> on State<T> {
   /// Masalan, yakunlangan buyurtma uchun so'rovni to'xtatish.
   bool get liveEnabled => true;
 
-  bool get isLiveVisible => _appActive && (_tickerMode?.value.enabled ?? true);
+  bool get isLiveVisible => _appActive && _tickerEnabled;
 
   @override
   void initState() {
@@ -33,19 +33,16 @@ mixin LiveRefresh<T extends StatefulWidget> on State<T> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final notifier = TickerMode.getValuesNotifier(context);
-    if (!identical(notifier, _tickerMode)) {
-      _tickerMode?.removeListener(_onVisibility);
-      _tickerMode = notifier..addListener(_onVisibility);
+    final enabled = TickerMode.of(context);
+    if (enabled != _tickerEnabled) {
+      _tickerEnabled = enabled;
+      if (enabled) liveTick();
     }
   }
 
-  void _onVisibility() {
-    if (isLiveVisible) liveTick();
-  }
-
   void _onLifecycle(AppLifecycleState state) {
-    final active = state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
+    final active =
+        state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
     final wasActive = _appActive;
     _appActive = active;
     if (active && !wasActive) liveTick();
@@ -68,7 +65,6 @@ mixin LiveRefresh<T extends StatefulWidget> on State<T> {
   void dispose() {
     _liveTimer?.cancel();
     _lifecycle?.dispose();
-    _tickerMode?.removeListener(_onVisibility);
     super.dispose();
   }
 }

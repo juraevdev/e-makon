@@ -20,11 +20,11 @@ export function PageBar({
       <div className="min-w-0 max-w-3xl space-y-1.5">
         {title || updatedAt !== undefined ? (
           <div className="flex flex-wrap items-center gap-2">
-            {title ? <h2 className="text-lg font-semibold text-on-surface">{title}</h2> : null}
+            {title ? <h2 className="text-lg font-semibold text-ink md:text-xl">{title}</h2> : null}
             {updatedAt !== undefined ? <LiveBadge updatedAt={updatedAt} /> : null}
           </div>
         ) : null}
-        {description ? <p className="text-sm leading-relaxed text-on-surface-variant">{description}</p> : null}
+        {description ? <p className="text-sm leading-relaxed text-ink-muted">{description}</p> : null}
         {children}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -45,14 +45,15 @@ export function InfoNote({
   className?: string;
 }) {
   const styles = {
-    info: "border-sky-500/30 bg-sky-500/10 text-sky-100",
-    warning: "border-amber-500/40 bg-amber-500/10 text-amber-100",
+    info: "border-sky-600/30 bg-sky-500/10 text-sky-900 dark:border-sky-500/30 dark:text-sky-100",
+    warning:
+      "border-amber-600/35 bg-amber-500/12 text-amber-950 dark:border-amber-500/40 dark:text-amber-100",
     error: "border-error/40 bg-error/10 text-error",
-    success: "border-primary/30 bg-primary/10 text-on-surface",
+    success: "border-primary/30 bg-primary/10 text-ink",
   }[tone];
   const iconTone = {
-    info: "text-sky-300",
-    warning: "text-amber-300",
+    info: "text-sky-700 dark:text-sky-300",
+    warning: "text-amber-700 dark:text-amber-300",
     error: "text-error",
     success: "text-primary",
   }[tone];
@@ -83,23 +84,29 @@ export function MiniStat({
   onClick?: () => void;
 }) {
   const iconTone = {
-    default: "text-on-surface-variant",
+    default: "text-ink-muted",
     primary: "text-primary",
-    warning: "text-amber-300",
+    warning: "text-amber-700 dark:text-amber-300",
     error: "text-error",
   }[tone];
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-on-surface-variant">{label}</span>
-        <span className={`material-symbols-outlined text-[22px] ${iconTone}`}>{icon}</span>
+        <span className="text-sm text-ink-muted">{label}</span>
+        <span
+          className={`flex h-9 w-9 items-center justify-center rounded-xl bg-secondary-container/80 ${iconTone}`}
+        >
+          <span className="material-symbols-outlined text-[22px]">{icon}</span>
+        </span>
       </div>
-      <p className="mt-2 truncate text-2xl font-bold text-on-surface">{value}</p>
-      {hint ? <p className="mt-1 truncate text-xs text-on-surface-variant">{hint}</p> : null}
+      <p className="mt-2 truncate text-2xl font-bold text-ink">{value}</p>
+      {hint ? <p className="mt-1 truncate text-xs text-ink-muted">{hint}</p> : null}
     </>
   );
-  const cls = `min-w-0 rounded-2xl border p-4 text-left transition ${
-    active ? "border-primary/60 bg-primary/10" : "border-[#263b2a] bg-[#131b15]/90"
+  const cls = `min-w-0 rounded-2xl border p-4 text-left shadow-sm transition ${
+    active
+      ? "border-primary/50 bg-secondary-container"
+      : "border-card-border bg-card hover:border-primary/35"
   }`;
   if (onClick) {
     return (

@@ -167,7 +167,7 @@ export function RewardFormModal({
                     className={`flex aspect-square items-center justify-center rounded-xl border transition ${
                       draft.icon === icon
                         ? "border-primary bg-primary/15 text-primary"
-                        : "border-[#26352c] text-on-surface-variant hover:border-primary/40 hover:text-on-surface"
+                        : "border-card-border text-on-surface-variant hover:border-primary/40 hover:text-on-surface"
                     }`}
                   >
                     <span className="material-symbols-outlined text-[22px]">{icon}</span>
@@ -183,14 +183,14 @@ export function RewardFormModal({
               />
             </div>
           </Field>
-          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#26352c] bg-[#0e1210] px-4 py-3">
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-card-border bg-surface-container-low px-4 py-3">
             <span>
               <span className="block text-sm font-medium">Faol</span>
               <span className="text-xs text-on-surface-variant">Nofaol mukofot mobil ilovada ko&apos;rinmaydi va almashtirilmaydi</span>
             </span>
             <input
               type="checkbox"
-              className="h-5 w-5 accent-[#2e7d32]"
+              className="h-5 w-5 accent-primary"
               checked={draft.is_active}
               onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })}
             />
@@ -199,7 +199,7 @@ export function RewardFormModal({
 
         <div>
           <p className="mb-2 text-sm font-medium text-on-surface-variant">Ko&apos;rinishi</p>
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#26352c] bg-gradient-to-b from-[#16211a] to-[#0f1411] p-5 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-card-border bg-gradient-to-b from-surface-container to-surface-container-low p-5 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
               <span className="material-symbols-outlined text-[34px]">{draft.icon || "redeem"}</span>
             </span>

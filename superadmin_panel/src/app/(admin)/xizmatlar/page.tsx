@@ -264,7 +264,7 @@ export default function XizmatlarPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#26352c] bg-[#121614] p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-card-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
         <div className="relative sm:col-span-2 lg:col-span-1">
           <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
             search
@@ -337,7 +337,7 @@ export default function XizmatlarPage() {
         </div>
       ) : tab === "queue" ? (
         !visibleQueue.length ? (
-          <div className="rounded-2xl border border-[#26352c] bg-[#151917]">
+          <div className="rounded-2xl border border-card-border bg-card">
             {queue.length ? (
               <EmptyState
                 icon="search_off"
@@ -359,7 +359,7 @@ export default function XizmatlarPage() {
               const target = mergeTarget[s.id] ?? (exact ? String(exact.id) : "");
               const resubmitted = Boolean(s.moderated_at);
               return (
-                <article key={s.id} className="flex flex-col rounded-2xl border border-amber-500/30 bg-[#151917] p-4 sm:p-5">
+                <article key={s.id} className="flex flex-col rounded-2xl border border-amber-500/30 bg-card p-4 sm:p-5">
                   <div className="mb-3 flex items-start gap-3">
                     <button type="button" onClick={() => setPreview(s)} className="shrink-0" aria-label="Ko'rish">
                       <ServiceThumb service={s} className="h-16 w-20" />
@@ -386,7 +386,7 @@ export default function XizmatlarPage() {
                     {s.duration ? `${s.duration} · ` : ""}Yuborilgan: {formatDateTime(s.updated_at || s.created_at)}
                   </p>
                   {s.is_type_proposal ? (
-                    <div className="mb-3 rounded-xl border border-[#26352c] bg-[#0e1210] p-3 text-xs">
+                    <div className="mb-3 rounded-xl border border-card-border bg-surface-container-low p-3 text-xs">
                       <Field label="Tasdiqlanganda ilovada qayerda chiqadi">
                         <select
                           className={inputClass}
@@ -423,11 +423,11 @@ export default function XizmatlarPage() {
                     </div>
                   ) : null}
                   {prices.length ? (
-                    <p className="mb-3 rounded-xl bg-[#0e1210] px-3 py-2 text-xs text-on-surface-variant">
+                    <p className="mb-3 rounded-xl bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
                       Shu turdagi {prices.length} ta firma narxi: {formatMoney(Math.min(...prices))} – {formatMoney(Math.max(...prices))}
                     </p>
                   ) : null}
-                  <div className="mt-auto flex flex-wrap gap-2 border-t border-[#26352c]/60 pt-3">
+                  <div className="mt-auto flex flex-wrap gap-2 border-t border-card-border/60 pt-3">
                     <PrimaryButton icon="check" disabled={busy} onClick={() => void moderate(s, "approve")}>
                       Tasdiqlash
                     </PrimaryButton>
@@ -462,7 +462,7 @@ export default function XizmatlarPage() {
               />
             ))}
           </div>
-          <div className="overflow-hidden rounded-2xl border border-[#26352c] bg-[#151917]">
+          <div className="overflow-hidden rounded-2xl border border-card-border bg-card">
             {!visibleOffers.length ? (
               <EmptyState
                 icon="storefront"
@@ -473,7 +473,7 @@ export default function XizmatlarPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#26352c] text-xs uppercase text-on-surface-variant">
+                    <tr className="border-b border-card-border text-xs uppercase text-on-surface-variant">
                       {["Xizmat", "Firma", "Katalog turi", "Narx", "Holat", "Ilovada", ""].map((h) => (
                         <th key={h} className="px-4 py-3 font-semibold">
                           {h}
@@ -481,9 +481,9 @@ export default function XizmatlarPage() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#26352c]/50">
+                  <tbody className="divide-y divide-card-border/50">
                     {visibleOffers.map((s) => (
-                      <tr key={s.id} className="hover:bg-white/5">
+                      <tr key={s.id} className="hover:bg-surface-container-high/40">
                         <td className="px-4 py-3">
                           <button type="button" onClick={() => setPreview(s)} className="flex items-center gap-3 text-left">
                             <ServiceThumb service={s} className="h-10 w-12" />
@@ -507,7 +507,7 @@ export default function XizmatlarPage() {
                             type="button"
                             onClick={() => void toggleActive(s)}
                             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                              s.is_active ? "border-primary/40 text-primary" : "border-[#26352c] text-on-surface-variant"
+                              s.is_active ? "border-primary/40 text-primary" : "border-card-border text-on-surface-variant"
                             }`}
                           >
                             <span className="material-symbols-outlined text-[14px]">{s.is_active ? "visibility" : "visibility_off"}</span>
@@ -543,7 +543,7 @@ export default function XizmatlarPage() {
           </div>
         </>
       ) : !visibleCatalog.length ? (
-        <div className="rounded-2xl border border-[#26352c] bg-[#151917]">
+        <div className="rounded-2xl border border-card-border bg-card">
           <EmptyState
             icon="category"
             title={catalog.length ? "Filtr bo'yicha tur topilmadi" : "Katalog bo'sh"}
@@ -558,8 +558,8 @@ export default function XizmatlarPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {visibleCatalog.map((s) => (
-            <article key={s.id} className="flex flex-col overflow-hidden rounded-2xl border border-[#26352c] bg-[#111414]">
-              <div className="relative aspect-[16/9] bg-[#0d100f]">
+            <article key={s.id} className="flex flex-col overflow-hidden rounded-2xl border border-card-border bg-card">
+              <div className="relative aspect-[16/9] bg-surface-container-low">
                 {s.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={s.image} alt={s.name} loading="lazy" className={`h-full w-full object-cover ${s.is_active ? "" : "opacity-50 grayscale"}`} />
@@ -572,7 +572,7 @@ export default function XizmatlarPage() {
                   <StatusPill variant={s.is_active ? "success" : "neutral"}>{s.is_active ? "Faol" : "To'xtatilgan"}</StatusPill>
                 </div>
                 {categoryOf(s) ? (
-                  <span className="absolute bottom-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white">
+                  <span className="absolute bottom-3 left-3 rounded-full bg-ink/55 px-2.5 py-1 text-[11px] font-semibold text-ink">
                     {categoryOf(s)}
                   </span>
                 ) : null}
@@ -590,7 +590,7 @@ export default function XizmatlarPage() {
                     setOfferFilter("all");
                     setTab("offers");
                   }}
-                  className="mt-auto flex items-center justify-between rounded-xl bg-[#0e1210] px-3 py-2 text-left text-xs text-on-surface-variant hover:text-on-surface"
+                  className="mt-auto flex items-center justify-between rounded-xl bg-surface-container-low px-3 py-2 text-left text-xs text-on-surface-variant hover:text-on-surface"
                 >
                   <span>
                     <b className="text-on-surface">{s.offers_count ?? 0}</b> ta firma taklifi
@@ -598,7 +598,7 @@ export default function XizmatlarPage() {
                   </span>
                   <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
-                <div className="mt-3 flex gap-2 border-t border-[#26352c]/50 pt-3">
+                <div className="mt-3 flex gap-2 border-t border-card-border/50 pt-3">
                   <SecondaryButton icon="edit" className="flex-1 justify-center" onClick={() => openForm(s)}>
                     Tahrirlash
                   </SecondaryButton>
@@ -606,7 +606,7 @@ export default function XizmatlarPage() {
                     type="button"
                     title={s.is_active ? "Ilovadan yashirish" : "Ilovada ko'rsatish"}
                     onClick={() => void toggleActive(s)}
-                    className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:text-primary"
+                    className="rounded-full border border-card-border p-2 text-on-surface-variant hover:text-primary"
                   >
                     <span className="material-symbols-outlined text-[18px]">{s.is_active ? "visibility_off" : "visibility"}</span>
                   </button>
@@ -614,7 +614,7 @@ export default function XizmatlarPage() {
                     type="button"
                     title="O'chirish"
                     onClick={() => setDeleting(s)}
-                    className="rounded-full border border-[#26352c] p-2 text-on-surface-variant hover:border-error/40 hover:text-error"
+                    className="rounded-full border border-card-border p-2 text-on-surface-variant hover:border-error/40 hover:text-error"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
                   </button>

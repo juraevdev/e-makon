@@ -3,7 +3,7 @@ import React from "react";
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-lg bg-[#212824]/60 ${className}`}
+      className={`animate-pulse rounded-lg bg-surface-container-high/60 ${className}`}
       aria-hidden="true"
     />
   );
@@ -15,7 +15,7 @@ export function StatRowSkeleton({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-card-border bg-[#141816] p-5 shadow-sm"
+          className="rounded-2xl border border-card-border bg-card p-5 shadow-sm"
         >
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-28" />
@@ -31,13 +31,13 @@ export function StatRowSkeleton({ count = 4 }: { count?: number }) {
 
 export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-card-border bg-[#141816]">
-      <div className="border-b border-card-border bg-[#101412] px-6 py-4 flex gap-4">
+    <div className="overflow-hidden rounded-2xl border border-card-border bg-card">
+      <div className="border-b border-card-border bg-surface-container-low px-6 py-4 flex gap-4">
         {Array.from({ length: cols }).map((_, i) => (
           <Skeleton key={i} className="h-4 flex-1" />
         ))}
       </div>
-      <div className="divide-y divide-[#26352c]/30 px-6">
+      <div className="divide-y divide-card-border/30 px-6">
         {Array.from({ length: rows }).map((_, r) => (
           <div key={r} className="py-4 flex gap-4 items-center">
             {Array.from({ length: cols }).map((_, c) => (

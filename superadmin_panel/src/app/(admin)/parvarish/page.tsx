@@ -357,7 +357,7 @@ export default function ParvarishPage() {
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg shadow-black/20">
+      <div className="overflow-hidden rounded-2xl border border-card-border bg-card/90 shadow-lg shadow-ink/10">
         {loading ? (
           <LoadingBlock />
         ) : error && !data ? (
@@ -396,7 +396,7 @@ export default function ParvarishPage() {
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#26352c] text-xs uppercase tracking-wide text-on-surface-variant">
+                  <tr className="border-b border-card-border text-xs uppercase tracking-wide text-on-surface-variant">
                     {["Shartnoma / mijoz", "Firma", "Reja", "Keyingi tashrif", "Narx", "Ijro", "Holat", ""].map((h, i) => (
                       <th key={i} className="whitespace-nowrap px-4 py-3 font-semibold">
                         {h}
@@ -404,14 +404,14 @@ export default function ParvarishPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#26352c]/50">
+                <tbody className="divide-y divide-card-border/50">
                   {rows.map((c) => (
                     <ContractRow key={c.id} c={c} onOpen={() => setSelectedId(c.id)} onAction={(a) => openAction(c, a)} />
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="divide-y divide-[#26352c]/50 lg:hidden">
+            <div className="divide-y divide-card-border/50 lg:hidden">
               {rows.map((c) => (
                 <ContractCard key={c.id} c={c} onOpen={() => setSelectedId(c.id)} onAction={(a) => openAction(c, a)} />
               ))}
@@ -524,7 +524,7 @@ function Progress({ c }: { c: CareContract }) {
         </span>
         <span>{pct}%</span>
       </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#26352c]">
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
         <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -552,7 +552,7 @@ function planText(c: CareContract) {
 
 function ContractRow({ c, onOpen, onAction }: { c: CareContract; onOpen: () => void; onAction: (a: CareAction) => void }) {
   return (
-    <tr className="cursor-pointer transition hover:bg-white/5" onClick={onOpen}>
+    <tr className="cursor-pointer transition hover:bg-surface-container-high/40" onClick={onOpen}>
       <td className="max-w-[260px] px-4 py-3">
         <p className="truncate font-semibold">
           <span className="mr-1.5 text-xs text-on-surface-variant">#{c.id}</span>
@@ -603,7 +603,7 @@ function ContractCard({ c, onOpen, onAction }: { c: CareContract; onOpen: () => 
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className="space-y-3 px-4 py-4 transition hover:bg-white/5"
+      className="space-y-3 px-4 py-4 transition hover:bg-surface-container-high/40"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
