@@ -22,15 +22,15 @@ IconData serviceIcon(String name) {
 
 Color serviceTint(int index) {
   const colors = [
-    AppColors.primary,
-    AppColors.secondary,
-    AppColors.tertiary,
-    AppColors.primary,
-    AppColors.secondary,
-    AppColors.error,
-    AppColors.tertiary,
-    AppColors.primary,
-    AppColors.secondary,
+    AppColors.primaryFixed,
+    AppColors.secondaryFixed,
+    AppColors.tertiaryFixed,
+    AppColors.primaryFixed,
+    AppColors.secondaryFixed,
+    AppColors.errorFixed,
+    AppColors.tertiaryFixed,
+    AppColors.primaryFixed,
+    AppColors.secondaryFixed,
   ];
   return colors[index % colors.length];
 }

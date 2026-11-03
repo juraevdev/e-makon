@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 enum AppSeason { spring, summer, autumn, winter }
 
 /// Hozirgi fasl (O‘zbekiston: bahor 3–5, yoz 6–8, kuz 9–11, qish 12–2).
@@ -35,6 +37,20 @@ class SeasonTheme {
     if (m >= 9 && m <= 11) return autumn;
     return winter;
   }
+
+  String localizedTitle(AppStrings t) => switch (season) {
+        AppSeason.spring => t.seasonSpring,
+        AppSeason.summer => t.seasonSummer,
+        AppSeason.autumn => t.seasonAutumn,
+        AppSeason.winter => t.seasonWinter,
+      };
+
+  String localizedSubtitle(AppStrings t) => switch (season) {
+        AppSeason.spring => t.seasonSpringSub,
+        AppSeason.summer => t.seasonSummerSub,
+        AppSeason.autumn => t.seasonAutumnSub,
+        AppSeason.winter => t.seasonWinterSub,
+      };
 
   static const spring = SeasonTheme._(
     season: AppSeason.spring,

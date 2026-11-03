@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -452,7 +452,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: AppColors.error)),
+              Text(_error!, style: TextStyle(color: AppColors.error)),
             ],
             const SizedBox(height: 12),
             Expanded(child: _buildStep(partners)),
@@ -461,8 +461,8 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 onPressed: _submitting || _addingService ? null : _addService,
                 icon: _addingService
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.add, color: AppColors.primary),
-                label: const Text('Xizmat qo‘shish', style: TextStyle(color: AppColors.primary)),
+                    : Icon(Icons.add, color: AppColors.primary),
+                label: Text('Xizmat qo‘shish', style: TextStyle(color: AppColors.primary)),
                 style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
               ),
               const SizedBox(height: 8),
@@ -489,7 +489,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
     children: [
       Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
       const SizedBox(width: 4),
-      Text(text, style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+      Text(text, style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
     ],
   );
 
@@ -507,7 +507,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Xizmat taxminan 1 soat davom etadi. Ish cho‘zilsa, firma vaqtni uzaytiradi.',
           style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
         ),
@@ -525,7 +525,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
           ),
         if (_slotsNote != null) ...[
           const SizedBox(height: 6),
-          Text(_slotsNote!, style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+          Text(_slotsNote!, style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
         ],
       ],
     );
@@ -590,7 +590,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
   Widget _buildStep(List<PartnerModel> partners) {
     if (_step == 0) {
       if (_firms == null) {
-        return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        return Center(child: CircularProgressIndicator(color: AppColors.primary));
       }
       if (partners.isEmpty) {
         return Center(
@@ -599,13 +599,13 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.storefront_outlined, size: 48, color: AppColors.onSurfaceVariant),
+                Icon(Icons.storefront_outlined, size: 48, color: AppColors.onSurfaceVariant),
                 const SizedBox(height: 12),
                 Text(
                   '“${widget.service.name}” xizmatini hozircha hech bir firma tasdiqlangan narx bilan ko‘rsatmaydi.\n'
                   'Buyurtma qoldiring — E-Makon operatori mos firmani biriktiradi.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),
+                  style: TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),
                 ),
               ],
             ),
@@ -623,7 +623,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: AppColors.onSurfaceVariant),
+                    Icon(Icons.info_outline, size: 16, color: AppColors.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Expanded(child: Text(_firmsError!, style: Theme.of(context).textTheme.labelSmall)),
                     TextButton(onPressed: _loadFirms, child: const Text('Qayta')),
@@ -657,7 +657,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 onPressed: _locating ? null : _detectLocation,
                 icon: _locating
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.my_location, color: AppColors.primary),
+                    : Icon(Icons.my_location, color: AppColors.primary),
               ),
             ),
           ),
@@ -671,7 +671,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
               suffixIcon: IconButton(
                 tooltip: 'Kamera bilan o‘lchash',
                 onPressed: _scanArea,
-                icon: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
+                icon: Icon(Icons.photo_camera_outlined, color: AppColors.primary),
               ),
             ),
           ),
@@ -681,16 +681,16 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
               borderRadius: 14,
               padding: const EdgeInsets.all(12),
               onTap: _scanArea,
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.crop_free, color: AppColors.primary),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Maydonni bilmaysizmi?', style: TextStyle(fontWeight: FontWeight.w700)),
-                        SizedBox(height: 2),
+                        const Text('Maydonni bilmaysizmi?', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 2),
                         Text(
                           'Kamerani yoqib hovlini aylanib chiqing — dastur m² ni o‘zi hisoblaydi',
                           style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12.5),
@@ -710,12 +710,12 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(Icons.sell_outlined, color: AppColors.primary),
+                  Icon(Icons.sell_outlined, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       '${_partner!.name} narxi: ${ServiceModel.formatMoney(_estimate)} so‘m (qat’iy)',
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
                     ),
                   ),
                 ],
@@ -728,12 +728,12 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(Icons.calculate_outlined, color: AppColors.primary),
+                  Icon(Icons.calculate_outlined, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Taxminiy narx: ${PriceCalculator.label(_estimate)}',
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
                     ),
                   ),
                 ],
@@ -746,7 +746,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             onTap: _pickDate,
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+                Icon(Icons.calendar_month_outlined, color: AppColors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -829,7 +829,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.primary),
                       ),
-                      child: const Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
+                      child: Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
                     ),
                   ),
               ],
@@ -854,7 +854,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s.name, style: Theme.of(context).textTheme.titleMedium),
-                        Text(_priceFor(s), style: const TextStyle(color: AppColors.primary)),
+                        Text(_priceFor(s), style: TextStyle(color: AppColors.primary)),
                       ],
                     ),
                   ),
@@ -864,7 +864,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                         _cart.removeWhere((e) => e.id == s.id);
                         _prices.remove(s.id);
                       }),
-                      icon: const Icon(Icons.close, color: AppColors.error),
+                      icon: Icon(Icons.close, color: AppColors.error),
                     ),
                 ],
               ),
@@ -892,7 +892,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                 _fixedPricing
                     ? 'Jami: ${ServiceModel.formatMoney(_estimate)} so‘m'
                     : 'Taxminiy jami: ${PriceCalculator.label(_estimate)}',
-                style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
               ),
               if (_fixedPricing)
                 Padding(
@@ -939,7 +939,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
                   if (price != null && price > 0)
                     Text(
                       '${ServiceModel.formatMoney(price)} so‘m',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
                     ),
                 ],
               ),
@@ -947,7 +947,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
             IconButton(
               tooltip: 'Firma haqida',
               onPressed: () => showPartnerSheet(context, p, distanceKm: distanceKm),
-              icon: const Icon(Icons.info_outline, color: AppColors.onSurfaceVariant),
+              icon: Icon(Icons.info_outline, color: AppColors.onSurfaceVariant),
             ),
             Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: AppColors.primary),
           ],

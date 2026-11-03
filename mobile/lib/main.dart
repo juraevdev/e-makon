@@ -13,8 +13,9 @@ Future<void> main() async {
 
   GoogleFonts.config.allowRuntimeFetching = true;
 
-  // Warm theme cache once at startup.
+  // Warm theme caches once at startup.
   AppTheme.dark;
+  AppTheme.light;
 
   PaintingBinding.instance.imageCache.maximumSize = 80;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20;

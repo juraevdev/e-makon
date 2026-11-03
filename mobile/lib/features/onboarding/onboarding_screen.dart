@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/emakon_logo.dart';
 import '../../core/widgets/motion.dart';
@@ -40,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
       title: 'Makoningiz —\nbir platformada',
       body: 'Bog‘dorchilik va landshaft xizmatlarini tanlang, yaqin hamkorga buyurtma bering va jarayonni kuzating.',
       icon: Icons.park_rounded,
-      color: AppColors.primary,
+      color: AppColors.primaryFixed,
       badge: '01 · Platforma',
     ),
     _IntroPage(
@@ -106,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                     TextButton(
                       onPressed: () => _finish(register: false),
                       child: Text(
-                        'O‘tkazib yuborish',
+                        context.l10n.skip,
                         style: TextStyle(color: AppColors.onSurfaceVariant.withValues(alpha: 0.9)),
                       ),
                     ),
@@ -221,7 +222,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: PrimaryButton(
-                  label: isLast ? "Ro'yxatdan o'tish" : 'Davom etish',
+                  label: isLast ? context.l10n.register : context.l10n.continueAction,
                   icon: isLast ? Icons.person_add_alt_1_rounded : Icons.arrow_forward_rounded,
                   onPressed: () {
                     if (isLast) {
@@ -238,7 +239,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               TextButton(
                 onPressed: () => _finish(register: false),
                 child: Text(
-                  'Allaqachon hisobingiz bormi? Kirish',
+                  '${context.l10n.alreadyHaveAccount} ${context.l10n.login}',
                   style: TextStyle(color: AppColors.primary.withValues(alpha: 0.95)),
                 ),
               ),

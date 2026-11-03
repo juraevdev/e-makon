@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
@@ -166,9 +167,9 @@ class _ChatScreenState extends State<ChatScreen> with LiveRefresh {
                       maxLines: 4,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
-                      decoration: const InputDecoration(
-                        hintText: 'Xabar yozing…',
-                        prefixIcon: Icon(Icons.chat_bubble_outline),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.typeMessage,
+                        prefixIcon: const Icon(Icons.chat_bubble_outline),
                       ),
                     ),
                   ),
@@ -189,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> with LiveRefresh {
 
   Widget _body(List<ChatMessage> messages) {
     if (_opening && messages.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
     if (_error != null) {
       return Center(
@@ -198,11 +199,11 @@ class _ChatScreenState extends State<ChatScreen> with LiveRefresh {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.forum_outlined, size: 48, color: AppColors.onSurfaceVariant),
+              Icon(Icons.forum_outlined, size: 48, color: AppColors.onSurfaceVariant),
               const SizedBox(height: 12),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              OutlinedButton(onPressed: _open, child: const Text('Qayta urinish')),
+              OutlinedButton(onPressed: _open, child: Text(context.l10n.retry)),
             ],
           ),
         ),
@@ -215,7 +216,7 @@ class _ChatScreenState extends State<ChatScreen> with LiveRefresh {
           child: Text(
             '${widget.partner.name} bilan suhbat shu yerda boshlanadi.\nSavolingizni yozing — firma xodimlari javob beradi.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),
+            style: TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),
           ),
         ),
       );

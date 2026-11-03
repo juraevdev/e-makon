@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -100,7 +100,7 @@ class _LoyaltySheet extends StatelessWidget {
         const SizedBox(height: 16),
         Row(
           children: [
-            const Icon(Icons.stars_rounded, color: AppColors.primary, size: 30),
+            Icon(Icons.stars_rounded, color: AppColors.primary, size: 30),
             const SizedBox(width: 10),
             Expanded(child: Text('Ballarim', style: theme.textTheme.headlineMedium)),
             if (loyalty.loading)
@@ -119,7 +119,7 @@ class _LoyaltySheet extends StatelessWidget {
         ),
         if (loyalty.error != null) ...[
           const SizedBox(height: 12),
-          Text(loyalty.error!, style: const TextStyle(color: AppColors.error)),
+          Text(loyalty.error!, style: TextStyle(color: AppColors.error)),
           TextButton.icon(
             onPressed: () => loyalty.load(),
             icon: const Icon(Icons.refresh),
@@ -130,8 +130,8 @@ class _LoyaltySheet extends StatelessWidget {
         Text('Mukofotlar', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
         if (loyalty.rewards.isEmpty && !loyalty.loading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text('Hozircha faol mukofot yo‘q', style: TextStyle(color: AppColors.onSurfaceVariant)),
           ),
         for (final r in loyalty.rewards)
@@ -152,8 +152,8 @@ class _LoyaltySheet extends StatelessWidget {
         Text('Tarix', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
         if (loyalty.history.isEmpty && !loyalty.loading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Buyurtma bajarilgach ballar shu yerda ko‘rinadi',
               style: TextStyle(color: AppColors.onSurfaceVariant),
@@ -192,7 +192,7 @@ class _RewardIcon extends StatelessWidget {
       child: Center(
         child: isEmoji
             ? Text(icon, style: const TextStyle(fontSize: 26))
-            : const Icon(Icons.card_giftcard_rounded, color: AppColors.primary),
+            : Icon(Icons.card_giftcard_rounded, color: AppColors.primary),
       ),
     );
   }

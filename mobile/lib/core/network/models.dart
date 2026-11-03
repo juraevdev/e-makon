@@ -150,6 +150,7 @@ class ServiceModel {
     required this.icon,
     required this.shortDescription,
     required this.description,
+    this.category = '',
     this.accent = 0xFF88D982,
     this.priceMin = 0,
     this.priceMax = 0,
@@ -165,6 +166,7 @@ class ServiceModel {
   final String icon;
   final String shortDescription;
   final String description;
+  final String category;
   final int accent;
   final int priceMin;
   final int priceMax;
@@ -202,6 +204,7 @@ class ServiceModel {
     icon: json['icon'] as String? ?? 'eco',
     shortDescription: json['short_description'] as String? ?? '',
     description: json['description'] as String? ?? '',
+    category: asStr(json['category']),
     accent: json['accent'] as int? ?? 0xFF88D982,
     priceMin: asInt(json['price_min'] ?? json['price']),
     priceMax: asInt(json['price_max'] ?? json['price']),
@@ -1091,4 +1094,37 @@ class LoyaltySummary {
           : const [],
     );
   }
+}
+
+/// Firma savdo mahsuloti (gul, o‘g‘it, uskuna).
+class ShopProduct {
+  const ShopProduct({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.price,
+    required this.firmId,
+    required this.firmName,
+    this.emoji = '🪴',
+    this.image = '',
+    this.unit = 'dona',
+    this.description = '',
+    this.accent = 0xFF88D982,
+  });
+
+  final int id;
+  final String name;
+  final String category; // flowers | fertilizers | tools
+  final int price;
+  final int firmId;
+  final String firmName;
+  final String emoji;
+  final String image;
+  final String unit;
+  final String description;
+  final int accent;
+
+  bool get hasImage => image.isNotEmpty;
+
+  String get priceLabel => '${ServiceModel.formatMoney(price)} so‘m';
 }

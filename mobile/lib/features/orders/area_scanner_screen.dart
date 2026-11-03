@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
@@ -415,12 +415,12 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
   Widget _preview() {
     final cam = _camera;
     if (cam == null || !cam.value.isInitialized) {
-      return const DecoratedBox(
+      return DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F2A12), AppColors.background],
+            colors: [const Color(0xFF0F2A12), AppColors.background],
           ),
         ),
       );
@@ -533,7 +533,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                 'Oxirgi burchakdan keyin «Yakunlash»ni bosing yoki 1-burchakka qaytib tugmani bosing.',
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Maslahat: daraxt va binolardan uzoqroq, ochiq osmon ostida o‘lchang. '
                 'Burchakda to‘xtagan sari natija aniqroq bo‘ladi.',
                 style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12.5, height: 1.4),
@@ -612,18 +612,18 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                         ),
                         child: Text(
                           badge,
-                          style: const TextStyle(color: AppColors.primary, fontSize: 10.5, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: AppColors.primary, fontSize: 10.5, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12.5, height: 1.35)),
+                Text(subtitle, style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12.5, height: 1.35)),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.primary),
+          Icon(Icons.chevron_right, color: AppColors.primary),
         ],
       ),
     );
@@ -640,7 +640,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
             backgroundColor: AppColors.primary.withValues(alpha: 0.18),
             child: Text(
               '$n',
-              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 12),
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 12),
             ),
           ),
           const SizedBox(width: 10),
@@ -904,7 +904,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             children: [
-              const Text(
+              Text(
                 'Hovli to‘g‘ri burchakli bo‘lsa, uzunlik va enini kiriting. «Г» shaklidagi hovlini '
                 'bir nechta to‘rtburchakka bo‘lib qo‘shing. Ruletka bo‘lmasa: 1 katta qadam ≈ 0,75 m.',
                 style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, height: 1.4),
@@ -920,7 +920,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                       children: [
                         Text(
                           '${i + 1}.',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
+                          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(width: 8),
                         Expanded(child: _sizeField(p.$1, 'Uzunlik, m')),
@@ -939,11 +939,11 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                 ),
               TextButton.icon(
                 onPressed: _addPart,
-                icon: const Icon(Icons.add, color: AppColors.primary),
-                label: const Text('Yana qism qo‘shish', style: TextStyle(color: AppColors.primary)),
+                icon: Icon(Icons.add, color: AppColors.primary),
+                label: Text('Yana qism qo‘shish', style: TextStyle(color: AppColors.primary)),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Jami maydon',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.onSurfaceVariant),
@@ -951,7 +951,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
               Text(
                 '${_fmt(total)} m²',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.primary, fontSize: 38, fontWeight: FontWeight.w900),
+                style: TextStyle(color: AppColors.primary, fontSize: 38, fontWeight: FontWeight.w900),
               ),
               Text(
                 '≈ ${_fmt(total / 100, 2)} sotix',
@@ -1026,7 +1026,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                 ),
               ],
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Hovli maydoni',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.onSurfaceVariant),
@@ -1054,7 +1054,7 @@ class _AreaScannerScreenState extends State<AreaScannerScreen> with WidgetsBindi
                 ],
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Natija GPS asosida hisoblandi. Kerak bo‘lsa, buyurtma formasida qiymatni qo‘lda tuzating — '
                 'firma ish joyida aniq o‘lchaydi.',
                 style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12.5, height: 1.4),

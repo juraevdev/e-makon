@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -97,7 +97,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                           return Column(
                             children: [
                               Text('★ ${avg.toStringAsFixed(1)}',
-                                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
                               IconButton(
                                 tooltip: 'Sevimli',
                                 onPressed: () => favs.togglePartner(partner.id),
@@ -113,7 +113,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                     ],
                   ),
                 ),
-                const TabBar(
+                TabBar(
                   isScrollable: true,
                   labelColor: AppColors.primary,
                   unselectedLabelColor: AppColors.onSurfaceVariant,
@@ -145,7 +145,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                           GlassCard(
                             child: Row(
                               children: [
-                                const Icon(Icons.schedule, color: AppColors.primary),
+                                Icon(Icons.schedule, color: AppColors.primary),
                                 const SizedBox(width: 10),
                                 Text(partner.workHours),
                               ],
@@ -155,7 +155,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                           GlassCard(
                             child: Row(
                               children: [
-                                const Icon(Icons.place_outlined, color: AppColors.primary),
+                                Icon(Icons.place_outlined, color: AppColors.primary),
                                 const SizedBox(width: 10),
                                 Expanded(child: Text(partner.address.isEmpty ? 'Manzil kiritilmagan' : partner.address)),
                               ],
@@ -166,7 +166,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                             GlassCard(
                               child: Row(
                                 children: [
-                                  const Icon(Icons.handyman_outlined, color: AppColors.primary),
+                                  Icon(Icons.handyman_outlined, color: AppColors.primary),
                                   const SizedBox(width: 10),
                                   Text('${partner.servicesCount} ta tasdiqlangan xizmat'),
                                 ],
@@ -194,7 +194,7 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                         padding: const EdgeInsets.all(20),
                         children: [
                           if (partner.gallery.isEmpty)
-                            const Text('Galereya hali bo‘sh', style: TextStyle(color: AppColors.onSurfaceVariant))
+                            Text('Galereya hali bo‘sh', style: TextStyle(color: AppColors.onSurfaceVariant))
                           else
                             for (final g in partner.gallery) ...[
                               Text(g.caption.isEmpty ? 'Oldin / keyin' : g.caption,
@@ -229,8 +229,8 @@ Future<void> showPartnerSheet(BuildContext context, PartnerModel partner, {doubl
                               Navigator.pop(ctx);
                               context.push('/chat', extra: partner);
                             },
-                            icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
-                            label: const Text('Chat ochish', style: TextStyle(color: AppColors.primary)),
+                            icon: Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                            label: Text('Chat ochish', style: TextStyle(color: AppColors.primary)),
                             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                           ),
                         ],
@@ -259,7 +259,7 @@ Widget _galleryHalf(String path, String label) {
         ),
       ),
       const SizedBox(height: 4),
-      Text(label, style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
+      Text(label, style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
     ],
   );
 }
@@ -289,9 +289,9 @@ class _ReviewsTab extends StatelessWidget {
         if (provider.isLoading(partner.id) && reviews.isEmpty)
           const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
         else if (error != null && reviews.isEmpty)
-          Text(error, style: const TextStyle(color: AppColors.onSurfaceVariant))
+          Text(error, style: TextStyle(color: AppColors.onSurfaceVariant))
         else if (reviews.isEmpty)
-          const Text('Hali sharh yo‘q — birinchisini yozing', style: TextStyle(color: AppColors.onSurfaceVariant))
+          Text('Hali sharh yo‘q — birinchisini yozing', style: TextStyle(color: AppColors.onSurfaceVariant))
         else
           for (final r in reviews)
             Padding(
@@ -304,7 +304,7 @@ class _ReviewsTab extends StatelessWidget {
                       children: [
                         Text(r.author, style: Theme.of(context).textTheme.titleMedium),
                         const Spacer(),
-                        Text('★ ${r.stars.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.primary)),
+                        Text('★ ${r.stars.toStringAsFixed(0)}', style: TextStyle(color: AppColors.primary)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -418,7 +418,7 @@ Widget _linkTile(BuildContext context, IconData icon, String title, String value
               ],
             ),
           ),
-          const Icon(Icons.open_in_new, size: 16, color: AppColors.onSurfaceVariant),
+          Icon(Icons.open_in_new, size: 16, color: AppColors.onSurfaceVariant),
         ],
       ),
     ),

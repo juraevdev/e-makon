@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'app_router.dart';
+import 'core/l10n/app_language.dart';
 import 'core/network/api_client.dart';
+import 'core/settings/app_settings.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/chat/chat_provider.dart';
@@ -31,6 +35,7 @@ class _EmakonAppState extends State<EmakonApp> {
   late final ReviewsProvider _reviews = ReviewsProvider(_api);
   late final ChatProvider _chat = ChatProvider(_api);
   late final LoyaltyProvider _loyalty = LoyaltyProvider(_api, _auth);
+  late final AppSettings _settings = AppSettings()..load();
   late final GoRouter _router = createRouter();
   late final AppLifecycleListener _lifecycle;
   bool _wasLoggedIn = false;
@@ -106,16 +111,38 @@ class _EmakonAppState extends State<EmakonApp> {
         ChangeNotifierProvider.value(value: _reviews),
         ChangeNotifierProvider.value(value: _chat),
         ChangeNotifierProvider.value(value: _loyalty),
+        ChangeNotifierProvider.value(value: _settings),
       ],
-      child: MaterialApp.router(
-        title: 'e-makon',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
-        routerConfig: _router,
-        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-          value: AppTheme.systemOverlay,
-          child: child ?? const SizedBox.shrink(),
-        ),
+      child: Consumer<AppSettings>(
+        builder: (context, settings, _) {
+          return MaterialApp.router(
+            title: 'e-makon',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: settings.themeMode,
+            locale: settings.locale,
+            supportedLocales: AppLanguage.supported.map((e) => e.locale).toList(),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            localeResolutionCallback: (device, supported) {
+              // Tanlangan til doim ustun; fallback — o‘zbek lotin.
+              return settings.locale;
+            },
+            routerConfig: _router,
+            builder: (context, child) {
+              final brightness = Theme.of(context).brightness;
+              AppColors.applyBrightness(brightness);
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: AppTheme.overlayFor(brightness),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+          );
+        },
       ),
     );
   }

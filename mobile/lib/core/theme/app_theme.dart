@@ -2,134 +2,162 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'app_colors.dart';
-
 class AppTheme {
   AppTheme._();
 
-  /// Edge-to-edge: tizim panellari shaffof. 3 tugmali navigatsiyada Android o'zi
-  /// kontrast fon qo'yadi, gesture navigatsiyada esa fon bo'lmaydi.
-  static const systemOverlay = SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.light,
-    systemNavigationBarContrastEnforced: true,
-  );
+  static SystemUiOverlayStyle overlayFor(Brightness brightness) {
+    final lightIcons = brightness == Brightness.dark;
+    return SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: lightIcons ? Brightness.light : Brightness.dark,
+      statusBarBrightness: lightIcons ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: lightIcons ? Brightness.light : Brightness.dark,
+      systemNavigationBarContrastEnforced: true,
+    );
+  }
 
-  /// Cached — GoogleFonts + ThemeData creation is expensive if rebuilt often.
+  /// Edge-to-edge default (dark). Prefer [overlayFor] at runtime.
+  static final systemOverlay = overlayFor(Brightness.dark);
+
   static ThemeData? _dark;
+  static ThemeData? _light;
 
-  static ThemeData get dark => _dark ??= _buildDark();
+  static ThemeData get dark => _dark ??= _build(Brightness.dark);
+  static ThemeData get light => _light ??= _build(Brightness.light);
 
-  static ThemeData _buildDark() {
+  static ThemeData _build(Brightness brightness) {
     final jakarta = GoogleFonts.plusJakartaSansTextTheme();
     final work = GoogleFonts.workSansTextTheme();
+    final isDark = brightness == Brightness.dark;
+    final scheme = isDark
+        ? const ColorScheme.dark(
+            surface: Color(0xFF121414),
+            primary: Color(0xFF88D982),
+            onPrimary: Color(0xFF003909),
+            primaryContainer: Color(0xFF2E7D32),
+            onPrimaryContainer: Color(0xFFCBFFC2),
+            secondary: Color(0xFF83DA85),
+            tertiary: Color(0xFFA2D3A4),
+            error: Color(0xFFFFB4AB),
+            onSurface: Color(0xFFE2E2E2),
+            onSurfaceVariant: Color(0xFFBFCABA),
+            outline: Color(0xFF8A9485),
+            outlineVariant: Color(0xFF40493D),
+          )
+        : const ColorScheme.light(
+            surface: Color(0xFFF8FAF6),
+            primary: Color(0xFF176B28),
+            onPrimary: Color(0xFFFFFFFF),
+            primaryContainer: Color(0xFFB8F0B4),
+            onPrimaryContainer: Color(0xFF003909),
+            secondary: Color(0xFF2E7D32),
+            tertiary: Color(0xFF4B7850),
+            error: Color(0xFFBA1A1A),
+            onSurface: Color(0xFF121512),
+            onSurfaceVariant: Color(0xFF4E564C),
+            outline: Color(0xFF6F776C),
+            outlineVariant: Color(0xFFC2C9BC),
+          );
+
+    // Restore after ColorScheme const construction used fixed colors above —
+    // AppColors getters must match this ThemeData brightness when widgets build.
+    final bg = isDark ? const Color(0xFF121414) : const Color(0xFFF3F6F1);
+    final surfaceContainer = isDark ? const Color(0xFF1E2020) : const Color(0xFFE8EEE4);
+    final secondaryContainer = isDark ? const Color(0xFF00631E) : const Color(0xFFC8E6C9);
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme.dark(
-        surface: AppColors.surface,
-        primary: AppColors.primary,
-        onPrimary: AppColors.onPrimary,
-        primaryContainer: AppColors.primaryContainer,
-        onPrimaryContainer: AppColors.onPrimaryContainer,
-        secondary: AppColors.secondary,
-        tertiary: AppColors.tertiary,
-        error: AppColors.error,
-        onSurface: AppColors.onSurface,
-        onSurfaceVariant: AppColors.onSurfaceVariant,
-        outline: AppColors.outline,
-        outlineVariant: AppColors.outlineVariant,
-      ),
+      brightness: brightness,
+      scaffoldBackgroundColor: bg,
+      colorScheme: scheme,
       textTheme: jakarta.copyWith(
         displayLarge: jakarta.displayLarge?.copyWith(
-          fontSize: 48,
+          fontSize: isDark ? 48 : 46,
           fontWeight: FontWeight.w800,
-          height: 56 / 48,
-          letterSpacing: -0.02 * 48,
-          color: AppColors.onSurface,
+          height: isDark ? 56 / 48 : 1.12,
+          letterSpacing: isDark ? -0.02 * 48 : -0.8,
+          color: scheme.onSurface,
         ),
         headlineLarge: jakarta.headlineLarge?.copyWith(
           fontSize: 28,
-          fontWeight: FontWeight.w700,
+          fontWeight: isDark ? FontWeight.w700 : FontWeight.w800,
           height: 36 / 28,
-          color: AppColors.onSurface,
+          letterSpacing: isDark ? 0 : -0.3,
+          color: scheme.onSurface,
         ),
         headlineMedium: jakarta.headlineMedium?.copyWith(
           fontSize: 24,
-          fontWeight: FontWeight.w600,
+          fontWeight: isDark ? FontWeight.w600 : FontWeight.w700,
           height: 32 / 24,
-          color: AppColors.onSurface,
+          letterSpacing: isDark ? 0 : -0.2,
+          color: scheme.onSurface,
         ),
         titleMedium: jakarta.titleMedium?.copyWith(
           fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: AppColors.onSurface,
+          fontWeight: isDark ? FontWeight.w600 : FontWeight.w700,
+          color: scheme.onSurface,
         ),
         bodyLarge: work.bodyLarge?.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w400,
-          height: 28 / 18,
-          color: AppColors.onSurface,
+          height: isDark ? 28 / 18 : 1.5,
+          color: scheme.onSurface,
         ),
         bodyMedium: work.bodyMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w400,
-          height: 24 / 16,
-          color: AppColors.onSurface,
+          height: isDark ? 24 / 16 : 1.45,
+          color: scheme.onSurface,
         ),
         labelLarge: work.labelLarge?.copyWith(
           fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.14,
-          color: AppColors.onSurface,
+          fontWeight: isDark ? FontWeight.w600 : FontWeight.w700,
+          letterSpacing: isDark ? 0.14 : 0.05,
+          color: scheme.onSurface,
         ),
         labelSmall: work.labelSmall?.copyWith(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          letterSpacing: 0.6,
-          color: AppColors.onSurfaceVariant,
+          letterSpacing: isDark ? 0.6 : 0.2,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background.withValues(alpha: 0.15),
+        backgroundColor: bg.withValues(alpha: isDark ? 0.15 : 0.85),
         elevation: 0,
         scrolledUnderElevation: 0,
-        systemOverlayStyle: systemOverlay,
+        systemOverlayStyle: overlayFor(brightness),
         titleTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: AppColors.onSurface,
+          color: scheme.onSurface,
         ),
-        iconTheme: const IconThemeData(color: AppColors.onSurface),
+        iconTheme: IconThemeData(color: scheme.onSurface),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: false,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.outlineVariant, width: 1.5),
+          borderSide: BorderSide(color: scheme.outlineVariant, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.outlineVariant, width: 1.5),
+          borderSide: BorderSide(color: scheme.outlineVariant, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: const TextStyle(color: Color(0x808A9485)),
-        labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant.withValues(alpha: 0.55)),
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
           elevation: 0,
           minimumSize: const Size.fromHeight(56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -138,27 +166,27 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primaryContainer,
-          foregroundColor: AppColors.onPrimaryContainer,
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.onPrimaryContainer,
           minimumSize: const Size.fromHeight(56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.85),
-        indicatorColor: AppColors.secondaryContainer.withValues(alpha: 0.35),
+        backgroundColor: surfaceContainer.withValues(alpha: 0.85),
+        indicatorColor: secondaryContainer.withValues(alpha: 0.35),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return GoogleFonts.workSans(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: selected ? AppColors.secondary : AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+            color: selected ? scheme.secondary : scheme.onSurfaceVariant.withValues(alpha: 0.7),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? AppColors.secondary : AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+            color: selected ? scheme.secondary : scheme.onSurfaceVariant.withValues(alpha: 0.7),
           );
         }),
       ),

@@ -491,6 +491,46 @@ class OrdersProvider extends ChangeNotifier {
     notifyListeners();
     return local;
   }
+
+  /// Savdo (gul / o‘g‘it / uskuna) — hozircha mahalliy buyurtma, keyin API.
+  Future<OrderModel> createShopOrder({
+    required ShopProduct product,
+    required int quantity,
+    required String address,
+    required String phone,
+    String notes = '',
+  }) async {
+    final qty = quantity < 1 ? 1 : quantity;
+    final amount = product.price * qty;
+    _localId += 1;
+    final label = '$qty × ${product.name}';
+    final detail = [
+      'Savdo mahsuloti',
+      if (product.unit.isNotEmpty) 'Birlik: ${product.unit}',
+      if (notes.trim().isNotEmpty) notes.trim(),
+    ].join('\n');
+    final local = OrderModel(
+      id: _localId,
+      status: 'new',
+      serviceName: label,
+      createdAt: DateTime.now(),
+      areaSize: '',
+      phoneNumber: phone,
+      address: address,
+      notes: detail,
+      partnerName: product.firmName,
+      firmId: product.firmId,
+      amount: amount,
+      pointsEarned: OrderModel.pointsForAmount(amount),
+      serviceNames: [label],
+      receiptCode: 'EM-S$_localId',
+      paymentStatus: amount > 0 ? 'unpaid' : 'not_required',
+    );
+    _localOrderIds.add(local.id);
+    orders.insert(0, local);
+    notifyListeners();
+    return local;
+  }
 }
 
 class CatalogProvider extends ChangeNotifier {

@@ -5,6 +5,14 @@ class ApiConfig {
     defaultValue: false,
   );
 
+  /// SMS provider ulanmaguncha: server `debug_code` qaytarmasa ham
+  /// ekranda demo OTP (123456) ko‘rsatiladi va shu kod bilan kirish mumkin.
+  /// SMS ishga tushganda: --dart-define=SMS_FALLBACK_DEMO=false
+  static const bool smsFallbackDemo = bool.fromEnvironment(
+    'SMS_FALLBACK_DEMO',
+    defaultValue: true,
+  );
+
   /// Default: production server. Lokal backend uchun --dart-define=API_BASE_URL=...
   /// Emulator (Android): http://10.0.2.2:8000/api/v1
   /// Real telefon: PC LAN IP (masalan http://192.168.0.117:8000/api/v1)

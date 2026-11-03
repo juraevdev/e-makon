@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/widgets.dart';
 import 'auth_provider.dart';
@@ -34,10 +35,12 @@ class _OtpScreenState extends State<OtpScreen> {
     _debugCode = widget.debugCode;
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (kDebugMode && _debugCode != null && _debugCode!.length == 6) {
+      // SMS yo‘q / demo: kodni avtomatik to‘ldiramiz (foydalanuvchi ko‘radi).
+      if (_debugCode != null && _debugCode!.length == 6) {
         _fillCode(_debugCode!);
+      } else {
+        _focus[0].requestFocus();
       }
-      _focus[0].requestFocus();
     });
   }
 
@@ -132,7 +135,7 @@ class _OtpScreenState extends State<OtpScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<AuthProvider>().error ?? 'Kod noto‘g‘ri yoki muddati o‘tgan'),
+          content: Text(context.read<AuthProvider>().error ?? context.l10nRead.wrongCode),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -153,7 +156,7 @@ class _OtpScreenState extends State<OtpScreen> {
         purpose: auth.pendingRegistration != null ? 'register' : 'login',
       );
       final debug = data['debug_code']?.toString();
-      if (kDebugMode && debug != null && debug.length == 6) {
+      if (debug != null && debug.length == 6) {
         _debugCode = debug;
         _fillCode(debug);
       } else {
@@ -165,14 +168,23 @@ class _OtpScreenState extends State<OtpScreen> {
       setState(() => _seconds = 59);
       _startTimer();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Yangi SMS kod yuborildi'), behavior: SnackBarBehavior.floating));
+      final smsOff = data['sms_unavailable'] == true || data['demo'] == true;
+      final t = context.l10nRead;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            smsOff
+                ? '${t.otpDemoHint.split(':').first}: ${debug ?? AuthProvider.demoOtpCode}'
+                : t.otpHint,
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<AuthProvider>().error ?? 'Qayta yuborib bo‘lmadi'),
+          content: Text(context.read<AuthProvider>().error ?? context.l10nRead.retry),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -187,7 +199,7 @@ class _OtpScreenState extends State<OtpScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
-        title: const Text('SMS tasdiqlash'),
+        title: Text(context.l10n.otpTitle),
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -200,7 +212,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    Text('Tasdiqlash kodi', style: Theme.of(context).textTheme.headlineLarge),
+                    Text(context.l10n.otpTitle, style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 8),
                     Text.rich(
                       TextSpan(
@@ -208,26 +220,46 @@ class _OtpScreenState extends State<OtpScreen> {
                           context,
                         ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant.withValues(alpha: 0.85)),
                         children: [
-                          const TextSpan(text: 'SMS orqali '),
+                          TextSpan(text: '${context.l10n.otpHint}: '),
                           TextSpan(
                             text: _prettyPhone,
-                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                           ),
-                          const TextSpan(text: ' raqamiga yuborilgan 6 xonali kodni kiriting'),
                         ],
                       ),
                     ),
-                    if (kDebugMode && _debugCode != null) ...[
-                      const SizedBox(height: 10),
+                    if (_debugCode != null && _debugCode!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(10),
+                          color: AppColors.primaryContainer.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
                         ),
-                        child: Text(
-                          'Dev OTP: $_debugCode',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              auth.demoSession || kDebugMode
+                                  ? context.l10n.otpDemoHint
+                                  : context.l10n.otpTitle,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _debugCode!,
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 28,
+                                letterSpacing: 6,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -275,7 +307,7 @@ class _OtpScreenState extends State<OtpScreen> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
+                                borderSide: BorderSide(color: AppColors.primary, width: 1.6),
                               ),
                             ),
                             onChanged: (v) => _onBoxChanged(i, v),
@@ -297,7 +329,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             )
                           : TextButton(
                               onPressed: loading ? null : _resend,
-                              child: const Text(
+                              child: Text(
                                 'Kodni qayta yuborish',
                                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                               ),
@@ -305,7 +337,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                     const Spacer(),
                     PrimaryButton(
-                      label: 'Tasdiqlash',
+                      label: context.l10n.verify,
                       loading: loading,
                       onPressed: _code.length == 6 && !loading ? () => _verify() : null,
                       roundedFull: true,

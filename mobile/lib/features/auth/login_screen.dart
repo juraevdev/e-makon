@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/api_config.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/emakon_logo.dart';
 import '../../core/widgets/motion.dart';
@@ -68,9 +69,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (isDemo && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Server topilmadi. Vaqtinchalik kod: $debugCode'),
+            content: Text(
+              'SMS ulanmagan. Ekrandagi kod bilan kiring: ${debugCode ?? AuthProvider.demoOtpCode}',
+            ),
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -106,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         const EmakonLogo(size: 108, animate: true),
                         const SizedBox(height: 8),
                         Text(
-                          'Xush kelibsiz',
+                          context.l10n.welcomeBack,
                           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                             color: AppColors.primary,
                             fontSize: 28,
@@ -115,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Telefon raqamingizni kiriting — SMS orqali kod yuboramiz',
+                          context.l10n.enterPhone,
                           textAlign: TextAlign.center,
                           style: Theme.of(
                             context,
@@ -129,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Telefon raqami',
+                                context.l10n.phone,
                                 style: Theme.of(
                                   context,
                                 ).textTheme.labelLarge?.copyWith(color: AppColors.onSurfaceVariant),
@@ -158,13 +161,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       letterSpacing: 0.6,
                                     ),
                                     decoration: InputDecoration(
-                                      prefixIcon: const Padding(
-                                        padding: EdgeInsets.only(left: 12, right: 4),
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.only(left: 12, right: 4),
                                         child: Icon(Icons.smartphone_rounded, color: AppColors.primary),
                                       ),
                                       prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
                                       prefixText: '+998  ',
-                                      prefixStyle: const TextStyle(
+                                      prefixStyle: TextStyle(
                                         color: AppColors.onSurface,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 18,
@@ -205,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 builder: (context, value, _) {
                                   final valid = value.text.replaceAll(RegExp(r'\D'), '').length == 9;
                                   return PrimaryButton(
-                                    label: 'SMS kod olish',
+                                    label: context.l10n.sendCode,
                                     icon: Icons.sms_outlined,
                                     loading: loading,
                                     onPressed: valid && !loading ? _continue : null,
@@ -219,8 +222,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         const SizedBox(height: 16),
                         TextButton(
                           onPressed: () => context.push('/register'),
-                          child: const Text(
-                            "Hisobingiz yo‘qmi? Ro‘yxatdan o‘ting",
+                          child: Text(
+                            '${context.l10n.noAccount} ${context.l10n.register}',
                             style: TextStyle(color: AppColors.primary),
                           ),
                         ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -246,11 +246,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _confirmSent,
-                icon: const Icon(Icons.check_circle_outline, color: AppColors.primary),
-                label: const Text("To'lovni amalga oshirdim", style: TextStyle(color: AppColors.primary)),
+                icon: Icon(Icons.check_circle_outline, color: AppColors.primary),
+                label: Text("To'lovni amalga oshirdim", style: TextStyle(color: AppColors.primary)),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
-                  side: const BorderSide(color: AppColors.primary),
+                  side: BorderSide(color: AppColors.primary),
                 ),
               ),
             ],
@@ -260,7 +260,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             onPressed: () => context.go('/orders'),
             child: Text(
               _order.isPaid || _order.isPaymentChecking ? 'Buyurtmalarim' : 'Keyinroq to‘lash',
-              style: const TextStyle(color: AppColors.onSurfaceVariant),
+              style: TextStyle(color: AppColors.onSurfaceVariant),
             ),
           ),
         ],
@@ -323,22 +323,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     required IconData icon,
     required String title,
     required String text,
-    Color color = AppColors.primary,
+    Color? color,
   }) {
+    final c = color ?? AppColors.primary;
     return GlassCard(
       borderRadius: 16,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 30),
+          Icon(icon, color: c, size: 30),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(title, style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 4),
-                Text(text, style: const TextStyle(color: AppColors.onSurfaceVariant, height: 1.35)),
+                Text(text, style: TextStyle(color: AppColors.onSurfaceVariant, height: 1.35)),
               ],
             ),
           ),
@@ -348,7 +349,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _escrowNote(ThemeData theme) {
-    const body = TextStyle(color: AppColors.onSurfaceVariant, height: 1.45, fontSize: 13);
+    final body = TextStyle(color: AppColors.onSurfaceVariant, height: 1.45, fontSize: 13);
     return GlassCard(
       borderRadius: 16,
       child: Column(
@@ -356,26 +357,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.shield_outlined, color: AppColors.primary),
+              Icon(Icons.shield_outlined, color: AppColors.primary),
               const SizedBox(width: 8),
               Text('Xavfsiz to‘lov', style: theme.textTheme.titleMedium),
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             "Siz pul o'tkazganingizda u birinchi bo'lib tizim ma'muriyati hisobiga tushadi. "
             "Agar xizmat ko'rsatuvchi kelib ishlarni yakunlamasa, pulingiz qaytariladi. "
             "Agar xizmat ko'rsatuvchi ishlarni yakunlasa, pul kompaniya hisobiga o'tkaziladi.",
             style: body,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Bu xizmat ko'rsatuvchi va mijoz o'rtasida xavfsiz va ishonchli aloqani ta'minlash "
             "maqsadida tizim tomonidan bajariladi.",
             style: body,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "To'lov qilingandan keyin tizim uni tekshiradi. Pul hisobga tushgach, buyurtmangizga ruxsat beriladi.",
             style: TextStyle(color: AppColors.primary, height: 1.45, fontSize: 13, fontWeight: FontWeight.w600),
           ),

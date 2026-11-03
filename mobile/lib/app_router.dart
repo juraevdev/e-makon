@@ -7,6 +7,8 @@ import '../features/auth/register_screen.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/home/service_detail_screen.dart';
+import '../features/home/services_screen.dart';
+import '../features/home/shop_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/splash_screen.dart';
@@ -17,6 +19,7 @@ import '../features/orders/order_success_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/orders/payment_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/scanner/plant_scanner_screen.dart';
 import '../features/shell/main_shell.dart';
 
 GoRouter createRouter() {
@@ -44,16 +47,21 @@ GoRouter createRouter() {
             GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
+            GoRoute(path: '/services', builder: (context, state) => const ServicesScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/messages', builder: (context, state) => const MessagesScreen()),
+            GoRoute(path: '/plant-scan', builder: (context, state) => const PlantScannerScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/shop', builder: (context, state) => const ShopScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
           ]),
         ],
       ),
+      GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
+      GoRoute(path: '/messages', builder: (context, state) => const MessagesScreen()),
       GoRoute(
         path: '/service/:slug',
         builder: (context, state) => ServiceDetailScreen(slug: state.pathParameters['slug']!),

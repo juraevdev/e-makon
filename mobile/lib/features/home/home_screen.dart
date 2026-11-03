@@ -1,24 +1,25 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
+import '../../core/data/demo_content.dart';
 import '../../core/widgets/app_image.dart';
-import '../../core/widgets/nearest_offices_section.dart';
 import '../../core/widgets/partner_sheet.dart';
-import '../../core/widgets/service_badge_icon.dart';
 import '../../core/widgets/motion.dart';
+import '../../core/widgets/service_badge_icon.dart';
 import '../../core/widgets/widgets.dart';
 import '../auth/auth_provider.dart';
-import '../favorites/favorites_provider.dart';
 import '../loyalty/loyalty_provider.dart';
 import '../loyalty/loyalty_sheet.dart';
 import 'catalog_provider.dart';
+import 'shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -131,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   context.push('/service/${item.serviceSlug ?? 'landscape-design'}');
                 },
                 icon: const Icon(Icons.shopping_bag_outlined),
-                label: const Text('Buyurtma berish'),
+                label: Text(context.l10nRead.bookService),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -156,13 +157,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final points = context.select<AuthProvider, int>((a) => a.user?.points ?? 0);
     final uzsPerPoint = context.select<LoyaltyProvider, int>((l) => l.uzsPerPoint);
     final allServices = context.select<CatalogProvider, List<ServiceModel>>((c) => c.services);
-    final catalogError = context.select<CatalogProvider, String?>((c) => c.error);
-    final catalogLoading = context.select<CatalogProvider, bool>((c) => c.loading);
     final feed = context.watch<HomeFeedProvider>();
-    final favs = context.watch<FavoritesProvider>();
     final unread = context.select<MessagesProvider, int>((m) => m.unreadCount);
-    final width = MediaQuery.sizeOf(context).width;
-    final serviceCols = width >= 700 ? 4 : 3;
     final hour = DateTime.now().hour;
     final greeting = hour < 12
         ? 'Xayrli tong'
@@ -170,17 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         ? 'Xayrli kun'
         : 'Xayrli kech';
     final season = SeasonTheme.of();
-
-    final services = _query.isEmpty
-        ? allServices
-        : allServices
-              .where(
-                (s) =>
-                    s.name.toLowerCase().contains(_query) ||
-                    s.shortDescription.toLowerCase().contains(_query) ||
-                    s.slug.contains(_query),
-              )
-              .toList();
+    final scheme = Theme.of(context).colorScheme;
     final partners = feed.partners.where((p) {
       final qOk =
           _query.isEmpty ||
@@ -193,6 +179,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           p.activity.toLowerCase().contains(_partnerFilter);
       return qOk && fOk;
     }).toList();
+    final popularSeen = <String>{};
+    final popularServices = <ServiceModel>[];
+    for (final s in [...allServices, ...DemoContent.catalogWithPrices]) {
+      if (popularSeen.add(s.slug)) popularServices.add(s);
+      if (popularServices.length >= 9) break;
+    }
+    final nearestFirms = feed.nearestPartners;
+    final shopPreview = DemoContent.shopProducts.take(9).toList();
     final offers = _query.isEmpty
         ? feed.offers
         : feed.offers
@@ -203,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       body: AmbientBackdrop(
         intensity: 0.95,
         season: season,
-        showWeather: true,
         child: SafeArea(
           bottom: false,
           child: RefreshIndicator(
@@ -256,14 +249,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         ),
                         const SizedBox(width: 4),
                         IconButton(
-                          onPressed: () => context.go('/messages'),
+                          onPressed: () => context.push('/messages'),
                           style: IconButton.styleFrom(
                             backgroundColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
                           ),
                           icon: Badge(
                             isLabelVisible: unread > 0,
                             label: Text('$unread'),
-                            child: const Icon(Icons.notifications_outlined),
+                            child: Icon(Icons.notifications_outlined, color: scheme.onSurface),
                           ),
                         ),
                       ],
@@ -277,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     child: TextField(
                       controller: _search,
                       decoration: InputDecoration(
-                        hintText: 'Xizmat, hamkor yoki taklif qidirish…',
+                        hintText: context.l10n.searchServices,
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: _query.isEmpty
                             ? null
@@ -288,6 +281,65 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                 },
                                 icon: const Icon(Icons.close),
                               ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: PressableScale(
+                      onTap: () => context.go('/plant-scan'),
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              season.accent.withValues(alpha: 0.22),
+                              AppColors.surfaceContainerHigh.withValues(alpha: AppColors.isLight ? 0.95 : 0.55),
+                            ],
+                          ),
+                          border: Border.all(color: season.accent.withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: season.accent.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(Icons.document_scanner_outlined, color: season.accent),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.l10n.plantScanner,
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: scheme.onSurface,
+                                        ),
+                                  ),
+                                  Text(
+                                    context.l10n.plantScannerSubtitle,
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right_rounded, color: season.accent),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -458,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                   ],
                                 ),
                               ),
-                              child: const Icon(Icons.stars_rounded, color: AppColors.primary),
+                              child: Icon(Icons.stars_rounded, color: AppColors.primary),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -479,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                 color: AppColors.primary.withValues(alpha: 0.14),
                                 borderRadius: BorderRadius.circular(99),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Bonus',
                                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12),
                               ),
@@ -493,8 +545,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
                 SliverToBoxAdapter(
                   child: SectionHeader(
-                    title: 'Hamkorlar',
-                    subtitle: 'Yaqin atrofdagi mutaxassislar',
+                    title: context.l10n.partners,
+                    subtitle: 'Ishonchli firmalar · reyting bilan',
                     icon: Icons.handshake_outlined,
                     accent: season.accent,
                   ),
@@ -506,8 +558,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       children: [
-                        for (final f in const [
-                          ('all', 'Barchasi'),
+                        for (final f in [
+                          ('all', context.l10n.all),
                           ('landshaft', 'Landshaft'),
                           ('sug', "Sug'orish"),
                           ('gazon', 'Gazon'),
@@ -520,11 +572,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                               label: Text(f.$2),
                               selected: _partnerFilter == f.$1,
                               onSelected: (_) => setState(() => _partnerFilter = f.$1),
-                              selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                              selectedColor: season.accent.withValues(alpha: 0.25),
                               labelStyle: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: _partnerFilter == f.$1 ? AppColors.primary : AppColors.onSurface,
+                                color: _partnerFilter == f.$1 ? season.accent : scheme.onSurface,
                               ),
                             ),
                           ),
@@ -532,56 +584,100 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                const SliverToBoxAdapter(child: SizedBox(height: 10)),
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 132,
+                    height: 168,
                     child: partners.isEmpty
-                        ? const Center(
-                            child: Text('Mos hamkor topilmadi', style: TextStyle(color: AppColors.onSurfaceVariant)),
+                        ? Center(
+                            child: Text('Mos hamkor topilmadi', style: TextStyle(color: scheme.onSurfaceVariant)),
                           )
                         : ListView.separated(
                             scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: partners.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 10),
+                            separatorBuilder: (_, _) => const SizedBox(width: 12),
                             itemBuilder: (_, i) {
                               final p = partners[i];
+                              final d = feed.distanceKm(p);
                               return PressableScale(
-                                onTap: () {
-                                  final d = feed.distanceKm(p);
-                                  showPartnerSheet(context, p, distanceKm: d >= 0 ? d : null);
-                                },
+                                onTap: () => showPartnerSheet(context, p, distanceKm: d >= 0 ? d : null),
                                 child: Container(
-                                  width: 108,
-                                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+                                  width: 148,
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(20),
                                     gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [AppColors.surfaceContainerHigh.withValues(alpha: 0.85), AppColors.glass],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: AppColors.isLight
+                                          ? [Colors.white, season.accent.withValues(alpha: 0.10)]
+                                          : [AppColors.surfaceContainerHigh.withValues(alpha: 0.9), season.accent.withValues(alpha: 0.14)],
                                     ),
-                                    border: Border.all(color: AppColors.glassBorder),
+                                    border: Border.all(color: season.accent.withValues(alpha: 0.28)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.isLight
+                                            ? Colors.black.withValues(alpha: 0.05)
+                                            : season.accent.withValues(alpha: 0.12),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      PartnerLogo(partner: p, size: 52),
-                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          PartnerLogo(partner: p, size: 44),
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: season.accent.withValues(alpha: 0.16),
+                                              borderRadius: BorderRadius.circular(99),
+                                            ),
+                                            child: Text(
+                                              '★ ${p.rating}',
+                                              style: TextStyle(color: season.accent, fontWeight: FontWeight.w800, fontSize: 11),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
                                       Text(
                                         p.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                          color: AppColors.onSurface,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                              color: scheme.onSurface,
+                                            ),
                                       ),
                                       Text(
-                                        '★ ${p.rating}',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.labelSmall?.copyWith(color: AppColors.primary, fontSize: 11),
+                                        p.tagline.isNotEmpty ? p.tagline : p.activity,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                                      ),
+                                      const Spacer(),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.place_outlined, size: 14, color: season.accent),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              d >= 0
+                                                  ? '${d.toStringAsFixed(1)} ${context.l10n.kmAway}'
+                                                  : (p.address.isNotEmpty ? p.address : '—'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(color: season.accent, fontWeight: FontWeight.w700, fontSize: 11),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -594,138 +690,176 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
                 SliverToBoxAdapter(
                   child: SectionHeader(
-                    title: 'Xizmatlar',
-                    subtitle: 'Aniq narx · tezkor buyurtma',
-                    icon: Icons.grid_view_rounded,
+                    title: context.l10n.popularServices,
+                    subtitle: 'Kamida 9 ta tanlov',
+                    icon: Icons.auto_awesome_rounded,
                     accent: season.accent,
-                  ),
-                ),
-                if (allServices.isEmpty && !catalogLoading)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              catalogError ?? 'Hozircha xizmatlar yo‘q',
-                              style: const TextStyle(color: AppColors.onSurfaceVariant),
-                            ),
-                          ),
-                          TextButton(onPressed: _refresh, child: const Text('Yangilash')),
-                        ],
-                      ),
+                    trailing: TextButton(
+                      onPressed: () => context.go('/services'),
+                      child: Text(context.l10n.seeAll, style: TextStyle(color: season.accent, fontWeight: FontWeight.w700)),
                     ),
                   ),
+                ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: serviceCols,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.66,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.72,
                     ),
-                    delegate: SliverChildBuilderDelegate((context, i) {
-                      final s = services[i];
-                      final tint = Color(s.accent);
-                      return PressableScale(
-                        onTap: () => context.push('/service/${s.slug}'),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
-                            border: Border.all(color: tint.withValues(alpha: 0.28)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: tint.withValues(alpha: 0.12),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    s.hasImage
-                                        ? AppImage(
-                                            path: s.image,
-                                            fallback: ColoredBox(color: tint.withValues(alpha: 0.35)),
-                                          )
-                                        : ColoredBox(
-                                            color: tint.withValues(alpha: 0.28),
-                                            child: Center(
-                                              child: ServiceBadgeIcon(
-                                                iconKey: s.icon,
-                                                accent: tint,
-                                                size: 50,
-                                                emoji: s.emoji,
-                                              ),
-                                            ),
-                                          ),
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: Material(
-                                        color: Colors.black45,
-                                        shape: const CircleBorder(),
-                                        child: InkWell(
-                                          customBorder: const CircleBorder(),
-                                          onTap: () => favs.toggleService(s.id),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(6),
-                                            child: Icon(
-                                              favs.isServiceFav(s.id) ? Icons.favorite : Icons.favorite_border,
-                                              size: 16,
-                                              color: favs.isServiceFav(s.id) ? Colors.redAccent : Colors.white,
-                                            ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) {
+                        final s = popularServices[i];
+                        final tint = Color(s.accent);
+                        return PressableScale(
+                          onTap: () => context.push('/service/${s.slug}'),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: AppColors.isLight ? Colors.white.withValues(alpha: 0.95) : AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
+                              border: Border.all(color: tint.withValues(alpha: 0.28)),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: s.hasImage
+                                      ? AppImage(path: s.image, fallback: ColoredBox(color: tint.withValues(alpha: 0.3)))
+                                      : ColoredBox(
+                                          color: tint.withValues(alpha: 0.22),
+                                          child: Center(
+                                            child: ServiceBadgeIcon(iconKey: s.icon, accent: tint, size: 36, emoji: s.emoji),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(6, 7, 6, 8),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      s.name,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: AppColors.onSurface,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    _ServicePriceLine(service: s),
-                                  ],
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(6, 6, 6, 8),
+                                  child: Text(
+                                    s.name,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: scheme.onSurface,
+                                          letterSpacing: 0,
+                                        ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }, childCount: services.length),
+                        );
+                      },
+                      childCount: popularServices.length,
+                    ),
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                const SliverToBoxAdapter(child: NearestOfficesSection()),
+                SliverToBoxAdapter(
+                  child: SectionHeader(
+                    title: context.l10n.nearestFirms,
+                    subtitle: 'Viloyatdagi eng yaqin 5 ta',
+                    icon: Icons.near_me_rounded,
+                    accent: season.accent,
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final p = nearestFirms[i];
+                      final d = feed.distanceKm(p);
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                        child: PressableScale(
+                          onTap: () => showPartnerSheet(context, p, distanceKm: d >= 0 ? d : null),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: AppColors.isLight ? Colors.white.withValues(alpha: 0.94) : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
+                              border: Border.all(color: AppColors.glassBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                PartnerLogo(partner: p, size: 48),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p.name,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: scheme.onSurface,
+                                            ),
+                                      ),
+                                      Text(
+                                        p.address.isNotEmpty ? p.address : p.tagline,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      d >= 0 ? '${d.toStringAsFixed(1)} ${context.l10n.kmAway}' : '—',
+                                      style: TextStyle(color: season.accent, fontWeight: FontWeight.w800),
+                                    ),
+                                    Text('★ ${p.rating}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: nearestFirms.length,
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: SectionHeader(
+                    title: context.l10n.shop,
+                    subtitle: context.l10n.shopSubtitle,
+                    icon: Icons.storefront_rounded,
+                    accent: season.accent,
+                    trailing: TextButton(
+                      onPressed: () => context.go('/shop'),
+                      child: Text(context.l10n.seeAll, style: TextStyle(color: season.accent, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 228,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: shopPreview.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
+                      itemBuilder: (_, i) => SizedBox(
+                        width: 148,
+                        child: ShopProductCard(product: shopPreview[i], compact: true),
+                      ),
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                 if (feed.offers.isNotEmpty)
                 SliverToBoxAdapter(
                   child: SectionHeader(
-                    title: 'Ommabop takliflar',
+                    title: context.l10n.offers,
                     subtitle: 'Bugungi tanlovlar',
                     icon: Icons.local_fire_department_rounded,
                     accent: season.accent,
@@ -734,9 +868,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 if (feed.offers.isEmpty)
                   const SliverToBoxAdapter(child: SizedBox.shrink())
                 else if (offers.isEmpty)
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text('Taklif topilmadi', style: TextStyle(color: AppColors.onSurfaceVariant)),
                     ),
                   )
@@ -752,8 +886,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                             final slug = o.serviceSlug;
                             if (slug != null && slug.isNotEmpty) {
                               context.push('/service/$slug');
-                            } else if (services.isNotEmpty) {
-                              context.push('/service/${services.first.slug}');
+                            } else if (allServices.isNotEmpty) {
+                              context.push('/service/${allServices.first.slug}');
                             }
                           },
                           child: Container(
@@ -839,38 +973,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
 }
 
-class _ServicePriceLine extends StatelessWidget {
-  const _ServicePriceLine({required this.service});
-
-  final ServiceModel service;
-
-  @override
-  Widget build(BuildContext context) {
-    final firms = service.firms.where((f) => f.price > 0).toList();
-    final from = firms.isNotEmpty ? firms.first.price : service.priceMin;
-    final small = Theme.of(context).textTheme.labelSmall;
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            from > 0 ? '${ServiceModel.formatMoney(from)} so‘mdan' : 'Narx kelishiladi',
-            maxLines: 1,
-            style: small?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 11),
-          ),
-        ),
-        Text(
-          service.offersCount > 0 ? '${service.offersCount} ta firma' : 'Operator orqali',
-          maxLines: 1,
-          style: small?.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-}
-
 class _PointsChip extends StatelessWidget {
-  const _PointsChip({required this.points, this.accent = AppColors.primary});
+  _PointsChip({required this.points, Color? accent}) : accent = accent ?? AppColors.primary;
   final int points;
   final Color accent;
 

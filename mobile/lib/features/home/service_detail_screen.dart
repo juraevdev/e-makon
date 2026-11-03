@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -87,9 +87,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     if (service == null) {
       return Scaffold(
         appBar: AppBar(leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop())),
-        body: const Center(
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Text(
               'Xizmat topilmadi',
               textAlign: TextAlign.center,
@@ -197,7 +197,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     ],
                     child: Row(
                       children: [
-                        const Icon(Icons.sort_rounded, size: 18, color: AppColors.primary),
+                        Icon(Icons.sort_rounded, size: 18, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
                           switch (_sort) {
@@ -205,7 +205,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                             _OfferSort.rating => 'Reyting',
                             _OfferSort.distance => 'Yaqinroq',
                           },
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -214,8 +214,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
             ),
             const SizedBox(height: 10),
             if (_loading && _offers == null)
-              const Padding(
-                padding: EdgeInsets.all(24),
+              Padding(
+                padding: const EdgeInsets.all(24),
                 child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
               )
             else if (_error != null)
@@ -228,7 +228,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                 ),
               )
             else if (offers.isEmpty)
-              const GlassCard(
+              GlassCard(
                 child: Text(
                   'Hozircha bu xizmatni tasdiqlangan narx bilan ko‘rsatadigan firma yo‘q. '
                   'Buyurtma qoldirsangiz, operator mos firmani biriktiradi.',
@@ -342,7 +342,7 @@ class _OfferTile extends StatelessWidget {
                   children: [
                     Text(
                       ServiceModel.formatMoney(offer.price),
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18),
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18),
                     ),
                     Text('so‘m', style: Theme.of(context).textTheme.labelSmall),
                   ],

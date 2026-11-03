@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
@@ -185,7 +186,7 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
             ),
             const SizedBox(height: 20),
             PrimaryButton(
-              label: 'Yopish',
+              label: ctx.l10n.close,
               onPressed: () => Navigator.pop(ctx),
               roundedFull: true,
             ),
@@ -210,16 +211,20 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
       body: AmbientBackdrop(
         intensity: 0.95,
         season: season,
-        showWeather: true,
         child: SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                 child: Row(
                   children: [
+                    if (context.canPop())
+                      IconButton(
+                        onPressed: () => context.pop(),
+                        icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).colorScheme.onSurface),
+                      ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,10 +248,11 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Xabarlar',
+                            context.l10n.messages,
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 26,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           Text(
@@ -254,7 +260,7 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
                                 ? '${provider.unreadCount} ta o‘qilmagan'
                                 : 'Barcha xabarlar o‘qilgan',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: season.accentSoft.withValues(alpha: 0.9),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -273,7 +279,7 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: Row(
                   children: [
-                    _tabPill(0, 'Bildirishnomalar', provider.unreadCount, accent),
+                    _tabPill(0, context.l10n.notifications, provider.unreadCount, accent),
                     const SizedBox(width: 8),
                     _tabPill(1, 'Suhbatlar', context.watch<ChatProvider>().unreadTotal, accent),
                   ],
@@ -317,9 +323,9 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
-                      _chip('all', 'Barchasi', accent),
+                      _chip('all', context.l10n.all, accent),
                       _chip('unread', 'Yangi', accent),
-                      _chip('order', 'Buyurtma', accent),
+                      _chip('order', context.l10n.navOrdersShort, accent),
                       _chip('chat', 'Suhbat', accent),
                       _chip('care', 'Shartnoma', accent),
                       _chip('offer', 'Taklif', accent),
@@ -343,12 +349,12 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
                                 Icon(Icons.mark_email_read_outlined,
                                     size: 52, color: accent.withValues(alpha: 0.45)),
                                 const SizedBox(height: 12),
-                                Text(provider.error ?? 'Xabar topilmadi',
+                                Text(provider.error ?? context.l10n.noMessages,
                                     textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
                                 if (provider.error != null)
                                   TextButton(
                                     onPressed: () => provider.load(context.read<ApiClient>()),
-                                    child: const Text('Qayta urinish'),
+                                    child: Text(context.l10n.retry),
                                   ),
                               ],
                             ),
@@ -543,7 +549,7 @@ class _MessagesScreenState extends State<MessagesScreen> with LiveRefresh {
               const SizedBox(height: 12),
               Text('Suhbatlar hali yo‘q', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Firma sahifasida “Yozishma” tugmasini bosing — har bir firma bilan alohida suhbat ochiladi.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.onSurfaceVariant, height: 1.4),

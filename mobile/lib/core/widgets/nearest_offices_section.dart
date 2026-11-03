@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -17,8 +17,8 @@ class NearestOfficesSection extends StatelessWidget {
     final nearest = feed.nearestPartners;
 
     if (nearest.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Text('Yaqin markazlar topilmadi', style: TextStyle(color: AppColors.onSurfaceVariant)),
       );
     }
@@ -39,8 +39,8 @@ class NearestOfficesSection extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: () => feed.refreshLocation(),
-                icon: const Icon(Icons.my_location, size: 16, color: AppColors.primary),
-                label: const Text('Lokatsiya', style: TextStyle(color: AppColors.primary)),
+                icon: Icon(Icons.my_location, size: 16, color: AppColors.primary),
+                label: Text('Lokatsiya', style: TextStyle(color: AppColors.primary)),
               ),
             ],
           ),
@@ -86,7 +86,7 @@ class NearestOfficesSection extends StatelessWidget {
                               final d = feed.distanceKm(p);
                               showPartnerSheet(context, p, distanceKm: d >= 0 ? d : null);
                             },
-                            child: const Icon(Icons.location_on, color: AppColors.primary, size: 40),
+                            child: Icon(Icons.location_on, color: AppColors.primary, size: 40),
                           ),
                         ),
                     ],
@@ -126,7 +126,7 @@ class NearestOfficesSection extends StatelessWidget {
                   IconButton(
                     tooltip: 'Navigator',
                     onPressed: () => openNavigator(p.lat, p.lng, label: p.name),
-                    icon: const Icon(Icons.directions, color: AppColors.primary),
+                    icon: Icon(Icons.directions, color: AppColors.primary),
                   ),
                 ],
               ),

@@ -32,9 +32,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     onboardingDone = prefs.getBool('onboarding_done') ?? false;
-    // Avvalgi versiyalardagi soxta (demo) sessiya bilan buyurtmalar serverga yetmaydi — qayta kirish kerak.
-    if (!ApiConfig.useLocalData && await _api.accessToken == 'demo-access') {
+    // SMS yo‘q paytda demo sessiya ruxsat etiladi; aks holda eski demo token tozalanadi.
+    if (!ApiConfig.useLocalData &&
+        !ApiConfig.smsFallbackDemo &&
+        await _api.accessToken == 'demo-access') {
       await _api.clearTokens();
+    }
+    if (await _api.accessToken == 'demo-access') {
+      demoSession = true;
     }
     if (await _api.hasToken) {
       try {
@@ -159,19 +164,34 @@ class AuthProvider extends ChangeNotifier {
         auth: false,
         body: {'phone': phone, 'purpose': purpose},
       );
+      final map = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+      final debug = map['debug_code']?.toString() ?? '';
+      // SMS ulanmagan serverda debug_code bo‘lmaydi — vaqtinchalik demo OTP.
+      if (debug.length == 6) {
+        demoSession = false;
+        return map;
+      }
+      if (ApiConfig.smsFallbackDemo || ApiConfig.useLocalData) {
+        demoSession = true;
+        error = null;
+        return {
+          ...map,
+          'debug_code': demoOtpCode,
+          'demo': true,
+          'sms_unavailable': true,
+        };
+      }
       demoSession = false;
-      if (data is Map) return Map<String, dynamic>.from(data);
-      return <String, dynamic>{};
+      return map;
     } catch (e) {
-      if (!ApiConfig.useLocalData) {
-        // Demo sessiyada buyurtmalar firmaga bormaydi — xatoni ko'rsatamiz.
+      if (!ApiConfig.useLocalData && !ApiConfig.smsFallbackDemo) {
         error = e is ApiException ? e.message : 'Serverga ulanib bo‘lmadi';
         rethrow;
       }
       demoSession = true;
       error = null;
       if (kDebugMode) debugPrint('OTP request failed, demo mode: $e');
-      return {'debug_code': demoOtpCode, 'demo': true};
+      return {'debug_code': demoOtpCode, 'demo': true, 'sms_unavailable': true};
     } finally {
       loading = false;
       notifyListeners();

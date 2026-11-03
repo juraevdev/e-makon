@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -37,7 +37,7 @@ class OrderSuccessScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.receipt_long, color: AppColors.primary),
+                          Icon(Icons.receipt_long, color: AppColors.primary),
                           const SizedBox(width: 8),
                           Text(order.receiptCode.isEmpty ? 'EM-${order.id}' : order.receiptCode,
                               style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
@@ -48,7 +48,7 @@ class OrderSuccessScreen extends StatelessWidget {
                               color: AppColors.primary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(99),
                             ),
-                            child: Text(order.statusLabel, style: const TextStyle(color: AppColors.primary, fontSize: 12)),
+                            child: Text(order.statusLabel, style: TextStyle(color: AppColors.primary, fontSize: 12)),
                           ),
                         ],
                       ),
@@ -66,7 +66,7 @@ class OrderSuccessScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Row(
                             children: [
-                              const Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+                              Icon(Icons.check_circle, size: 16, color: AppColors.primary),
                               const SizedBox(width: 8),
                               Expanded(child: Text(s)),
                             ],
@@ -99,7 +99,7 @@ class OrderSuccessScreen extends StatelessWidget {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => context.go('/home'),
-                child: const Text('Bosh sahifa', style: TextStyle(color: AppColors.primary)),
+                child: Text('Bosh sahifa', style: TextStyle(color: AppColors.primary)),
               ),
               const SizedBox(height: 16),
             ],
@@ -115,7 +115,7 @@ class OrderSuccessScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 88, child: Text(k, style: const TextStyle(color: AppColors.onSurfaceVariant))),
+          SizedBox(width: 88, child: Text(k, style: TextStyle(color: AppColors.onSurfaceVariant))),
           Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600))),
         ],
       ),

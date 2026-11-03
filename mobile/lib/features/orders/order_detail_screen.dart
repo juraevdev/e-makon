@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -77,7 +77,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh 
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Yo'q")),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Bekor qilish', style: TextStyle(color: AppColors.error)),
+            child: Text('Bekor qilish', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -205,7 +205,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh 
                         ],
                       ),
                     ),
-                    if (done) const Icon(Icons.check, color: AppColors.primary, size: 18),
+                    if (done) Icon(Icons.check, color: AppColors.primary, size: 18),
                   ],
                 ),
               );
@@ -225,8 +225,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh 
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: _openChat,
-              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
-              label: const Text('Firma bilan yozishish', style: TextStyle(color: AppColors.primary)),
+              icon: Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+              label: Text('Firma bilan yozishish', style: TextStyle(color: AppColors.primary)),
               style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
             const SizedBox(height: 16),
@@ -261,11 +261,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh 
               onPressed: _busy ? null : _cancel,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: AppColors.error),
+                side: BorderSide(color: AppColors.error),
                 foregroundColor: AppColors.error,
               ),
               child: _busy
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
@@ -285,7 +285,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LiveRefresh 
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 90, child: Text(k, style: const TextStyle(color: AppColors.onSurfaceVariant))),
+          SizedBox(width: 90, child: Text(k, style: TextStyle(color: AppColors.onSurfaceVariant))),
           Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600))),
         ],
       ),
@@ -314,7 +314,7 @@ class _EtaCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_shipping_outlined, color: AppColors.primary, size: 32),
+          Icon(Icons.local_shipping_outlined, color: AppColors.primary, size: 32),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

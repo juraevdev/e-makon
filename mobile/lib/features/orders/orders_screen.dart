@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/network/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
@@ -73,16 +74,25 @@ class _OrdersScreenState extends State<OrdersScreen> with LiveRefresh {
       body: AmbientBackdrop(
         intensity: 0.95,
         season: season,
-        showWeather: true,
         child: SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                padding: const EdgeInsets.fromLTRB(12, 12, 20, 4),
                 child: Row(
                   children: [
+                    IconButton(
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/profile');
+                        }
+                      },
+                      icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).colorScheme.onSurface),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,10 +116,11 @@ class _OrdersScreenState extends State<OrdersScreen> with LiveRefresh {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Buyurtmalar',
+                            context.l10n.orders,
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 26,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           Text(
@@ -135,17 +146,19 @@ class _OrdersScreenState extends State<OrdersScreen> with LiveRefresh {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: Row(
                   children: [
-                    Expanded(child: _StatPill(label: 'Jami', value: '${all.length}', color: accent)),
+                    Expanded(child: _StatPill(label: context.l10n.all, value: '${all.length}', color: accent)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _StatPill(
-                        label: 'Faol',
+                        label: context.l10n.active,
                         value: '$activeCount',
                         color: Color.lerp(accent, const Color(0xFFFFB74D), 0.4)!,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(child: _StatPill(label: 'Tugagan', value: '$doneCount', color: season.accentSoft)),
+                    Expanded(
+                      child: _StatPill(label: context.l10n.completed, value: '$doneCount', color: season.accentSoft),
+                    ),
                   ],
                 ),
               ),
@@ -155,10 +168,15 @@ class _OrdersScreenState extends State<OrdersScreen> with LiveRefresh {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
-                    _chip('all', 'Barchasi', all.length, accent),
-                    _chip('active', 'Faol', activeCount, accent),
-                    _chip('done', 'Tugallangan', doneCount, accent),
-                    _chip('cancelled', 'Bekor', all.where((o) => o.status == 'cancelled').length, accent),
+                    _chip('all', context.l10n.all, all.length, accent),
+                    _chip('active', context.l10n.active, activeCount, accent),
+                    _chip('done', context.l10n.completed, doneCount, accent),
+                    _chip(
+                      'cancelled',
+                      context.l10n.cancelled,
+                      all.where((o) => o.status == 'cancelled').length,
+                      accent,
+                    ),
                   ],
                 ),
               ),
@@ -347,7 +365,7 @@ class _OrderCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.place_outlined, size: 16, color: AppColors.onSurfaceVariant),
+                  Icon(Icons.place_outlined, size: 16, color: AppColors.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(order.address, maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -387,7 +405,7 @@ class _OrderCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 11),
                 ),
                 if (order.scheduledDate != null || order.timeSlot.isNotEmpty) ...[
-                  const Text(' · ', style: TextStyle(color: AppColors.onSurfaceVariant)),
+                  Text(' · ', style: TextStyle(color: AppColors.onSurfaceVariant)),
                   Icon(Icons.event_outlined, size: 13, color: statusColor),
                   const SizedBox(width: 4),
                   Flexible(
@@ -405,7 +423,7 @@ class _OrderCard extends StatelessWidget {
                 if (order.amount > 0)
                   Text(
                     '${ServiceModel.formatMoney(order.amount)} so‘m',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 12),
+                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 12),
                   ),
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right_rounded, color: statusColor, size: 20),
@@ -439,7 +457,7 @@ class _LoadError extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Qayta urinish'),
+              label: Text(context.l10n.retry),
             ),
           ],
         ),
@@ -471,7 +489,10 @@ class _EmptyOrders extends StatelessWidget {
               child: Icon(Icons.receipt_long_rounded, size: 40, color: accent),
             ),
             const SizedBox(height: 16),
-            Text('Hali buyurtma yo‘q', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              context.l10n.noOrders,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 6),
             Text(
               'Xizmat tanlang va birinchi buyurtmangizni bering',
@@ -479,7 +500,12 @@ class _EmptyOrders extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 18),
-            PrimaryButton(label: 'Xizmat tanlash', icon: Icons.grid_view_rounded, onPressed: onBrowse, roundedFull: true),
+            PrimaryButton(
+              label: context.l10n.services,
+              icon: Icons.grid_view_rounded,
+              onPressed: onBrowse,
+              roundedFull: true,
+            ),
           ],
         ),
       ),

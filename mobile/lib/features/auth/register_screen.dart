@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/emakon_logo.dart';
 import '../../core/widgets/widgets.dart';
@@ -74,8 +75,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (data['demo'] == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('SMS o‘rniga demo kod: $debugCode'),
+          content: Text(
+            'SMS ulanmagan. Ekrandagi kod bilan kiring: ${debugCode ?? AuthProvider.demoOtpCode}',
+          ),
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
@@ -101,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const Center(child: EmakonLogo(size: 72)),
               const SizedBox(height: 8),
               Text(
-                "Ro'yxatdan o'tish",
+                context.l10n.register,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.primary),
               ),
@@ -120,7 +124,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: TextFormField(
                       controller: _first,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Ism', prefixIcon: Icon(Icons.person_outline)),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.firstName,
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Ism kiriting' : null,
                     ),
                   ),
@@ -129,7 +136,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: TextFormField(
                       controller: _last,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Familiya', prefixIcon: Icon(Icons.badge_outlined)),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.lastName,
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                      ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Familiya' : null,
                     ),
                   ),
@@ -139,10 +149,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _company,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Korxona yoki nom',
+                decoration: InputDecoration(
+                  labelText: context.l10n.company,
                   hintText: 'Shaxsiy yoki kompaniya nomi',
-                  prefixIcon: Icon(Icons.apartment_outlined),
+                  prefixIcon: const Icon(Icons.apartment_outlined),
                 ),
               ),
               const SizedBox(height: 14),
@@ -154,17 +164,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   LengthLimitingTextInputFormatter(9),
                   _PhoneMaskFormatter(),
                 ],
-                decoration: const InputDecoration(
-                  labelText: 'Telefon raqami',
+                decoration: InputDecoration(
+                  labelText: context.l10n.phone,
                   prefixText: '+998  ',
                   hintText: '90 123 45 67',
-                  prefixIcon: Icon(Icons.smartphone_rounded),
+                  prefixIcon: const Icon(Icons.smartphone_rounded),
                 ),
                 validator: (_) => _digits.length == 9 ? null : '9 ta raqam',
               ),
               const SizedBox(height: 28),
               PrimaryButton(
-                label: 'SMS kod olish',
+                label: context.l10n.sendCode,
                 icon: Icons.sms_outlined,
                 loading: auth.loading,
                 onPressed: auth.loading ? null : _submit,
@@ -172,7 +182,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Hisobingiz bormi? Kirish', style: TextStyle(color: AppColors.primary)),
+                child: Text(
+                  '${context.l10n.alreadyHaveAccount} ${context.l10n.login}',
+                  style: TextStyle(color: AppColors.primary),
+                ),
               ),
             ],
           ),

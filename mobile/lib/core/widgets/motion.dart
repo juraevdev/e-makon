@@ -1,11 +1,11 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/season_theme.dart';
-import 'seasonal_weather.dart';
 
 /// Yashil bog‘ atmosferasi — fasl ranglari + yumshoq orb’lar.
 class AmbientBackdrop extends StatelessWidget {
@@ -29,7 +29,7 @@ class AmbientBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: AppColors.background),
+        ColoredBox(color: AppColors.background),
         Positioned(
           top: -120,
           right: -80,
@@ -54,7 +54,7 @@ class AmbientBackdrop extends StatelessWidget {
             color: (s?.glowC ?? const Color(0xFF4FC3F7).withValues(alpha: 0.1)).withValues(alpha: 0.18 * a),
           ),
         ),
-        if (showWeather && s != null) Positioned.fill(child: SeasonalWeather(theme: s)),
+        // Barg/qor animatsiyasi o‘chirilgan — fon glow saqlanadi.
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -290,12 +290,20 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 22)),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontSize: 22,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                ),
                 if (subtitle != null)
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: tint.withValues(alpha: 0.88),
+                          color: AppColors.isLight
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                              : tint.withValues(alpha: 0.88),
                         ),
                   ),
               ],
@@ -315,6 +323,7 @@ class SeasonChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final title = theme.localizedTitle(context.l10n);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
@@ -328,7 +337,7 @@ class SeasonChip extends StatelessWidget {
           Text(theme.emoji, style: const TextStyle(fontSize: 12)),
           const SizedBox(width: 4),
           Text(
-            theme.title,
+            title,
             style: TextStyle(
               color: theme.accent,
               fontWeight: FontWeight.w700,

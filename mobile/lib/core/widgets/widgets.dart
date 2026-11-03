@@ -26,7 +26,7 @@ class GlassCard extends StatelessWidget {
         border: Border.all(color: AppColors.glassBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
+            color: Colors.black.withValues(alpha: AppColors.isLight ? 0.08 : 0.22),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -34,10 +34,15 @@ class GlassCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.07),
-            Colors.white.withValues(alpha: 0.02),
-          ],
+          colors: AppColors.isLight
+              ? [
+                  Colors.white.withValues(alpha: 0.95),
+                  Colors.white.withValues(alpha: 0.72),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.07),
+                  Colors.white.withValues(alpha: 0.02),
+                ],
         ),
       ),
       child: child,
@@ -78,7 +83,7 @@ class PrimaryButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(roundedFull ? 999 : 12),
     );
     final child = loading
-        ? const SizedBox(
+        ? SizedBox(
             height: 22,
             width: 22,
             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),

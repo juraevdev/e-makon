@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/app_language.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
+import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/season_theme.dart';
 import '../../core/utils/location_helper.dart';
@@ -82,12 +85,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await context.read<AuthProvider>().uploadAvatar(file);
+      final t = context.l10nRead;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Profil rasmi yangilandi'), behavior: SnackBarBehavior.floating),
+        SnackBar(content: Text(t.avatarUpdated), behavior: SnackBarBehavior.floating),
       );
     } catch (e) {
+      final t = context.l10nRead;
       messenger.showSnackBar(
-        SnackBar(content: Text('Rasm yuklanmadi: $e'), behavior: SnackBarBehavior.floating),
+        SnackBar(content: Text('${t.avatarFailed}: $e'), behavior: SnackBarBehavior.floating),
       );
     }
   }
@@ -104,16 +109,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final result = await LocationHelper.currentAddress();
     if (!mounted) return;
     setState(() => _locating = false);
+    final t = context.l10nRead;
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('GPS ruxsati yoki xizmati yoqilmagan'), behavior: SnackBarBehavior.floating),
+        SnackBar(content: Text(t.gpsUnavailable), behavior: SnackBarBehavior.floating),
       );
       return;
     }
     _address.text = result.label;
     final auth = context.read<AuthProvider>();
     final feed = context.read<HomeFeedProvider>();
-    String message = 'Manzil GPS orqali aniqlandi';
+    String message = t.addressDetected;
     try {
       await auth.updateProfile(address: result.label);
     } on ApiException catch (e) {
@@ -145,12 +151,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() => _editing = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil saqlandi'), behavior: SnackBarBehavior.floating),
+      SnackBar(content: Text(context.l10nRead.profileSaved), behavior: SnackBarBehavior.floating),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.l10n;
+    final settings = context.watch<AppSettings>();
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     // Server (firma/superadmin) profilni o'zgartirgan bo'lsa — tahrirlanmayotgan maydonlar yangilanadi.
@@ -175,7 +183,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: AmbientBackdrop(
         intensity: 0.95,
         season: season,
-        showWeather: true,
         child: SafeArea(
           bottom: false,
           child: RefreshIndicator(
@@ -195,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Flexible(
                               child: Text(
-                                season.subtitle,
+                                season.localizedSubtitle(t),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -210,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Profil',
+                          t.profile,
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 26,
@@ -223,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () => setState(() => _editing = !_editing),
                     icon: Icon(_editing ? Icons.close : Icons.edit_outlined, size: 18, color: accent),
                     label: Text(
-                      _editing ? 'Bekor' : 'Tahrirlash',
+                      _editing ? t.cancel : t.edit,
                       style: TextStyle(color: accent, fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -293,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.displayName ?? 'Foydalanuvchi',
+                            user?.displayName ?? t.user,
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
                           ),
                           const SizedBox(height: 2),
@@ -314,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Icon(Icons.stars_rounded, color: Colors.white.withValues(alpha: 0.9), size: 16),
                               const SizedBox(width: 4),
                               Text(
-                                '${user?.points ?? 0} ball',
+                                '${user?.points ?? 0} ${t.points}',
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                               ),
                             ],
@@ -330,18 +337,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Expanded(
                     child: _MiniStat(
-                      icon: Icons.receipt_long_rounded,
-                      label: 'Faol buyurtma',
-                      value: '$activeOrders',
-                      accent: accent,
-                      onTap: () => context.go('/orders'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _MiniStat(
                       icon: Icons.favorite_rounded,
-                      label: 'Sevimlilar',
+                      label: t.favorites,
                       value: '${favServices.length + favPartners.length}',
                       accent: accent,
                       onTap: null,
@@ -351,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: _MiniStat(
                       icon: Icons.stars_rounded,
-                      label: 'Ballar',
+                      label: t.loyalty,
                       value: '${user?.points ?? 0}',
                       accent: accent,
                       onTap: () => showLoyaltySheet(context),
@@ -359,23 +356,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              _ProfileNavCard(
+                icon: Icons.receipt_long_rounded,
+                title: t.orders,
+                subtitle: '$activeOrders ${t.activeOrders.toLowerCase()}',
+                accent: accent,
+                onTap: () => context.push('/orders'),
+              ),
+              const SizedBox(height: 10),
+              _ProfileNavCard(
+                icon: Icons.chat_bubble_rounded,
+                title: t.messages,
+                subtitle: t.notifications,
+                accent: accent,
+                badge: context.watch<MessagesProvider>().unreadCount,
+                onTap: () => context.push('/messages'),
+              ),
               const SizedBox(height: 20),
-              Text('Shaxsiy ma’lumot', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              Text(t.settings, style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  )),
+              const SizedBox(height: 10),
+              GlassCard(
+                borderRadius: 18,
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.appearance, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: accent)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _ChoiceChip(
+                          label: t.themeLight,
+                          selected: settings.themeMode == ThemeMode.light,
+                          accent: accent,
+                          onTap: () => settings.setThemeMode(ThemeMode.light),
+                        ),
+                        _ChoiceChip(
+                          label: t.themeDark,
+                          selected: settings.themeMode == ThemeMode.dark,
+                          accent: accent,
+                          onTap: () => settings.setThemeMode(ThemeMode.dark),
+                        ),
+                        _ChoiceChip(
+                          label: t.themeSystem,
+                          selected: settings.themeMode == ThemeMode.system,
+                          accent: accent,
+                          onTap: () => settings.setThemeMode(ThemeMode.system),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(t.language, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: accent)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final lang in AppLanguage.supported)
+                          _ChoiceChip(
+                            label: lang.nativeLabel,
+                            selected: settings.language == lang,
+                            accent: accent,
+                            onTap: () => settings.setLanguage(lang),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(t.personalInfo, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
               GlassCard(
                 borderRadius: 18,
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
-                    _field(controller: _first, label: 'Ism', icon: Icons.person_outline, enabled: _editing, accent: accent),
+                    _field(controller: _first, label: t.firstName, icon: Icons.person_outline, enabled: _editing, accent: accent),
                     const Divider(height: 1),
-                    _field(controller: _last, label: 'Familiya', icon: Icons.badge_outlined, enabled: _editing, accent: accent),
+                    _field(controller: _last, label: t.lastName, icon: Icons.badge_outlined, enabled: _editing, accent: accent),
                     const Divider(height: 1),
-                    _field(controller: _company, label: 'Korxona / nom', icon: Icons.apartment_outlined, enabled: _editing, accent: accent),
+                    _field(controller: _company, label: t.company, icon: Icons.apartment_outlined, enabled: _editing, accent: accent),
                     const Divider(height: 1),
                     _field(
                       controller: _email,
-                      label: 'Email',
+                      label: t.email,
                       icon: Icons.email_outlined,
                       enabled: _editing,
                       keyboard: TextInputType.emailAddress,
@@ -389,7 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         enabled: _editing,
                         maxLines: 2,
                         decoration: InputDecoration(
-                          labelText: 'Yashash manzili',
+                          labelText: t.livingAddress,
                           border: InputBorder.none,
                           prefixIcon: Icon(Icons.place_outlined, color: _editing ? accent : null),
                           suffixIcon: IconButton(
@@ -407,11 +478,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               if (_editing) ...[
                 const SizedBox(height: 14),
-                PrimaryButton(label: 'Saqlash', icon: Icons.save_outlined, onPressed: _save, roundedFull: true),
+                PrimaryButton(label: t.save, icon: Icons.save_outlined, onPressed: _save, roundedFull: true),
               ],
               if (favPartners.isNotEmpty) ...[
                 const SizedBox(height: 22),
-                Text('Sevimli hamkorlar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text(t.favoritePartners, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 SizedBox(
                   height: 108,
@@ -458,7 +529,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
               if (favServices.isNotEmpty) ...[
                 const SizedBox(height: 22),
-                Text('Sevimli xizmatlar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text(t.favoriteServices, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 ...favServices.map((s) {
                   return Padding(
@@ -501,8 +572,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   await auth.logout();
                   if (context.mounted) context.go('/login');
                 },
-                icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-                label: const Text('Chiqish', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+                icon: Icon(Icons.logout_rounded, color: AppColors.error),
+                label: Text(t.logout, style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   side: BorderSide(color: AppColors.error.withValues(alpha: 0.55)),
@@ -535,6 +606,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
           labelText: label,
           border: InputBorder.none,
           prefixIcon: Icon(icon, color: enabled ? accent : null),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileNavCard extends StatelessWidget {
+  const _ProfileNavCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final VoidCallback onTap;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return PressableScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppColors.isLight
+                ? [Colors.white, accent.withValues(alpha: 0.10)]
+                : [AppColors.surfaceContainerHigh.withValues(alpha: 0.8), accent.withValues(alpha: 0.16)],
+          ),
+          border: Border.all(color: accent.withValues(alpha: AppColors.isLight ? 0.22 : 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.isLight ? Colors.black.withValues(alpha: 0.05) : accent.withValues(alpha: 0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: accent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                        ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            if (badge > 0)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '$badge',
+                  style: TextStyle(
+                    color: AppColors.isLight ? Colors.white : AppColors.onPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            Icon(Icons.chevron_right_rounded, color: accent.withValues(alpha: 0.85)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceChip extends StatelessWidget {
+  const _ChoiceChip({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? accent.withValues(alpha: 0.22) : AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? accent : AppColors.outlineVariant.withValues(alpha: 0.55)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 13,
+              color: selected ? accent : AppColors.onSurface,
+            ),
+          ),
         ),
       ),
     );
