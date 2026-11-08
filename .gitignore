@@ -54,3 +54,6 @@ superadmin_panel/.git.bak/
 mobile/releases/*.apk
 mobile/releases/*.aab
 
+# Load test reports (see loadtests/stress.py)
+loadtests/results/*.json
+
