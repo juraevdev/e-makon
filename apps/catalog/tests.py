@@ -1,4 +1,6 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
 
 from apps.catalog.models import Service
 from apps.core.phone import normalize_phone
@@ -26,3 +28,10 @@ class ServiceApiTests(TestCase):
         response = self.client.get("/api/v1/services/")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["results"])
+
+    @override_settings(DEBUG=True)
+    def test_list_services_bounded_queries(self):
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get("/api/v1/services/")
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(ctx), 4, [q["sql"] for q in ctx.captured_queries])

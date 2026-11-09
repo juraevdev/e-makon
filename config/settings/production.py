@@ -15,6 +15,12 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must list the real domain names.")
 
+DJANGO_ADMIN_ALLOWED_IPS = env.list("DJANGO_ADMIN_ALLOWED_IPS", default=[])
+if not DJANGO_ADMIN_ALLOWED_IPS:
+    raise ImproperlyConfigured(
+        "DJANGO_ADMIN_ALLOWED_IPS must list office/VPN IPs (CIDR ok) for /django-admin/."
+    )
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
 SECURE_REDIRECT_EXEMPT = [r"^health/$"]

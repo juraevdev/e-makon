@@ -1,11 +1,6 @@
-export class ApiError extends Error {
-  status: number;
-  constructor(message: string, status = 400) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-  }
-}
+import { ApiError, messageFromApiBody } from "@/lib/api/errors";
+
+export { ApiError };
 
 const ACCESS_KEY = "emakon_access";
 const REFRESH_KEY = "emakon_refresh";
@@ -181,12 +176,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
 
   const json = await parseBody(res);
   if (!res.ok) {
-    let message = `Xatolik (${res.status})`;
-    if (json && typeof json === "object") {
-      const obj = json as { message?: string; detail?: string; errors?: unknown };
-      message = String(obj.message || obj.detail || message);
-    }
-    throw new ApiError(message, res.status);
+    throw new ApiError(messageFromApiBody(json, res.status), res.status);
   }
   if (method.toUpperCase() !== "GET") notifyDataChanged(path);
   return unwrap(json) as T;

@@ -13,6 +13,7 @@ from apps.catalog.serializers import (
     AdminServiceSerializer,
     BannerSerializer,
     PublicBannerSerializer,
+    ServiceListSerializer,
     ServiceSerializer,
 )
 from apps.catalog.services import attach_to_catalog_type, is_catalog_type, platform_owned_q
@@ -72,21 +73,31 @@ def firm_prices_by_root(roots) -> dict[int, list[dict]]:
     """Katalog ro'yxati uchun: har bir turda qaysi firma qancha narx qo'ygani (arzonidan)."""
     ids = [r.pk for r in roots]
     rows: dict[int, list[dict]] = {pk: [] for pk in ids}
+    if not ids:
+        return rows
     offers = (
         published_services()
         .filter(base_service_id__in=ids)
         .exclude(platform_owned_q())
-        .select_related("organization")
+        .values(
+            "base_service_id",
+            "id",
+            "price_from",
+            "price_to",
+            "organization_id",
+            "organization__name",
+            "organization__rating",
+        )
         .order_by("price_from", "id")
     )
     for offer in offers:
-        rows[offer.base_service_id].append(
+        rows[offer["base_service_id"]].append(
             {
-                "firm_id": offer.organization_id,
-                "firm_name": offer.organization.name,
-                "rating": float(offer.organization.rating or 0),
-                "service_id": offer.pk,
-                "price": int(offer.price_from or offer.price_to or 0),
+                "firm_id": offer["organization_id"],
+                "firm_name": offer["organization__name"] or "",
+                "rating": float(offer["organization__rating"] or 0),
+                "service_id": offer["id"],
+                "price": int(offer["price_from"] or offer["price_to"] or 0),
             }
         )
     return rows
@@ -99,24 +110,33 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ("name", "description")
     ordering_fields = ("sort_order", "name")
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ServiceListSerializer
+        return ServiceSerializer
+
     def get_queryset(self):
         qs = published_services().select_related("organization", "base_service")
         if self.request.query_params.get("all") == "1":
             return qs
+        qs = qs.filter(platform_owned_q(), base_service__isnull=True)
+        if self.action == "list":
+            return qs.defer(
+                "long_description",
+                "gallery_images",
+                "features",
+                "moderation_note",
+            ).order_by("sort_order", "id")
         published_offer = Q(
             offers__is_active=True,
             offers__moderation_status=Service.Moderation.APPROVED,
             offers__organization__status=Organization.Status.ACTIVE,
         )
-        return (
-            qs.filter(platform_owned_q(), base_service__isnull=True)
-            .annotate(
-                offers_count_anno=Count("offers", filter=published_offer, distinct=True),
-                offers_min_anno=Min("offers__price_from", filter=published_offer),
-                offers_max_anno=Max("offers__price_to", filter=published_offer),
-            )
-            .order_by("sort_order", "id")
-        )
+        return qs.annotate(
+            offers_count_anno=Count("offers", filter=published_offer, distinct=True),
+            offers_min_anno=Min("offers__price_from", filter=published_offer),
+            offers_max_anno=Max("offers__price_to", filter=published_offer),
+        ).order_by("sort_order", "id")
 
     def list(self, request, *args, **kwargs):
         qs = self.filter_queryset(self.get_queryset())

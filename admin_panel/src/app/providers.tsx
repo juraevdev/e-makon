@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminAccessProvider } from "@/providers/AdminAccessProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SearchProvider } from "@/providers/SearchProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
@@ -13,9 +14,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <LocaleProvider>
         <WeatherProvider>
           <AuthProvider>
-            <ToastProvider>
-              <SearchProvider>{children}</SearchProvider>
-            </ToastProvider>
+            <AdminAccessProvider>
+              <ToastProvider>
+                <SearchProvider>{children}</SearchProvider>
+              </ToastProvider>
+            </AdminAccessProvider>
           </AuthProvider>
         </WeatherProvider>
       </LocaleProvider>

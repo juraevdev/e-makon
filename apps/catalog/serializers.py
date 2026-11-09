@@ -136,6 +136,30 @@ class ServiceSerializer(serializers.ModelSerializer):
         return own[-1] if own else 0
 
 
+class ServiceListSerializer(ServiceSerializer):
+    """Katalog ro'yxati — mobil va ochiq API uchun yengil payload (`firm_prices` kontekstida)."""
+
+    class Meta(ServiceSerializer.Meta):
+        fields = (
+            "id",
+            "name",
+            "slug",
+            "emoji",
+            "icon",
+            "category",
+            "short_description",
+            "description",
+            "image",
+            "offers_count",
+            "firms",
+            "price",
+            "price_min",
+            "price_max",
+            "sort_order",
+            "is_catalog_type",
+        )
+
+
 class AdminServiceSerializer(ServiceSerializer):
     """Firma o'z xizmatini bitta qat'iy narx bilan kiritadi; tizim tekshiruvidan keyin ilovaga chiqadi."""
 
