@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.db.models import Count, Q, Sum
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
