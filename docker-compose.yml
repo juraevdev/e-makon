@@ -51,6 +51,7 @@ services:
       - "${HTTP_PORT:-80}:80"
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx-django-admin-allow.conf:/etc/nginx/django-admin-allow.conf:ro
       - media:/srv/media:ro
       - static:/srv/static:ro
     depends_on:
