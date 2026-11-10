@@ -1,6 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { PanelRouteGuard } from "@/components/layout/PanelRouteGuard";
 import { useAuth } from "@/providers/AuthProvider";
 import { FirmProvider } from "@/providers/FirmProvider";
 
@@ -21,7 +22,9 @@ export default function AdminLayout({
 
   return (
     <FirmProvider>
-      <AppShell>{children}</AppShell>
+      <AppShell>
+        <PanelRouteGuard>{children}</PanelRouteGuard>
+      </AppShell>
     </FirmProvider>
   );
 }

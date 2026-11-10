@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.admin_access.DjangoAdminGuardMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -146,6 +147,14 @@ REST_FRAMEWORK = {
     # Reverse proxies in front of gunicorn (nginx = 1); needed for per-client throttling.
     "NUM_PROXIES": env.int("DRF_NUM_PROXIES", default=0) or None,
 }
+
+DRF_NUM_PROXIES = env.int("DRF_NUM_PROXIES", default=0) or None
+
+# Django admin (/django-admin/) — bo'sh ALLOWED_IPS = devda cheklovsiz
+DJANGO_ADMIN_ALLOWED_IPS = env.list("DJANGO_ADMIN_ALLOWED_IPS", default=[])
+DJANGO_ADMIN_HTTP_BASIC_USER = env("DJANGO_ADMIN_HTTP_BASIC_USER", default="")
+DJANGO_ADMIN_HTTP_BASIC_PASSWORD = env("DJANGO_ADMIN_HTTP_BASIC_PASSWORD", default="")
+DJANGO_ADMIN_LOGIN_RATE = env.int("DJANGO_ADMIN_LOGIN_RATE", default=10)
 
 # Per-client limits for auth endpoints (apps.core.throttling). Empty dict disables.
 API_THROTTLE_RATES = {

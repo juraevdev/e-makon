@@ -5,6 +5,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { inputClass } from "@/components/ui";
+import { userFacingError } from "@/lib/api/errors";
 
 export default function LoginPage() {
   const { login, loading, user } = useAuth();
@@ -32,7 +33,7 @@ export default function LoginPage() {
     try {
       await login(phone.trim(), password);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("login.failed");
+      const msg = userFacingError(err, t("login.failed"));
       setError(
         msg.includes("Failed to fetch") || msg.includes("NetworkError")
           ? t("login.apiDown")
