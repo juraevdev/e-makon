@@ -40,6 +40,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
     if (stored && LOCALES.some((l) => l.code === stored)) {
       setAutoLocale(stored);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
       setLocaleState(stored);
       document.documentElement.lang = HTML_LANG[stored];
     }

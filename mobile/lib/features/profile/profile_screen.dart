@@ -83,14 +83,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75, maxWidth: 1024);
     if (file == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final t = context.l10nRead;
     try {
       await context.read<AuthProvider>().uploadAvatar(file);
-      final t = context.l10nRead;
       messenger.showSnackBar(
         SnackBar(content: Text(t.avatarUpdated), behavior: SnackBarBehavior.floating),
       );
     } catch (e) {
-      final t = context.l10nRead;
       messenger.showSnackBar(
         SnackBar(content: Text('${t.avatarFailed}: $e'), behavior: SnackBarBehavior.floating),
       );

@@ -55,6 +55,7 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     void load();
     const timer = setInterval(() => void load(), 20 * 60_000);
     return () => clearInterval(timer);

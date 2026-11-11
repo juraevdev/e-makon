@@ -39,6 +39,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     setIsCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
   }, []);
 
