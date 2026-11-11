@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -203,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             color: AppColors.primary,
             onRefresh: _refresh,
             child: CustomScrollView(
-              cacheExtent: 420,
+              scrollCacheExtent: const ScrollCacheExtent.pixels(420),
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(

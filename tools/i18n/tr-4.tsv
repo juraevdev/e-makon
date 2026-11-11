@@ -1,0 +1,365 @@
+1190	График визитов составляется автоматически после утверждения договора E-MAKON.	The visit schedule is generated automatically once E-MAKON approves the contract.
+1191	Визиты снова вернутся в план	Visits return to the schedule
+1192	Описания недостаточно — напишите подробнее	The description is insufficient — write more detail
+1193	Нет описания	No description
+1194	Рекомендация	Recommended
+1195	Рекомендация %	Recommended %
+1196	Рекомендуемая ставка (%)	Recommended rate (%)
+1197	Не назначен	Unassigned
+1198	Подготовка...	Preparing...
+1199	Проверяется	Under review
+1200	Проверка	Review
+1201	Очередь проверки	Review queue
+1202	На проверке	In review
+1203	Отправить на проверку	Submit for review
+1204	Нет услуг фирм, ожидающих проверки. Новая услуга появится здесь автоматически.	No firm services are awaiting review. New ones appear here automatically.
+1205	Телефон	Phone
+1206	Телефон (логин)	Phone (login)
+1207	Телефон в формате +998 XX XXX XX XX	Phone must be in the format +998 XX XXX XX XX
+1208	Неверный формат телефона	Invalid phone format
+1209	Телефон не отвечает / выключен	Phone not answering / switched off
+1210	Номер телефона — логин для входа в панель	The phone number is the panel login
+1211	Номер телефона	Phone number
+1212	Введите номер телефона полностью (+998 XX XXX XX XX)	Enter the full phone number (+998 XX XXX XX XX)
+1214	Telegram-группа	Telegram group
+1215	Telegram-канал	Telegram channel
+1216	Ваши Telegram-канал, группа, страницы Instagram и YouTube показываются кнопками на странице фирмы в приложении. Можно ввести @имя или полную ссылку.	Your Telegram channel, group, Instagram and YouTube pages appear as buttons on the firm page in the app. Enter @name or a full link.
+1217	Тестовый или шуточный заказ	Test or prank order
+1218	Система	System
+1219	Система найдёт ближайшее свободное время, поставит заказ туда и отправит сообщение клиенту.	The system finds the nearest free slot, places the order there and notifies the customer.
+1220	На счёте системы	In the system account
+1221	На счёте системы (вам)	In the system account (for you)
+1222	Удерживается на счёте системы	Held in the system account
+1223	Удержано на счёте системы	Held in the system account
+1224	Комментарий системы:	System comment:
+1225	На утверждении системы	Awaiting system approval
+1226	Не может войти в систему	Cannot sign in
+1227	Не может войти в систему, история работы сохраняется	Cannot sign in; work history is kept
+1228	Добавлен в систему	Added to the system
+1229	Оплачено	Paid
+1230	Не оплачено	Unpaid
+1231	Неоплаченный штраф	Unpaid fine
+1232	Неоплаченный штраф (UZS)	Unpaid fine (UZS)
+1233	Полное имя	Full name
+1234	Введите полное имя	Enter the full name
+1235	Полное описание	Full description
+1236	Полные полномочия	Full permissions
+1237	Оплата	Payment
+1238	Поскольку оплата началась, цену может изменить только администрация системы.	Since payment has started, only system administration can change the price.
+1239	Оплата поступила — подтвердить	Payment received — confirm
+1240	Ожидается оплата	Awaiting payment
+1241	Оплата возвращается клиенту и записывается фирме как наказание.	The payment is refunded to the customer and recorded against the firm as a penalty.
+1242	Оплата возвращается клиенту, фирме назначается штраф и продажи временно приостанавливаются.	The payment is refunded to the customer, the firm is fined and its sales are temporarily suspended.
+1243	Поток оплаты (эскроу)	Payment flow (escrow)
+1244	Отклонить оплату?	Reject the payment?
+1245	Порядок оплаты	Payment terms
+1246	Новые заказы с подтверждённой оплатой	New orders with confirmed payment
+1247	Оплата не подтверждена. Клиент должен оплатить снова.	Payment not confirmed. The customer must pay again.
+1248	Пока оплата не подтверждена, заказ нельзя принять.	The order cannot be accepted until the payment is confirmed.
+1249	Проверка оплаты	Payment review
+1250	Оплата поступает на счёт системы	Payment goes to the system account
+1251	Оплата должна поступить на счёт системы	Payment must reach the system account
+1252	Подтверждаете поступление оплаты?	Confirm that the payment was received?
+1253	Оплата не поступила — отклонить	Payment not received — reject
+1254	Оплата:	Payment:
+1255	Платежи	Payments
+1256	Приостановлено	Paused
+1257	Приостановленные	Paused
+1258	Приостановить	Pause
+1259	Причина приостановки (необязательно)	Reason for pausing (optional)
+1260	Категория	Category
+1261	Без категории	No category
+1262	Топ услуг	Top services
+1263	Сбросить	Clear
+1264	Транзакции не найдены	No transactions found
+1265	Транзакции	Transactions
+1266	Дата рождения	Date of birth
+1267	Завершён	Ended
+1268	Завершённые	Completed
+1269	Окончание	End
+1270	Дата окончания	End date
+1271	По дате окончания	By end date
+1272	Время окончания должно быть позже начала.	The end time must be after the start.
+1273	Закончил	Finished
+1274	Расторгнутые	Terminated
+1275	Расторгнутые фирмы	Terminated firms
+1276	Расторгнутых фирм нет	No terminated firms
+1277	Завершённые соглашения	Ended agreements
+1278	Завершить	End
+1279	Район	District
+1280	Убрать фильтр типа	Remove type filter
+1281	Тип	Type
+1282	Корректировка	Adjustment
+1283	Корректировка / штраф	Adjustment / fine
+1284	URL должен начинаться с http(s)://.	The URL must start with http(s)://.
+1285	Доля	Share
+1286	Доля (%)	Share (%)
+1287	Доля (UZS)	Share (UZS)
+1288	Доля должна быть в диапазоне 0–100%	The share must be between 0 and 100%
+1289	По доле	By share
+1290	Доля и долг	Share and debt
+1291	Сохранить долю	Save share
+1292	Общее	General
+1293	Общий оборот	Total turnover
+1294	Общий оборот (UZS)	Total turnover (UZS)
+1295	Общий уход	General care
+1296	Статус попытки	Attempt status
+1297	Клиент платит E-Makon → деньги удерживаются → после окончания работы фирме (доля остаётся платформе). Требование денег без работы = возврат клиенту + наказание.	The customer pays E-Makon → the money is held → after the job it goes to the firm (the share stays with the platform). A firm demanding money without work = refund to the customer + penalty.
+1298	Наказание клиента	Customer penalty
+1299	Клиент → E-Makon (удерживается) → фирма завершает работу → оплата фирме (доля остаётся у E-Makon). Если фирма требует деньги без работы или вымогает — деньги возвращаются клиенту, фирму могут наказать.	Customer → E-Makon (held) → the firm finishes the job → payout to the firm (the share stays with E-Makon). If a firm demands money without work or extorts — the money is refunded and the firm may be penalized.
+1300	Возвращено клиенту	Refunded to customer
+1301	Возвращено клиенту (UZS)	Refunded to customer (UZS)
+1302	Возврат клиенту + наказание фирмы	Refund to customer + firm penalty
+1303	Приоритет	Priority
+1304	Приоритет обновлён	Priority updated
+1305	Способ	Method
+1306	Владелец дома (Ф.И.О.)	Homeowner (full name)
+1307	Заключите долгосрочный договор ухода с владельцем дома или организацией — график визитов составится автоматически.	Sign a long-term care contract with a homeowner or organization — the visit schedule is generated automatically.
+1308	Домохозяйство	Household
+1309	Домохозяйства	Households
+1310	Долгосрочные договоры ухода с домохозяйствами и организациями. Каждый договор утверждается при посредничестве администрации E-MAKON, график визитов составляется автоматически.	Long-term care contracts with households and organizations. Each contract is approved through E-MAKON administration and the visit schedule is generated automatically.
+1311	Давно не приходили	Long absent
+1312	Долгота (lng)	Longitude (lng)
+1313	Число с пунктирной рамкой — заказ без назначенного сотрудника. Мигающее жёлтым — новый заказ. Нажмите на число — откроется заказ.	A dashed number is an order with no employee assigned. A blinking yellow one is a new order. Click a number to open the order.
+1314	Полномочие	Permission
+1315	Нет полномочий	No permissions
+1316	Полномочия	Permissions
+1317	Без полномочий	No permissions
+1318	Админ без полномочий может войти в панель, но не может управлять ни одним разделом.	An admin without permissions can sign in but cannot manage any section.
+1319	Валюта	Currency
+1320	Время	Time
+1321	Время не назначено	No time set
+1322	Время сохранено	Time saved
+1323	Временно заблокировать	Block temporarily
+1324	Заказы временно не принимаются, ёмкость занятости уменьшается	Temporarily takes no orders; schedule capacity decreases
+1325	Временно не назначается	Temporarily not assigned
+1326	Временно приостановлен — визиты не выполняются. Когда клиент будет готов, нажмите «Возобновить».	Temporarily paused — visits are not carried out. Press "Resume" when the customer is ready.
+1327	Распределение времени	Time slots
+1328	Сохранить время	Save time
+1329	Обновить время	Update time
+1330	Без времени	No time
+1331	Лист	Sheet
+1332	Веб-сайт	Website
+1333	Разделяйте запятой	Separate with commas
+1334	Область	Region
+1335	Область / город	Region / city
+1336	Область, район, улица, дом	Region, district, street, house
+1337	Сообщение	Message
+1338	Сообщение / предупреждение / отчёт	Message / warning / report
+1339	Напишите сообщение...	Write a message...
+1340	Сообщение не отправлено	Message not sent
+1341	Сообщения	Messages
+1342	Сообщений нет	No messages
+1343	Сообщения не загрузились	Messages failed to load
+1344	Сообщения загружаются...	Loading messages...
+1345	Карта	Map
+1346	Карта загружается…	Loading map…
+1347	Ошибка	Error
+1348	Ошибка	Error
+1349	Произошла ошибка	An error occurred
+1350	Услуга	Service
+1351	Услуга начинается от 1 часа; если затягивается, продлевается в заказе.	A service starts at 1 hour and is extended in the order if it runs over.
+1352	Сервисные фирмы	Service firms
+1353	Название услуги (предложение вашей фирмы)	Service name (your firm's offer)
+1354	Введите название услуги	Enter the service name
+1355	Услуга удалена	Service deleted
+1356	Удалить услугу?	Delete the service?
+1357	Услуга снова включена	Service re-enabled
+1358	Добавить услугу	Add service
+1359	Изображение услуги	Service image
+1360	Услуга приостановлена	Service paused
+1361	Приостановить услугу?	Pause the service?
+1362	Поиск по услуге, фирме или типу...	Search by service, firm or type...
+1363	Не привязано к услуге	Not linked to a service
+1364	Услуги	Services
+1365	По услугам	By service
+1366	Услуги и цены	Services and prices
+1367	Услуг нет	No services
+1368	Отклонить услугу	Reject service
+1369	Редактировать услугу	Edit service
+1370	Сотрудник	Employee
+1371	Сотрудник не назначен	No employee assigned
+1372	Сотрудник назначен	Employee assigned
+1373	Назначьте сотрудника, напишите отчёт	Assign an employee, write a report
+1374	Изменить статус сотрудника	Change employee status
+1375	Карточка сотрудника обновлена	Employee card updated
+1376	Редактировать карточку сотрудника	Edit employee card
+1377	Сотрудник входит в мобильное приложение с этим паролем	The employee signs in to the mobile app with this password
+1378	Сотрудник добавлен — он может войти в приложение сотрудника с этим телефоном и паролем	Employee added — they can sign in to the employee app with this phone and password
+1379	Личная карточка сотрудника	Employee personal card
+1380	Сотрудник входит в приложение сотрудника с этим номером телефона и паролем.	The employee signs in to the employee app with this phone number and password.
+1381	Выберите сотрудника	Select an employee
+1382	Нет сотрудника	No employee
+1383	У сотрудника	With employee
+1384	Сотрудники	Employees
+1385	Управление сотрудниками	Employee management
+1386	Сотрудники не найдены	No employees found
+1387	Добавление, назначение и смена статуса сотрудников	Add, assign and change the status of employees
+1388	Не удалось загрузить сотрудников	Failed to load employees
+1389	Перевод сотрудника в другую фирму пока не поддерживается.	Moving an employee to another firm is not supported yet.
+1390	Добавить сотрудника	Add employee
+1391	Редактировать сотрудника	Edit employee
+1392	Введите полное имя сотрудника	Enter the employee's full name
+1393	Итог	Summary
+1394	Вс	Sun
+1395	Воскресенье	Sunday
+1396	Итоговый комментарий (необязательно)	Final comment (optional)
+1397	Завершено	Finished
+1398	Оборот завершённых работ	Turnover from finished jobs
+1399	По завершённым работам	For finished jobs
+1400	С завершённых работ	From finished jobs
+1401	Завершено, ожидается перевод денег	Finished, awaiting transfer
+1402	Завершить	Complete
+1403	Ещё	More
+1404	Показать ещё (	Show more (
+1405	Яндекс Карта не загрузилась	Yandex map failed to load
+1406	Посмотреть на Яндекс Карте	View on Yandex Maps
+1407	Новый	New
+1408	Новый админ	New admin
+1409	Новый администратор	New administrator
+1410	Новый баннер	New banner
+1411	Новые фирмы	New firms
+1412	Новый статус	New status
+1413	Новый инвестор	New investor
+1414	Новый тип каталога	New catalog type
+1415	Новый тип каталога добавлен	New catalog type added
+1416	Новый тип каталога: "	New catalog type: "
+1417	Новый клиент	New customer
+1418	Новая награда	New reward
+1419	Новый пароль	New password
+1420	Новый пароль (необязательно)	New password (optional)
+1421	Новый договор ухода	New care contract
+1422	Новый договор	New contract
+1423	Новый диалог	New conversation
+1424	Новый тип	New type
+1425	Предложение нового типа	New type proposal
+1426	Предложение нового типа отправляется суперадмину. После одобрения он добавляется в каталог приложения, и другие фирмы тоже смогут присоединиться к нему со своей ценой.	A new type proposal is sent to the superadmin. Once approved, it is added to the app catalog and other firms can join it with their own price.
+1427	Новая услуга	New service
+1428	Название нового типа услуги	New service type name
+1429	Новый тип услуги отправлен суперадмину. После одобрения он добавится в каталог приложения.	The new service type was sent to the superadmin. Once approved, it is added to the app catalog.
+1430	Новый сотрудник	New employee
+1431	Добавить нового сотрудника	Add a new employee
+1432	Для нового сотрудника пароль обязателен	A password is required for a new employee
+1433	Обновлено	Updated
+1434	Обновление...	Updating...
+1435	Обновление…	Updating…
+1436	Обновить	Refresh
+1437	Январь	January
+1438	В ближайшие 14 дней свободного времени не найдено. Добавьте сотрудника или назначьте время вручную.	No free slot found in the next 14 days. Add an employee or set the time manually.
+1439	Создано	Created
+1440	Создан	Created
+1441	Создан / утверждён	Created / approved
+1442	Создать	Generate
+1443	Адрес проживания	Home address
+1444	Скрыто, хранится для истории	Hidden, kept for history
+1445	Скрыть	Hide
+1446	Списано	Deducted
+1447	Списано	Deducted
+1448	Время прибытия (минуты)	Arrival time (minutes)
+1449	Время прибытия обновлено	Arrival time updated
+1450	Прибыл	Arrived
+1451	Доставлено, ещё не прочитано	Delivered, not read yet
+1452	Год	Yearly
+1453	Годовая — $90 / место	Yearly — $90 / seat
+1454	В пути	On the way
+1455	Выехал	Departed
+1456	Направление	Specialty
+1457	Маршрут →	Directions →
+1458	Нет	No
+1459	Или другое название Material Symbols	Or another Material Symbols name
+1460	Закрыт	Closed
+1461	На закрытое обращение клиент больше не может ответить.	The customer can no longer reply to a closed request.
+1462	Закрыть	Close
+1463	Включить	Enable
+1464	Написать	Write
+1465	Отправлено	Sent
+1466	Не отправлено	Not sent
+1467	Не отправлено — повторить	Not sent — retry
+1468	Отправка...	Sending...
+1469	Отправить	Send
+1470	Отправитель	Sender
+1471	Если загружено изображение, приоритет у него.	If an image is uploaded, it takes priority.
+1472	Не загрузилось	Failed to load
+1473	Загрузка...	Loading...
+1474	Высокий	High
+1475	Юридическое название	Legal name
+1476	Юридическое название:	Legal name:
+1477	Слабый	Weak
+1478	точной, фиксированной ценой	exact, fixed price
+1479	оценок)	ratings)
+1480	выполнено ·	completed ·
+1481	баллов — клиенту нужно не меньше этого количества.	points — the customer needs at least this many.
+1482	баннеров показывается (активные или запланированные и в пределах срока).	banner(s) shown (active or scheduled and within their period).
+1483	— соглашение будет расторгнуто, а фирма исключена из платформы.	— the agreement will be ended and the firm removed from the platform.
+1484	— соглашение будет расторгнуто. Это действие нельзя отменить.	— the agreement will be ended. This cannot be undone.
+1485	будет заблокирована и не сможет принимать новые заказы.	will be blocked and cannot accept new orders.
+1486	будет удалён полностью. Чтобы временно скрыть, используйте статус «Черновик» или «Архив».	will be deleted permanently. To hide temporarily, use the "Draft" or "Archive" status.
+1487	заказ (число активных сотрудников). В приложении клиент может выбрать только зелёное время.	order(s) (number of active employees). In the app the customer can pick only green slots.
+1488	будет заблокирован за фиктивную заявку по заказу. Аккаунт отключается: войти в приложение и оформить новый заказ нельзя. При необходимости позже можно разблокировать.	will be blocked for a fake request on the order. The account is disabled: no app sign-in and no new orders. It can be unblocked later if needed.
+1489	заказов ·	orders ·
+1490	заказов · оборот за период	orders · period turnover
+1491	заказов · ставка	orders · rate
+1492	деактивирован	deactivated
+1493	активных ·	active ·
+1494	не сможет входить в приложение и оформлять заказы.	will not be able to sign in to the app or place orders.
+1498	в процессе ·	in progress ·
+1499	будет полностью удалена из каталога. История ранее обменянных баллов сохранится. Чтобы временно скрыть, достаточно сделать «Неактивной».	will be removed from the catalog permanently. The history of previously redeemed points is kept. To hide temporarily, just make it "Inactive".
+1500	будет удалён из каталога.	will be removed from the catalog.
+1501	поступило. Просмотрите их и поставьте на свободное время.	arrived. Review them and place them in free slots.
+1502	не указано	not specified
+1503	раз ·	times ·
+1505	оценок клиентов	customer ratings
+1506	фиксированные точные цены	fixed exact prices
+1507	будет снова активирован и получит доступ к системе.	will be reactivated and regain access to the system.
+1508	снова сможет пользоваться приложением.	will be able to use the app again.
+1510	название страницы	page name
+1511	сум	UZS
+1512	сум заказов.	UZS in orders.
+1513	секунд обновляется	seconds refresh
+1514	шт. (всего	(total
+1515	администраторов	administrator(s)
+1516	заказов	orders
+1517	заказов показано (всего	orders shown (total
+1518	заказов без геолокации — видны только в списке.	orders have no geolocation — shown in the list only.
+1519	активных заказов — передайте их другому сотруднику в разделе «Заказы».	active orders — hand them over to another employee in the Orders section.
+1520	предложений фирм	firm offers
+1521	фирм)	firms)
+1522	без отчёта	without a report
+1523	клиентов	customers
+1524	клиентов ·	customers ·
+1525	договоров	contracts
+1526	договоров (самые новые).	contracts (newest).
+1527	диалогов ждут ответа фирмы. Самый старый:	conversations await the firm's reply. Oldest:
+1528	визитов	visits
+1529	визитов без отчёта	visits without a report
+1530	транзакций (всего	transactions (total
+1531	транзакций загружено	transactions loaded
+1532	услуг из	of services
+1533	сотрудников	employees
+1534	новых заказов	new orders
+1535	новых сообщений	new messages
+1536	записей · чистый итог:	entries · net result:
+1537	ждут вашего утверждения. Фирма и клиент ожидают активации договора.	await your approval. The firm and the customer are waiting for the contract to be activated.
+1538	загружено. Для более точного результата используйте поиск.	loaded. Use search for a more precise result.
+1539	не сможет входить в систему и выполнять действия админа.	will not be able to sign in or perform admin actions.
+1551	время не назначено	no time set
+1552	предложение нового типа	new type proposal
+1553	должен был прибыть	was due to arrive
+1554	или URL изображения	or image URL
+1555	будет отправлено. Суперадмин проверит ситуацию и заблокирует клиента в приложении. Если была оплата, она вернётся клиенту.	will be sent. The superadmin reviews the case and blocks the customer in the app. Any payment is refunded to the customer.
+1556	· свободно	· free
+1557	· эта цена значительно выше рыночной	· this price is well above the market
+1558	· сейчас:	· now:
+1559	· внутренняя заметка	· internal note
+1560	· последний	· last
+1561	· сотрудник не назначен	· no employee assigned
+1562	— Не привязано —	— Not linked —
+1563	— Выберите фирму —	— Select a firm —
+1564	— после одобрения одного остальные автоматически добавятся к этому типу.	— once one is approved, the rest are added to this type automatically.
+1565	— свободные часы (сейчас):	— free hours (live):
+1566	— заказы, которые фирма отменила, начав комментарий со слова «SOXTA». Если клиент раз за разом оформляет фиктивные заказы, заблокируйте его: заблокированный клиент не может войти в приложение.	— orders the firm cancelled with a comment starting with "SOXTA". If a customer keeps placing fake orders, block them: a blocked customer cannot sign in to the app.
+1567	— при отмене по согласованию с клиентом.	— when cancelled by agreement with the customer.
+1568	— цена фиксированная, не растёт в зависимости от площади.	— the price is fixed and does not grow with the area.
+1569	— при годовой	— with yearly
+1570	← Фирмы	← Firms
+1571	→ клиент	→ customer

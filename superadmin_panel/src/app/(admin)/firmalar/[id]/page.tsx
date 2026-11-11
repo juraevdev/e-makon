@@ -103,7 +103,7 @@ export default function FirmaProfilPage() {
           ["Stavka (%)", Number(firm.commission_rate) || 0],
           ["Tavsiya stavka (%)", Number(data.suggested_rate) || 0],
           ["Aylanma (UZS)", Number(data.revenue) || 0],
-          ["Kampaniya ulushi (UZS)", Number(data.platform_share) || 0],
+          ["Kompaniya ulushi (UZS)", Number(data.platform_share) || 0],
           ["Escrowda (UZS)", Number(data.finance.held_in_escrow) || 0],
           ["Firmaga to'langan (UZS)", Number(data.finance.paid_to_firm) || 0],
           ["Userga qaytarilgan (UZS)", Number(data.finance.refunded) || 0],
@@ -216,7 +216,7 @@ export default function FirmaProfilPage() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {[
           { label: "Daromad (aylanma)", value: formatMoney(data.revenue) },
-          { label: "Kampaniya ulushi", value: formatMoney(data.platform_share) },
+          { label: "Kompaniya ulushi", value: formatMoney(data.platform_share) },
           { label: "Escrowda", value: formatMoney(data.finance.held_in_escrow) },
           { label: "Firmaga to'langan", value: formatMoney(data.finance.paid_to_firm) },
           { label: "Userga qaytarilgan", value: formatMoney(data.finance.refunded) },
@@ -290,7 +290,7 @@ export default function FirmaProfilPage() {
           <p className="mb-3 text-sm text-on-surface-variant">
             Tavsiya: <strong className="text-primary">{data.suggested_rate}%</strong> (0.1%–3%)
           </p>
-          <Field label="Kampaniya ulushi (%)">
+          <Field label="Kompaniya ulushi (%)">
             <input className={inputClass} type="number" step="0.1" min="0.1" max="3" value={rate} onChange={(e) => setRateDraft(e.target.value)} />
           </Field>
           <div className="mt-3 flex flex-wrap gap-2">

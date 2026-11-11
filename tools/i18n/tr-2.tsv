@@ -1,0 +1,399 @@
+400	Ещё не заказывал в вашей фирме.	Has not ordered from your firm yet.
+401	Обращались в вашу фирму	Have contacted your firm
+402	Наказать фирму	Penalize firm
+403	Временно заблокировать фирму	Temporarily block the firm
+404	Повышение процента, штраф, платёж/возврат эскроу — всё записывается здесь.	Rate increases, fines, escrow payouts/refunds — everything is recorded here.
+405	Исправьте ошибки в форме	Fix the errors in the form
+406	Пользователь	User
+407	По	To
+408	Гео не указано	No location set
+409	Группа	Group
+410	Да	Yes
+411	Да, отменить	Yes, cancel
+412	Дни недели	Days of the week
+413	Неделя	Weekly
+414	Администраторов пока нет	No administrators yet
+415	Ещё не обменяно	Not redeemed yet
+416	Оценок пока нет	No ratings yet
+417	Оценок пока нет	No ratings yet
+418	Движений баллов пока нет.	No points activity yet.
+419	Заказов пока нет	No orders yet
+420	Ещё не назначен на заказ.	Not assigned to an order yet.
+421	Навыки ещё не добавлены	No skills added yet
+422	Соцсети ещё не добавлены	No social links added yet
+423	Тикетов пока нет	No tickets yet
+424	Платежей пока нет	No payments yet
+425	Сообщений пока нет	No messages yet
+426	Сообщений пока нет. Напишите первым.	No messages yet. Be the first to write.
+427	Сотрудников пока нет	No employees yet
+428	Записей пока нет	No entries yet
+429	Партнёр	Partner
+430	Партнёры	Partners
+431	Всё прочитано	All read
+432	Ко всем назначен сотрудник	All have an employee assigned
+433	Каждые	Every
+434	Отдельная комната для каждого клиента — выберите слева.	A separate room for each customer — pick one on the left.
+435	Личная карточка каждого сотрудника: данные, трудовая деятельность и статус. На заказы назначаются только сотрудники в статусе «Работает», они же определяют почасовую ёмкость в графике занятости.	Each employee's personal card: details, work history and status. Only employees with the "Working" status are assigned to orders and count toward hourly capacity in the schedule.
+436	Раз в квартал	Quarterly
+437	Ежемесячно	Monthly
+438	История действий	Activity history
+439	Водитель	Driver
+440	Аккаунт блокируется, история сохраняется	The account is blocked, history is kept
+441	Аккаунт активен	Account active
+442	Расчёты	Settlement
+443	Расчёты (автоматический журнал)	Settlement (automatic ledger)
+444	Журнал расчётов	Settlement journal
+445	Начислено	Credited
+446	Отчёт	Report
+447	Отчёт / комментарий	Report / comment
+448	Ожидается отчёт	Report pending
+449	Отчёты	Reports
+450	Статус	Status
+451	Обозначения	Legend
+452	Статус не изменился	Status unchanged
+453	История статусов	Status history
+454	Статус обновлён	Status updated
+455	Статусы	Statuses
+456	Не удалось изменить статус	Could not change the status
+457	Сохранить статус	Save status
+458	Сейчас	Now
+459	Сейчас свободны	Free now
+460	Сейчас в приложении	Currently in the app
+461	Уведомлений пока нет	No notifications yet
+462	С этого момента	From now
+463	Регион	Region
+464	Регион не указан	No region
+465	Документы оформляются	Paperwork in progress
+466	Права не проверены	Permissions not verified
+467	Внутреннее	Internal
+468	Внутренняя заметка (видят только админы)	Internal note (admins only)
+469	Внутренняя заметка — клиенту не видна...	Internal note — not visible to the customer...
+470	Исполнение	Execution
+471	Социальные сети	Social networks
+472	Иконка	Icon
+473	Иконка (Material)	Icon (Material)
+474	В приложении	In the app
+475	Вид в приложении	App preview
+476	Не видно в приложении	Not shown in the app
+477	Показывать в приложении	Show in the app
+478	В приложении показывается под заголовком	Shown under the title in the app
+479	Телефон аккаунта в приложении	App account phone
+480	Клиент в приложении	App customer
+481	Заказы из приложения появляются здесь в реальном времени. Поставьте каждый заказ на свободное время, назначьте ответственного сотрудника и отмечайте этапы работ — клиент видит всё в приложении.	Orders from the app appear here in real time. Place each order in a free slot, assign an employee and mark the work stages — the customer sees it all in the app.
+482	Скрыть из приложения	Hide from the app
+484	Инвестиция	Investment
+485	Сумма инвестиции	Investment amount
+486	Инвестор	Investor
+487	Партнёры-инвесторы	Investor partners
+488	Данные инвестора	Investor details
+489	Инвесторы	Investors
+490	Инвесторы (всего)	Investors (total)
+491	Инвесторов нет	No investors
+492	Не удалось загрузить инвесторов	Failed to load investors
+493	Добавить инвестора	Add investor
+494	Не удалось сохранить инвестора	Could not save the investor
+495	Если работа не выполнена или заказ отменён, удержанные деньги полностью возвращаются клиенту. Необоснованные требования ведут к штрафу и запрету продаж.	If the job is not done or the order is cancelled, the held money is fully refunded to the customer. Unfounded claims lead to a fine and a sales ban.
+496	Работа начата	Work started
+497	Этап работ	Work stage
+498	Если работа затягивается, продлите — следующие часы будут показаны клиентам как занятые (красные).	Extend if the job runs over — the following hours will show as busy (red) to customers.
+499	Трудовая деятельность	Work history
+500	Место работы	Workplace
+501	Рабочие данные	Work details
+502	Порядок работ, используемые инструменты, гарантия, дополнительные условия...	Work procedure, tools used, warranty, additional terms...
+503	Время работы	Working hours
+504	Время работы продлено на 1 час	Working time extended by 1 hour
+505	Время работы продлено на 30 минут	Working time extended by 30 minutes
+506	Время работы не указано	Working hours not set
+507	Время работы:	Working hours:
+508	Работа завершена	Work finished
+509	Работа отмечена как завершённая. После подтверждения администрацией системы деньги будут переведены на счёт вашей фирмы.	Marked as finished. Once system administration confirms, the money is transferred to your firm.
+510	После завершения работы деньги переходят фирме	The money goes to the firm once the work is finished
+511	Платежи, ожидающие завершения работ	Payments awaiting job completion
+512	Рабочая группа приняла	Accepted by the crew
+513	Работает	Working
+514	В работе (в пути / на месте)	In progress (on the way / on site)
+515	У работающих сотрудников	Among working employees
+516	Уволен	Dismissed
+517	Уволен:	Dismissed:
+518	Уволить	Dismiss
+519	Причина увольнения	Reason for dismissal
+520	Укажите причину увольнения	Enter the reason for dismissal
+521	Принят на работу	Hired
+522	Дата приёма на работу	Hire date
+523	Принят	Hired
+524	Дата приёма	Hire date
+525	Вернуть на работу	Reinstate
+526	Перечень работ, чьи удобрения/материалы, гарантия, штрафы...	List of works, who supplies fertilizer/materials, warranty, penalties...
+527	Работает	Working
+528	Закончил работу	Finished work
+529	Клиенты-участники	Participating customers
+530	Имя	First name
+531	Имя (А–Я)	Name (A–Z)
+532	По имени	By name
+533	Имя не указано	Name not provided
+534	Имя не указано	Name not specified
+535	Нет имени	No name
+536	Поиск по имени или телефону	Search by name or phone
+538	Имя, компания, телефон или email...	Name, company, phone or email...
+539	Поиск по имени, телефону или должности	Search by name, phone or position
+540	Имя, телефон или должность...	Name, phone or position...
+541	Имя, телефон, должность или фирма...	Name, phone, position or firm...
+542	Необязательно	Optional
+543	Необязательно — для кадрового учёта	Optional — for HR records
+544	Необязательно — клиент получает сообщения о визитах в приложении	Optional — the customer gets visit notifications in the app
+545	Июль	July
+546	Июнь	June
+547	Комментарий	Comment
+548	Комментарий (необязательно)	Comment (optional)
+549	Комментарий (виден и клиенту)	Comment (also visible to the customer)
+550	Комментарий / условия соглашения	Comment / agreement terms
+551	Комментарий / причина	Comment / reason
+552	Комментарий отправлен фирме	Comment sent to the firm
+553	Комментарий записывается в историю карточки сотрудника	The comment is saved to the employee card history
+554	JPG, PNG, WEBP ·	JPG, PNG, WEBP ·
+555	JPG/PNG, до 5 МБ	JPG/PNG, up to 5 MB
+556	График	Schedule
+557	По графику не получилось ни одного визита — проверьте даты	The schedule produced no visits — check the dates
+558	Всего	Total
+559	Всего (UZS)	Total (UZS)
+560	Всего (активных)	Total (active)
+561	Всего админов	Total admins
+562	Общий оборот	Total turnover
+563	Общий оборот (UZS)	Total turnover (UZS)
+564	Всего заказов	Total orders
+565	Всего инвесторов	Total investors
+566	Всего договоров	Total contracts
+567	Общая сумма	Total amount
+568	Всего покупок	Total purchases
+569	Всего сотрудников	Total employees
+570	В процессе	In progress
+571	В процессе	In progress
+572	Штраф	Fine
+573	Штраф (UZS)	Fine (UZS)
+574	Штраф — 0 или больше, запрет — 0–365 дней	Fine must be 0 or more, ban 0–365 days
+575	Назначить штраф	Impose fine
+576	Штраф и запрет продаж назначаются только после предупреждения или отчёта.	Fines and sales bans are issued only after a warning or a report.
+577	Штрафы	Fines
+578	Штрафов нет	No fines
+579	Ответ	Reply
+580	Ждёт ответа	Awaiting reply
+581	Ответ не отправлен	Reply was not sent
+582	Физическое лицо или представитель компании	Individual or company representative
+583	Живая карта	Live map
+584	Текущий статус	Current status
+585	Определить текущее местоположение	Use current location
+586	На месте	On site
+587	Не удалось поставить	Could not place
+588	Местоположение	Location
+589	Доступ к местоположению не разрешён	Location permission denied
+590	Пт	Fri
+591	Слишком большое значение	Value is too large
+592	Пятница	Friday
+593	Журнал	Journal
+594	Журнал пуст	Journal is empty
+595	Редкие услуги	Least used services
+596	Не менее 1 сума, целое число	At least 1 UZS, an integer
+597	Не менее 6 символов	At least 6 characters
+598	Не менее 6 символов	At least 6 characters
+599	Не менее 8 символов	At least 8 characters
+600	Не менее 8 символов. Кнопка «Создать» предложит надёжный пароль	At least 8 characters. The "Generate" button suggests a strong password
+601	Капитал и доля	Capital and share
+602	Карточки	Cards
+603	Открыть карточку →	Open card →
+604	Каталог пуст	Catalog is empty
+605	Тип каталога	Catalog type
+606	Тип каталога — это раздел в клиентском приложении. Фирмы добавляют свои цены как предложения к этому типу.	A catalog type is a section in the customer app. Firms add their prices to it as offers.
+607	Название типа каталога...	Catalog type name...
+608	Тип каталога обновлён	Catalog type updated
+609	Тип каталога:	Catalog type:
+610	Удалить тип каталога	Delete catalog type
+611	Редактировать тип каталога	Edit catalog type
+612	Типы каталога	Catalog types
+613	Такой тип уже есть в каталоге — добавьте к существующему	This type already exists in the catalog — add to the existing one
+614	В каталоге есть похожий тип:	The catalog has a similar type:
+615	В каталоге есть похожий тип. Если ваша услуга — один из них, выберите его: в приложении вы будете показаны внутри этой услуги, а не отдельно:	The catalog has a similar type. If your service is one of these, select it — in the app you will be listed inside that service rather than separately:
+616	В каталоге нет — предлагаю новый тип	Not in the catalog — propose a new type
+617	Тип услуги в каталоге	Catalog service type
+618	Старший менеджер	Senior manager
+619	Вчера	Yesterday
+620	Опоздание	Late
+621	Отложено	Postponed
+622	Отложенные будущие визиты будут запланированы снова.	Postponed upcoming visits will be scheduled again.
+623	Дата не может быть в будущем	The date cannot be in the future
+624	Предстоящие	Upcoming
+625	Предстоящие запланированные визиты перейдут в статус «Отложено».	Upcoming scheduled visits will switch to "Postponed".
+626	Предстоящие запланированные визиты будут удалены. Это действие нельзя отменить.	Upcoming scheduled visits will be deleted. This cannot be undone.
+627	Согласованный срок	Agreed period
+628	Согласованные заказы, по которым связались	Agreed and contacted orders
+629	Согласуется	Negotiating
+630	Соглашение расторгнуто — причина сохраняется в истории	Agreement terminated — the reason is kept in history
+631	Статус соглашения	Agreement status
+632	Соглашение подписано	Agreement signed
+633	Номер соглашения, график платежей, особые условия...	Agreement number, payment schedule, special terms...
+634	Соглашение завершено	Agreement ended
+635	Не удалось завершить соглашение	Could not end the agreement
+636	Расторгнуть соглашение	End agreement
+637	Укажите причину расторжения соглашения	Enter the reason for ending the agreement
+638	Широта (lat)	Latitude (lat)
+639	Следующий день	Next day
+640	Следующий визит	Next visit
+641	По следующему визиту	By next visit
+642	Меньшее число — выше в списке	Lower numbers appear higher in the list
+643	Меньшее число — раньше	Lower number — earlier
+644	Кто	Who
+645	Данные для входа	Sign-in details
+646	Вход и должность	Sign-in and position
+647	Вносимый капитал	Capital invested
+648	Не указано	Not provided
+649	Перенос:	Move:
+650	Навыки	Skills
+651	Не более 120 месяцев	120 months at most
+652	Вид	View
+653	Вид	Appearance
+654	Просмотр	View
+655	Выберите оказываемую услугу из типов каталога и укажите точную цену.	Pick the service you provide from the catalog types and enter its exact price.
+656	Показано:	Showing:
+657	Показать	Show
+658	Показатель	Metric
+659	Показатели	Metrics
+660	Компания	Company
+661	Доля компании	Company share
+662	Доля компании (%)	Company share (%)
+663	Доля компании (%) 0.1 – 3.0	Company share (%) 0.1 – 3.0
+664	Доля компании (UZS)	Company share (UZS)
+665	Доля компании:	Company share:
+666	Контакты	Contacts
+667	Кредит	Credit
+668	Надёжный	Strong
+669	День	Day
+670	Дни	Days
+671	День	Daily
+672	Ожидается	Pending
+673	Ландшафт	Landscaping
+674	Ландшафтный дизайнер	Landscape designer
+675	Шир.	Lat
+676	Широта	Latitude
+677	Должность	Position
+678	Должность / звание	Position / title
+679	Должность не длиннее 120 символов	Position must not exceed 120 characters
+680	Слишком длинная должность	Position is too long
+681	Должность не указана	Position not provided
+682	Журнал	Ledger
+683	Долг.	Lng
+684	Логин (телефон)	Login (phone)
+685	Долгота	Longitude
+686	МБ макс.	MB max
+687	Данные	Info
+688	Нет данных	No data
+689	Данные не загрузились	Data failed to load
+690	Данные	Details
+691	Администрация рассмотрит; при одобрении составится график	Administration reviews it; the schedule is created once approved
+692	Ожидается подтверждение администрации	Awaiting administration approval
+693	Сообщения администрации	Administration messages
+694	Квалификация	Qualification
+695	О квалификации, сертификатах, опыте работы...	About qualifications, certificates, work experience...
+696	Декоративные растения	Ornamental plants
+697	Адрес	Address
+698	Адрес не указан	Address not provided
+699	Адрес отсутствует	No address available
+700	Нет адреса	No address
+701	Март	March
+702	Ответственный	Responsible
+703	Ответственное лицо	Contact person
+704	Ответственный сотрудник / бригадир	Assigned employee / foreman
+705	Ответственные сотрудники	Assigned employees
+706	Например 10 000 — 1 балл за каждые 10 000 сум	E.g. 10,000 — 1 point per 10,000 UZS
+707	Например: Али Валиев	E.g. Ali Valiyev
+708	Например: Весенняя скидка −20%	E.g. Spring discount −20%
+709	Например: Бесплатная услуга полива	E.g. Free irrigation service
+710	Например: Бригадир	E.g. Foreman
+711	Например: Обрезка деревьев	E.g. Tree pruning
+712	Например: Спил деревьев	E.g. Tree cutting
+713	Например: Green Capital ООО	E.g. Green Capital LLC
+714	Например: Годовой уход за двором и садом	E.g. Annual yard and garden care
+715	Например: Жасур Каримов	E.g. Jasur Karimov
+716	Например: Сардор Алиев	E.g. Sardor Aliyev
+717	Расстояние (км)	Distance (km)
+718	Чтобы расстояние считалось автоматически, укажите местоположение в профиле фирмы и адрес клиента.	To calculate distance automatically, set the location in the firm profile and the customer's address.
+719	Название Material Symbols: строчные латинские буквы, цифры и _	Material Symbols name: lowercase Latin letters, digits and _
+720	Текст	Text
+721	Добавить к существующему типу:	Add to an existing type:
+722	Сезон	Seasonal
+723	Тема	Subject
+724	Тема, клиент или телефон...	Subject, customer or phone...
+725	Макс. цена (UZS)	Max price (UZS)
+726	Май	May
+727	Площадь	Area
+728	Площадь / объём	Area / volume
+729	Мой профиль	My profile
+730	Клиент	Customer
+731	Клиент сказал «оплатил»	Customer says "paid"
+732	Клиент платит через Click или Payme, деньги сначала удерживаются на счёте E-Makon. Пока оплата не подтверждена, заказ нельзя взять в работу.	The customer pays via Click or Payme and the money is first held by E-Makon. The order cannot be started until the payment is confirmed.
+733	Заблокировать аккаунт клиента	Block customer account
+734	Клиент не определён	Customer not identified
+735	Оценки клиентов	Customer ratings
+736	Клиент может обменять, если на балансе не меньше этого числа баллов	The customer can redeem once the balance has at least this many points
+737	С клиентом связались	Customer contacted
+738	Для безопасной и надёжной работы с клиентом расчёты проводятся через систему.	For safe and reliable dealings with customers, settlement goes through the system.
+739	Клиент разблокирован	Customer unblocked
+740	Клиент заблокирован	Customer blocked
+741	Клиент заблокирован	Customer is blocked
+742	Клиент сказал, что не делал заказ	The customer said they did not place the order
+743	Когда клиент напишет фирме из приложения, диалог появится здесь.	When a customer writes to a firm from the app, the conversation appears here.
+744	Геоточки клиентов и партнёры	Customer geo points and partners
+745	Клиент ещё не оплатил. Вы сможете принять заказ, когда оплата поступит на счёт системы и будет подтверждена.	The customer has not paid yet. You can accept the order once the payment reaches the system account and is confirmed.
+746	Клиент ещё не выбрал способ оплаты.	The customer has not chosen a payment method yet.
+747	Клиент появляется в этом списке автоматически, когда регистрируется в приложении и заказывает услугу вашей фирмы. Фирма не может добавить клиента вручную.	A customer appears in this list automatically after signing up in the app and ordering your firm's service. A firm cannot add customers manually.
+748	Если клиент отправит обращение из приложения, оно появится здесь.	When a customer sends a request from the app, it shows up here.
+749	Если клиент отправит официальное обращение из приложения, оно откроется здесь.	When a customer sends a formal request from the app, it opens here.
+750	Комната открывается, когда клиент пишет из приложения или вы нажимаете «Написать» на странице «Клиенты».	A room opens when a customer writes from the app or you press "Write" on the Customers page.
+751	Карусель и промо-баннеры в клиентском приложении. Сейчас в приложении	Carousel and promo banners in the customer app. Currently in the app:
+752	Карусель/промо-баннер в клиентском приложении. Изображение 16:9 (например 1280×720) выглядит лучше всего.	Carousel/promo banner in the customer app. A 16:9 image (e.g. 1280×720) looks best.
+753	Имя клиента, телефон, комментарий или #заказ...	Customer name, phone, comment or #order...
+754	Введите имя клиента	Enter the customer's name
+755	Комментарий клиента	Customer comment
+756	Карточка клиента	Customer card
+757	Потом клиент сможет войти в мобильное приложение с этим номером телефона	The customer can later sign in to the mobile app with this phone number
+758	Ответьте на обращение клиента, управляйте статусом и приоритетом.	Reply to the customer's request and manage its status and priority.
+759	Клиент не прочитал	Unread by customer
+760	Сообщения, не прочитанные клиентом	Messages unread by the customer
+761	Клиент добавлен	Customer added
+762	Добавить клиента	Add customer
+763	Клиент в отъезде или сезон закончился — визиты временно приостанавливаются	The customer is away or the season is over — visits pause temporarily
+764	Телефон клиента	Customer phone
+765	Клиент оплатил	Customer paid
+766	Если клиент оплатил, деньги полностью возвращаются ему. Необоснованные отмены влияют на рейтинг фирмы.	If the customer has paid, the money is fully refunded. Unjustified cancellations affect the firm's rating.
+767	Клиент сообщил об оплате — администрация системы проверяет.	The customer reported a payment — system administration is checking.
+768	Оплата клиента	Customer payment
+769	Оплата клиента сначала удерживается на счёте E-Makon. Когда работа завершена и администрация системы подтвердила, доля платформы (	The customer's payment is first held by E-Makon. Once the job is finished and system administration confirms, the platform share (
+770	Ожидается оплата клиента	Awaiting customer payment
+771	Тип клиента	Customer type
+772	Клиент и администрация системы видят в реальном времени	The customer and system administration see it in real time
+773	Чаты Клиент ↔ Фирма	Customer ↔ Firm chats
+774	Наблюдайте за перепиской клиент ↔ фирма в реальном времени, вмешивайтесь от имени E-Makon и отвечайте на обращения в поддержку.	Monitor customer ↔ firm conversations in real time, step in on behalf of E-Makon and answer support requests.
+775	Клиент, фирма или сообщение...	Customer, firm or message...
+776	Клиент, фирма, телефон, адрес или #ID...	Customer, firm, phone, address or #ID...
+777	Укажите клиента, график и цену	Enter the customer, schedule and price
+778	Изменить клиента, график или цену	Change the customer, schedule or price
+779	С клиента списывается до 50 баллов.	Up to 50 points are deducted from the customer.
+780	Напишите ответ клиенту...	Write a reply to the customer...
+781	Возвращено клиенту	Refunded to customer
+782	Клиент получит сообщение, что оплата не поступила, и должен будет оплатить снова.	The customer is told the payment did not arrive and will need to pay again.
+783	Клиенты	Customers
+784	Клиенты (всего)	Customers (total)
+785	Когда клиенты заказывают услуги вашей фирмы в приложении E-MAKON, заказы сразу появляются здесь.	Orders appear here as soon as customers order your firm's services in the E-MAKON app.
+786	Добавьте хотя бы одну активную награду, чтобы клиенты могли обменивать баллы.	Add at least one active reward so customers can redeem points.
+787	Живая переписка с клиентами — отдельная комната для каждого клиента. Администрация системы (E-Makon) тоже может подключиться как посредник.	Live chat with customers — a separate room for each. System administration (E-Makon) can also join as a mediator.
+788	Клиенты добавляются только через приложение E-MAKON.	Customers are added only through the E-MAKON app.
+789	Клиенты видят эти данные в приложении.	Customers see these details in the app.
+790	Клиенты обменивают баллы на эти награды в мобильном приложении.	Customers redeem their points for these rewards in the mobile app.
+791	Клиенты не найдены	No customers found
+792	Клиентов нет	No customers
+793	Возвращено клиентам	Refunded to customers
+794	Не удалось загрузить клиентов	Failed to load customers
+795	Разблокировать клиента	Unblock customer
+796	Заблокировать клиента	Block customer
+797	Наказать клиента	Penalize customer
+798	Не удалось добавить клиента	Could not add the customer
+799	Мин. цена (UZS)	Min price (UZS)
+537	Имя или телефон...	Name or phone...

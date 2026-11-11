@@ -103,6 +103,19 @@ const uz: Dict = {
   "weather.forest": "O‘rmon — soyali tinchlik",
   "weather.placeYou": "Sizning joylashuvingiz",
   "weather.placeTashkent": "Toshkent",
+  "nature.grow": "O‘stirish",
+  "nature.mow": "O‘rish",
+  "nature.composting": "Barglar yerga singmoqda… yam-yashil o‘t o‘sadi",
+  "nature.clearHint": "Barglarga bosing — tozalanadi",
+  "scene.meadowWind": "Yam-yashil dala · shamol",
+  "scene.dewField": "Shudringli tong",
+  "scene.mistValley": "Tumanli vodiy",
+  "scene.rainGlass": "Yomg‘ir · oyna yuzi",
+  "scene.sunnyGarden": "Quyoshli bog‘",
+  "scene.snowQuiet": "Tinch qor",
+  "scene.forestShade": "O‘rmon soyasi",
+  "scene.goldenDusk": "Oltin shafaq",
+  "weather.clearNight": "Ochiq osmon — tun",
 };
 
 const uzCyrl: Dict = {
@@ -199,6 +212,19 @@ const uzCyrl: Dict = {
   "weather.forest": "Ўрмон — сояли тинчлик",
   "weather.placeYou": "Сизнинг жойлашувингиз",
   "weather.placeTashkent": "Тошкент",
+  "nature.grow": "Ўстириш",
+  "nature.mow": "Ўриш",
+  "nature.composting": "Барглар ерга сингмоқда… ям-яшил ўт ўсади",
+  "nature.clearHint": "Баргларга босинг — тозаланади",
+  "scene.meadowWind": "Ям-яшил дала · шамол",
+  "scene.dewField": "Шудрингли тонг",
+  "scene.mistValley": "Туманли водий",
+  "scene.rainGlass": "Ёмғир · ойна юзи",
+  "scene.sunnyGarden": "Қуёшли боғ",
+  "scene.snowQuiet": "Тинч қор",
+  "scene.forestShade": "Ўрмон сояси",
+  "scene.goldenDusk": "Олтин шафақ",
+  "weather.clearNight": "Очиқ осмон — тун",
 };
 
 const ru: Dict = {
@@ -295,6 +321,19 @@ const ru: Dict = {
   "weather.forest": "Лес — тенистый покой",
   "weather.placeYou": "Ваше местоположение",
   "weather.placeTashkent": "Ташкент",
+  "nature.grow": "Вырастить",
+  "nature.mow": "Скосить",
+  "nature.composting": "Листья уходят в землю… растёт зелёная трава",
+  "nature.clearHint": "Нажмите на листья — очистится",
+  "scene.meadowWind": "Зелёное поле · ветер",
+  "scene.dewField": "Утренняя роса",
+  "scene.mistValley": "Туманная долина",
+  "scene.rainGlass": "Дождь · по стеклу",
+  "scene.sunnyGarden": "Солнечный сад",
+  "scene.snowQuiet": "Тихий снег",
+  "scene.forestShade": "Тень леса",
+  "scene.goldenDusk": "Золотые сумерки",
+  "weather.clearNight": "Ясная ночь",
 };
 
 const en: Dict = {
@@ -403,6 +442,7 @@ const en: Dict = {
   "weather.forest": "Forest — shaded calm",
   "weather.placeYou": "Your location",
   "weather.placeTashkent": "Tashkent",
+  "weather.clearNight": "Clear night",
 };
 
 export const messages: Record<Locale, Dict> = { uz, uzCyrl, ru, en };

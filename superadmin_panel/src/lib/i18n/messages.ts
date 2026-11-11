@@ -110,7 +110,7 @@ const uz: Dict = {
   "firms.errName": "Firma nomi majburiy.",
   "firms.errPhone": "Telefon majburiy — bu firma paneliga kirish logini bo‘ladi.",
   "firms.errPhoneFmt": "Telefon formati noto‘g‘ri. Masalan: +99890xxxxxxx",
-  "firms.errRate": "Kampaniya ulushi 0.1%–3% oralig‘ida.",
+  "firms.errRate": "Kompaniya ulushi 0.1%–3% oralig‘ida.",
   "firms.errSave": "Saqlashda xato",
   "firms.copyFail": "Nusxa olinmadi",
   "firms.passwordOnce": "Parol (bir marta)",
@@ -148,6 +148,7 @@ const uz: Dict = {
   "weather.forest": "O‘rmon — soyali tinchlik",
   "weather.placeYou": "Sizning joylashuvingiz",
   "weather.placeTashkent": "Toshkent",
+  "weather.clearNight": "Ochiq osmon — tun",
 };
 
 const uzCyrl: Dict = {
@@ -289,6 +290,7 @@ const uzCyrl: Dict = {
   "weather.forest": "Ўрмон — сояли тинчлик",
   "weather.placeYou": "Сизнинг жойлашувингиз",
   "weather.placeTashkent": "Тошкент",
+  "weather.clearNight": "Очиқ осмон — тун",
 };
 
 const ru: Dict = {
@@ -430,6 +432,7 @@ const ru: Dict = {
   "weather.forest": "Лес — тенистый покой",
   "weather.placeYou": "Ваше местоположение",
   "weather.placeTashkent": "Ташкент",
+  "weather.clearNight": "Ясная ночь",
 };
 
 const en: Dict = {
@@ -571,6 +574,7 @@ const en: Dict = {
   "weather.forest": "Forest — shaded calm",
   "weather.placeYou": "Your location",
   "weather.placeTashkent": "Tashkent",
+  "weather.clearNight": "Clear night",
 };
 
 export const messages: Record<Locale, Dict> = { uz, uzCyrl, ru, en };

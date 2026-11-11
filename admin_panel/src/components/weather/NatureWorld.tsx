@@ -64,6 +64,7 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
   const [growth, setGrowth] = useState(0.22);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     setGrowth(loadGrowth());
   }, []);
 
@@ -81,6 +82,7 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
   // Barglar — faqat kuz (+ scene.leaves), shaffof SVG
   useEffect(() => {
     if (!scene.leaves) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
       setFalling([]);
       return;
     }
@@ -131,6 +133,7 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
 
   useEffect(() => {
     if (!scene.rain) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
       setDrops([]);
       return;
     }

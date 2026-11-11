@@ -33,7 +33,7 @@ const FALLBACK: LiveWeather = {
   isDay: true,
   lat: DEFAULT_COORDS.lat,
   lng: DEFAULT_COORDS.lng,
-  place: DEFAULT_COORDS.label,
+  place: DEFAULT_COORDS.place,
   updatedAt: 0,
 };
 
@@ -55,6 +55,7 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     void load();
     const timer = setInterval(() => void load(), 20 * 60_000);
     return () => clearInterval(timer);

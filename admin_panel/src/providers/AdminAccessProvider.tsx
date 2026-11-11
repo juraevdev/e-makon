@@ -63,6 +63,7 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
       setCapabilities(null);
       setLoading(false);
       return;

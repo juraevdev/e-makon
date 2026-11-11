@@ -1,0 +1,387 @@
+800	Минимум для обмена	Minimum redemption
+801	Минимум для обмена (баллы)	Minimum redemption (points)
+802	Показывать в каталоге мобильного приложения	Show in the mobile app catalog
+803	Пользователи, зарегистрированные через мобильное приложение и Telegram	Users registered through the mobile app and Telegram
+804	Здесь показываются пользователи, вошедшие в мобильное приложение по OTP.	Users who signed in to the mobile app via OTP are shown here.
+805	Финансы	Finance
+806	Финансовое состояние	Financial status
+807	Подходящий администратор не найден	No matching administrator found
+808	Подходящий инвестор не найден	No matching investor found
+809	Подходящий диалог не найден	No matching conversation found
+810	Подходящий сотрудник не найден	No matching employee found
+811	Проблема решена. Если будут ещё вопросы — пишите!	The issue is resolved. Write to us if you have more questions!
+812	Срок	Period
+813	Срок истёк или все работы выполнены	The period has ended or all work is done
+814	Когда закончится срок или работы	When the period ends or the work is done
+815	Срок истёк	Expired
+816	Просрочено	Overdue
+817	Бессрочно	No end date
+818	Название награды	Reward name
+819	Награда удалена	Reward deleted
+820	Награда добавлена	Reward added
+821	Награда обновлена	Reward updated
+822	Наград пока нет	No rewards yet
+823	Каталог наград	Rewards catalog
+824	Удалить награду	Delete reward
+825	Редактировать награду	Edit reward
+826	Баллы в обороте	Points in circulation
+827	Обращение	Request
+828	Тикеты обращений	Support tickets
+829	Обращений нет	No requests
+830	Обращение закрыто	Request closed
+831	Закрыть обращение?	Close the request?
+832	Обращения	Requests
+833	Ответьте в разделе «Обращения»	Reply in the Requests section
+834	Выберите обращение	Select a request
+835	Введите положительное целое число.	Enter a positive integer.
+836	Специализация	Specialty
+837	Заморожено	Frozen
+838	Цена	Price
+839	Цена (UZS)	Price (UZS)
+840	Цена неверная или необоснованная	The price is wrong or unjustified
+841	Цена фиксируется после оплаты	The price is locked after payment
+842	Изменить цену и срок	Change price and period
+843	Цена (баллы)	Price (points)
+844	Цену можно установить только в новом заказе, до оплаты клиентом. Дальнейшие изменения — только через администрацию.	The price can be set only on a new order, before the customer pays. Later changes go through administration only.
+845	Очередь пуста	The queue is empty
+846	В очереди есть услуги, но они не подходят под выбранный фильтр.	There are services in the queue, but none match the selected filter.
+847	История контроля	Oversight history
+848	Спор	Dispute
+849	Открыть спор?	Open a dispute?
+850	Спорный	Disputed
+851	Неактивен	Inactive
+852	Неактивная награда не показывается в мобильном приложении и не обменивается	An inactive reward is hidden in the mobile app and cannot be redeemed
+853	При изменении названия, цены, описания или изображения услуга снова отправляется на проверку.	If the name, price, description or image changes, the service goes back for review.
+854	Название, направление и ставку доли устанавливает администрация системы.	The name, specialty and share rate are set by system administration.
+855	Название	Name
+856	Название не длиннее 255 символов.	The name must not exceed 255 characters.
+857	Введите название	Enter a name
+858	Введите название.	Enter a name.
+859	Ноябрь	November
+860	Копировать	Copy
+861	Выкл.	Off
+862	Не удалось удалить	Could not delete
+863	Не удалось удалить — услугу с заказами приостановите	Could not delete — pause a service that has orders
+864	Не удалено	Not deleted
+865	Удалить	Delete
+866	Прочитано	Read
+867	Непрочитанные	Unread
+868	Места	Seats
+869	Количество мест	Number of seats
+870	Средний	Medium
+871	Средний чек	Average order value
+872	Средний чек (UZS)	Average order value (UZS)
+873	В среднем в месяц	Average per month
+874	Среднее время: 1.5 - 2 часа	Average time: 1.5 - 2 hours
+875	Прошло	Past
+876	Переведено	Transferred
+877	Добавить к похожему типу:	Add to a similar type:
+878	Изменения сохраняются сразу. Если оставить пароль пустым, старый пароль не изменится.	Changes are saved immediately. Leave the password empty to keep the old one.
+879	Сохранить изменения	Save changes
+880	Оставьте пустым, если не меняете	Leave empty to keep unchanged
+881	Нельзя деактивировать самого себя	You cannot deactivate yourself
+882	Подписка	Subscription
+883	Цена подписки ($)	Subscription price ($)
+884	Тип подписки	Subscription type
+885	Нет подписки	No subscription
+886	Адрес объекта	Site address
+887	Введите адрес объекта	Enter the site address
+888	Открыть объект в Google Maps	Open the site in Google Maps
+889	Открыт	Open
+890	Обычный	Normal
+891	Предупреждение	Warning
+892	После предупреждений и отчётов процент может быть повышен до 2–3%.	After warnings and reports the rate may be raised to 2–3%.
+893	Предупреждения	Warnings
+894	Октябрь	October
+895	Полная предоплата	Full prepayment
+896	Вперёд	Forward
+897	Предыдущий день	Previous day
+898	Убрать	Remove
+899	Оператор	Operator
+900	Операционное управление	Operations management
+901	Интервал	Range
+902	Назад	Back
+903	Назад	Back
+904	Последний	Last
+905	Последние 30 дней	Last 30 days
+906	Последние 7 дней	Last 7 days
+907	Последний заказ	Last order
+908	Последний заказ ↓	Last order ↓
+909	Последняя активность	Last activity
+910	Последний комментарий:	Latest comment:
+911	Последнее сообщение	Last message
+912	Время последнего сообщения	Last message time
+913	Месяц	Monthly
+914	Ежемесячный визит проходит каждый месяц в день даты начала.	A monthly visit takes place each month on the day of the start date.
+915	Помесячно — $9 / место	Monthly — $9 / seat
+916	PDF-отчёт	PDF report
+917	Не удалось подготовить PDF-отчёт	Could not prepare the PDF report
+918	PDF не подготовлен	PDF was not prepared
+919	Скачать PDF	Download PDF
+920	Чт	Thu
+921	Админы с доступом к панели, их фирмы и полномочия	Admins with panel access, their firms and permissions
+922	Админы, входящие в панель по телефону и паролю	Admins who sign in to the panel with phone + password
+923	Создайте админа, входящего в панель по номеру телефона и паролю	Create an admin who signs in to the panel with a phone number and password
+924	Пароль	Password
+925	Пароль должен быть не короче 6 символов	The password must be at least 6 characters
+926	Пароль обязателен	Password is required
+927	Показать пароль	Show password
+928	Скопировать пароль	Copy password
+929	Чтобы сбросить пароль или добавить нового админа фирмы, обратитесь к администрации системы.	To reset the password or add a new firm admin, contact system administration.
+930	Скрыть пароль	Hide password
+931	Уход	Care
+932	Объекты ухода	Care sites
+933	Визиты по уходу	Care visits
+934	Уход ·	Care ·
+935	Низкий	Low
+936	Четверг	Thursday
+937	Платформа	Platform
+938	Правила платформы	Platform rules
+939	Противоречит правилам платформы	Violates platform rules
+940	Доля платформы	Platform share
+941	Доля платформы (UZS)	Platform share (UZS)
+942	Партнёр, вложивший капитал в платформу — профиль, сумма и доля	A partner who invested capital in the platform — profile, amount and share
+943	Инвесторы, вложившие капитал в платформу — профиль, доля и статус соглашения.	Investors who put capital into the platform — profile, share and agreement status.
+944	На платформе с	Joined the platform
+946	Всплывающее окно заблокировано — разрешите для PDF	Popup blocked — allow it for PDF
+947	Профиль	Profile
+948	Профиль сохранён	Profile saved
+949	Не удалось сохранить профиль	Could not save the profile
+950	Промо-раздел	Promo section
+951	Проверьте, поступили ли деньги на счёт Click/Payme. После подтверждения заказ получит разрешение на работу.	Check that the money reached the Click/Payme account. Once confirmed, the order is cleared to start.
+952	Деньги переводятся фирме, а с клиента списывается до 50 баллов.	The money is transferred to the firm and up to 50 points are deducted from the customer.
+953	Перевести деньги фирме?	Transfer the money to the firm?
+954	Деньги переведены на счёт вашей фирмы.	The money has been transferred to your firm.
+955	Вернуть деньги клиенту?	Refund the money to the customer?
+956	Деньги замораживаются — их не получит ни фирма, ни клиент, пока не будет принято верное решение.	The money is frozen — neither the firm nor the customer gets it until the right decision is made.
+957	Принят	Accepted
+958	Принять	Accept
+959	Нужно принять	Needs acceptance
+960	Ожидает принятия	Awaiting acceptance
+961	Получатель прочитал	Read by recipient
+962	Долг	Debt
+963	Долг (UZS)	Debt (UZS)
+964	Повторить	Try again
+965	Отправлено повторно	Resubmitted
+966	Возвращено	Refunded
+967	Поиск...	Searching...
+968	Поиск...	Search...
+969	По запросу клиенты не найдены.	No customers match the search.
+970	Попробуйте изменить поиск или фильтры.	Try changing the search or filters.
+971	Попробуйте изменить поиск или фильтр.	Try changing the search or filter.
+972	Измените поиск или фильтр статуса.	Change the search or status filter.
+973	Измените поиск или категорию.	Change the search or category.
+974	Короткий текст (подзаголовок)	Short text (subtitle)
+975	Краткое описание	Short description
+976	Краткое описание (что входит)	Short description (what is included)
+977	Краткое описание не длиннее 255 символов.	The short description must not exceed 255 characters.
+978	Напишите краткое описание — чтобы клиент знал, что получит	Write a short description so the customer knows what they get
+979	Значение	Value
+980	Звонок	Call
+981	Добавлен	Added
+982	Добавлен:	Added:
+983	Дополнительный комментарий	Additional comment
+984	Дополнительные комментарии	Additional comments
+985	Дополнительные условия	Additional terms
+986	Добавить	Add
+987	Черновик	Draft
+988	Черновик удаляется полностью	The draft is deleted permanently
+989	Черновик удалён	Draft deleted
+990	Удалить черновик?	Delete the draft?
+991	Черновик сохранён	Draft saved
+992	Черновик или отклонён	Draft or rejected
+993	Черновик — ещё никому не отправлен. Проверьте условия и нажмите «Отправить на утверждение E-MAKON».	Draft — not sent to anyone yet. Check the terms and press "Submit for E-MAKON approval".
+994	Перевести в черновик	Move to draft
+995	Откл.	Reject
+996	Отклонено	Rejected
+997	Отклонено, фирме отправлено сообщение с причиной	Rejected; the firm was notified with the reason
+998	Отклонённые	Rejected
+999	Отклонить	Reject
+1000	Причина отказа (отправляется фирме)	Rejection reason (sent to the firm)
+1001	Причина отказа	Rejection reason
+1002	Причина отказа:	Rejection reason:
+1003	Спасибо! Ждём вас снова.	Thank you! We look forward to serving you again.
+1004	Изображение	Image
+1005	Изображение не больше 5 МБ	The image must not exceed 5 MB
+1006	Изображение низкого качества или не соответствует услуге	The image is low quality or does not match the service
+1007	Выберите изображение или перетащите сюда	Choose an image or drop it here
+1008	Нет изображения	No image
+1009	Загрузите изображение или укажите URL изображения.	Upload an image or enter an image URL.
+1010	Изображение не загружено	No image uploaded
+1011	Загрузить изображение	Upload image
+1012	Заменить изображение	Replace image
+1013	План	Plan
+1014	План (дата · время)	Plan (date · time)
+1015	Плановая дата	Planned date
+1016	Запланировано	Planned
+1017	Запланированные заказы ·	Planned orders ·
+1018	Запланированные визиты	Planned visits
+1019	Запланированные	Scheduled
+1020	Укажите время начала для запланированного баннера.	Enter a start time for the scheduled banner.
+1021	Рейтинг	Rating
+1022	Рейтинг ↓	Rating ↓
+1023	Зарегистрирован	Registered
+1024	Дата регистрации ↓	Registered ↓
+1025	Роль	Role
+1026	ФИКТИВНО:	FAKE:
+1027	Причина	Reason
+1028	Причина (отправляется фирме)	Reason (sent to the firm)
+1029	Причина (обязательно) — этот текст увидит суперадмин	Reason (required) — the superadmin will see this text
+1030	Причина (отправляется клиенту)	Reason (sent to the customer)
+1031	Причина не указана	No reason entered
+1032	Причина не указана	No reason given
+1033	Опишите причину подробнее (не менее 5 символов).	Describe the reason in more detail (at least 5 characters).
+1034	Напишите причину — она будет отправлена фирме.	Write the reason — it will be sent to the firm.
+1035	Дата	Date
+1036	Сохранено	Saved
+1037	После сохранения договор проверит администрация E-MAKON. При одобрении график визитов составится автоматически.	After saving, E-MAKON administration reviews it. If approved, the visit schedule is generated automatically.
+1038	Не сохранено	Not saved
+1039	Есть несохранённые изменения.	There are unsaved changes.
+1040	Сохранение...	Saving...
+1041	Сохранить	Save
+1042	При сохранении произошла ошибка	An error occurred while saving
+1043	Сортировка	Sort
+1044	Потратил	Spent
+1045	Потрачено (UZS)	Spent (UZS)
+1046	Потраченная сумма ↓	Amount spent ↓
+1047	Заголовок	Title
+1048	Заголовок не длиннее 255 символов.	The title must not exceed 255 characters.
+1049	Поиск по заголовку, тексту или услуге...	Search by title, text or service...
+1050	Введите заголовок.	Enter a title.
+1051	Запрет продаж	Sales ban
+1052	Запрет продаж:	Sales ban:
+1053	Запрет продаж	Sales ban
+1054	Сайт	Website
+1055	Вт	Tue
+1056	Порядок сегмента	Segment order
+1057	Сентябрь	September
+1058	Сервер не ответил. Проверьте интернет и попробуйте снова.	The server did not respond. Check your connection and try again.
+1059	Неверный ответ сервера	Invalid server response
+1060	Не удалось подключиться к серверу.	Could not connect to the server.
+1061	Вторник	Tuesday
+1062	Сессия истекла. Войдите снова.	Session expired. Please sign in again.
+1063	Сб	Sat
+1064	Город, район, улица	City, district, street
+1065	Суббота	Saturday
+1066	Условия	Terms
+1067	Договор	Contract
+1068	Договор будет отмечен как «Завершён». Это действие нельзя отменить.	The contract will be marked "Completed". This cannot be undone.
+1069	Договор / клиент	Contract / customer
+1070	Договор отправлен на утверждение администрации E-MAKON	Contract submitted for E-MAKON administration approval
+1071	Договор отменён	Contract cancelled
+1072	Договор отменён. История сохраняется.	The contract is cancelled. History is kept.
+1073	Договор возобновлён	Contract resumed
+1074	Договор активен. Назначайте сотрудника на каждый визит, после выполнения пишите отчёт «Выполнен» — клиент увидит его в приложении.	The contract is active. Assign an employee to each visit and file a "Completed" report afterwards — the customer sees it in the app.
+1075	Договор активируется, график визитов составится автоматически, клиенту будет отправлено сообщение.	The contract is activated, the visit schedule is generated automatically and the customer is notified.
+1076	Название договора	Contract name
+1077	Договор вернётся в статус «Ждёт утверждения», причина отказа будет очищена.	The contract returns to "Awaiting approval" and the rejection reason is cleared.
+1078	Договор снова принят на утверждение	Contract taken back for approval
+1079	Договор отклонён, фирма уведомлена	Contract rejected, the firm has been notified
+1080	Условия договора	Contract terms
+1081	Договор утверждён, визиты запланированы	Contract approved, visits scheduled
+1082	После утверждения договора визиты планируются автоматически по частоте и дням недели.	Once the contract is approved, visits are scheduled automatically by frequency and weekdays.
+1083	Договор приостановлен	Contract paused
+1084	Договор завершён	Contract completed
+1085	Договор завершён. Все визиты и история сохраняются.	The contract is completed. All visits and history are kept.
+1086	Договор закрыт — можно только оставить комментарий.	The contract is closed — you can only leave a comment.
+1087	Договор, клиент, телефон или адрес	Contract, customer, phone or address
+1088	Договоры	Contracts
+1089	Договоры не найдены	No contracts found
+1090	Договоров нет	No contracts
+1091	Договоры не загрузились	Contracts failed to load
+1092	Личность и вход	Identity and sign-in
+1093	Личные	Personal
+1094	Частный инвестор	Private investor
+1095	Личные данные	Personal details
+1096	Другие предложения с этим названием в очереди:	Other offers with this name in the queue:
+1097	Этого типа	Of this type
+1098	Пробный	Trial
+1099	Пробный (дней)	Trial (days)
+1100	Пробный / ожидание	Trial / pending
+1101	Пробный период	Trial period
+1102	Окончание пробного периода	Trial ends
+1103	После того как вы отметите «Работа завершена», администрация системы подтвердит и деньги (за вычетом доли платформы) будут переведены на счёт вашей фирмы.	After you mark "Work finished", system administration confirms and the money (minus the platform share) is transferred to your firm.
+1104	Ждёт вашего действия	Waiting for your action
+1105	Вам	To you
+1106	Перейдёт вам	Goes to you
+1107	Нужно ваше решение	Your decision is needed
+1111	Пришли за последние 30 дней	Joined in the last 30 days
+1112	Последние заказы	Recent orders
+1113	Почасовая ёмкость равна этому числу	Hourly capacity equals this number
+1114	Кол-во	Count
+1115	Запрет продаж (дней)	Sales ban (days)
+1116	Продажи запрещены	Sales banned
+1117	Фиктивный	Fake
+1118	Отправить как фиктивную	Report as fake
+1119	Причина фиктивности	Reason it is fake
+1120	Фиктивная заявка	Fake request
+1121	Отметить как фиктивную заявку	Mark as fake request
+1122	Укажите причину фиктивной заявки	Enter the reason the request is fake
+1123	Фиктивная заявка отправлена суперадмину. После проверки клиент будет заблокирован.	The fake request was sent to the superadmin. The customer will be blocked after review.
+1124	Фиктивные заявки	Fake requests
+1125	Фиктивных заявок нет	No fake requests
+1126	Стаж	Experience
+1127	Стаж ↓	Experience ↓
+1128	Стандартная организация (E-Makon)	Default organization (E-Makon)
+1129	Статистика за последние	Statistics for the last
+1130	Ставка	Rate
+1131	Ставка %	Rate %
+1132	Ставка (%)	Rate (%)
+1133	Полив	Irrigation
+1134	Мастер по поливу	Irrigation specialist
+1135	Чат не открылся	Could not open the chat
+1136	Открыть чат	Open chat
+1137	Диалоги	Conversations
+1138	Диалогов нет	No conversations
+1139	Скачать диалог в Excel	Download conversation to Excel
+1140	Выберите диалог	Select a conversation
+1141	Сумма	Amount
+1142	Сумма (UZS)	Amount (UZS)
+1143	По сумме	By amount
+1144	Слишком большая сумма	Amount is too large
+1145	Введите сумму (больше 0)	Enter an amount (greater than 0)
+1146	Суперадмин	Superadmin
+1147	Сотрудник, добавленный суперадмином, прикрепляется к стандартной организации. Сотрудника конкретной фирмы добавляет админ фирмы в своей панели.	An employee added by the superadmin is attached to the default organization. A firm's own employees are added by the firm admin in their panel.
+1148	В отпуске	On leave
+1149	Отправить в отпуск	Send on leave
+1150	Аналитика и отчёты	Analytics and reports
+1151	Отредактировано	Edited
+1152	Редактировать	Edit
+1153	Не требуется	Not required
+1154	Выберите	Select
+1155	Статистика заказов, оборота и услуг за выбранный период. PDF — для печати, Excel — для анализа.	Order, turnover and service statistics for the selected period. PDF for printing, Excel for analysis.
+1156	Не выбрано	Not selected
+1157	Запретить	Ban
+1158	Снять запрет	Lift ban
+1159	Распределённая доля	Allocated share
+1160	История пуста.	History is empty.
+1161	История и комментарии	History and comments
+1162	Соцсети	Social links
+1163	Порядок	Order
+1164	Порядковый номер	Sort order
+1165	Ожидается подтверждение	Awaiting confirmation
+1166	Ждёт утверждения	Awaiting approval
+1167	На утверждении	In approval
+1168	Утверждено	Approved
+1169	Утверждённые	Approved
+1170	Где покажется в приложении после утверждения	Where it appears in the app once approved
+1171	Подтвердить	Approve
+1172	Вернуть на утверждение	Return for approval
+1173	Отправлено на утверждение	Submitted for approval
+1174	Организация / центр	Organization / center
+1175	Название организации / центра	Organization / center name
+1176	Организации / центры	Organizations / centers
+1177	Введите название организации	Enter the organization name
+1178	Визит выполнен	Visit completed
+1179	Визит выполнен, клиенту отправлен отчёт	Visit completed, report sent to the customer
+1180	Статус визита можно менять только в активном договоре.	Visit status can be changed only on an active contract.
+1181	Визит перенесён	Visit rescheduled
+1182	Дни визитов	Visit days
+1183	Цена визита	Visit price
+1184	Цена визита (UZS)	Visit price (UZS)
+1185	Визит обновлён	Visit updated
+1186	Визит не обновлён	Visit was not updated
+1187	Визиты	Visits
+1188	Визитов пока нет	No visits yet
+1189	Графика визитов пока нет	No visit schedule yet
+1110	Slug не длиннее 64 символов.	The slug must not exceed 64 characters.

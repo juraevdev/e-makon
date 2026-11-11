@@ -151,7 +151,7 @@ export default function FirmalarPage() {
         "Buyurtmalar",
         "Aylanma (UZS)",
         "Stavka (%)",
-        "Kampaniya ulushi (UZS)",
+        "Kompaniya ulushi (UZS)",
         "Qarz (UZS)",
         "To'lanmagan jarima (UZS)",
         "Ogohlantirishlar",
@@ -413,7 +413,7 @@ export default function FirmalarPage() {
                   <p className="font-semibold">{formatMoney(f.revenue)}</p>
                 </div>
                 <div>
-                  <p className="text-on-surface-variant">Kampaniya ulushi</p>
+                  <p className="text-on-surface-variant">Kompaniya ulushi</p>
                   <p className="font-semibold text-primary">
                     {f.commission_rate}% · {formatMoney(f.platform_share)}
                   </p>
@@ -525,7 +525,7 @@ export default function FirmalarPage() {
 
         {tab === "moliya" ? (
           <div className="space-y-3">
-            <Field label="Kampaniya ulushi (%) 0.1 – 3.0">
+            <Field label="Kompaniya ulushi (%) 0.1 – 3.0">
               <input
                 className={inputClass}
                 type="number"

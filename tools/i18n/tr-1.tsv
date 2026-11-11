@@ -1,0 +1,389 @@
+0	#ID, клиент, телефон, адрес...	#ID, customer, phone, address...
+1	% выполнено	% completed
+2	%) вычитается, остаток переводится вашей фирме.	%) is deducted and the rest is transferred to your firm.
+3	(заблокирован)	(blocked)
+4	(неактивен)	(inactive)
+6	(добавлено)	(added)
+7	(приостановлено)	(paused)
+8	) заказов загружено — сузьте по фирме или поиску	) orders loaded — narrow down by firm or search
+9	) снова сможет входить в приложение и оформлять заказы.	) will be able to sign in to the app and place orders again.
+10	). Чтобы найти более старые, воспользуйтесь поиском.	). Use search to find older ones.
+11	+1 час	+1 hour
+12	+30 минут	+30 minutes
+13	. В час —	. Per hour:
+14	. Добавьте к существующему типу, чтобы услуги не дублировались.	. Add it to an existing type to avoid duplicate services.
+15	. Выберите тип услуги из каталога (например «Обрезка деревьев») — в приложении внутри одной услуги показываются все фирмы с их ценами. Если в каталоге нет нужного, предложите новый тип: после одобрения суперадмином он появится в каталоге.	. Pick a service type from the catalog (e.g. "Tree pruning") — in the app each service lists every firm offering it with its price. If it is missing, propose a new type: once the superadmin approves it, it is added to the catalog.
+16	0 или положительное целое число	0 or a positive integer
+17	В диапазоне 0–100%	Between 0 and 100%
+18	Сумма заказа за 1 балл (сум)	Order amount per 1 point (UZS)
+19	1. Партнёр	1. Partner
+20	1. Составьте договор	1. Draft the contract
+21	1. Время услуги	1. Service time
+22	12 месяцев в месяц =	12 months monthly =
+23	12 соток, 40 деревьев	12 ares, 40 trees
+24	Раз в 2 недели	Every 2 weeks
+25	2 и более заказов	2 or more orders
+26	2-й этап (следующий релиз)	Phase 2 (next release)
+27	2. Ответственный сотрудник и этап работ	2. Assigned employee and work stage
+28	2. Отправьте на утверждение	2. Submit for approval
+29	2. Услуга и график	2. Service and schedule
+30	Не более 255 символов	Must not exceed 255 characters
+31	3. Отмена или фиктивная заявка	3. Cancellation or fake request
+32	3. Финансы и условия	3. Finance and terms
+33	3. Выполняйте визиты	3. Carry out the visits
+34	4. Завершите	4. Complete
+35	Визиты за 7 дней	Visits in 7 days
+36	Нет заказов 90 дней	No orders for 90 days
+37	@название_группы	@group_name
+38	@страница_instagram	@instagram_page
+40	Админ	Admin
+41	Заблокировано админом	Blocked by admin
+42	Админ видит данные только этой фирмы	The admin sees only this firm's data
+43	Укажите, какими разделами панели может управлять админ	Choose which panel sections the admin can manage
+44	Выберите, к какой фирме относится админ	Choose which firm the admin belongs to
+45	Админ может входить в систему	The admin can sign in
+46	Админ не может входить в систему	The admin cannot sign in
+47	Создать админа	Create admin
+48	Администратор	Administrator
+49	Администраторы	Administrators
+50	Контроль администраторов	Administrator control
+51	Не удалось загрузить администраторов	Failed to load administrators
+52	Редактировать администратора	Edit administrator
+53	Список админов пуст	No admins yet
+54	Деактивировать админа	Deactivate admin
+55	Активировать админа	Activate admin
+56	Если берёте помесячно:	If billed monthly:
+57	Обменяно	Redeemed
+58	Обменяно	Redeemed
+59	Обменять	Redeem
+60	Контактные данные	Contact details
+61	Контактный телефон	Contact phone
+62	Действие	Action
+63	Срок действия (мес.)	Validity (months)
+64	Действия	Actions
+65	Не удалось выполнить действие	The action could not be completed
+66	Аналитика	Analytics
+67	Точная цена (UZS)	Exact price (UZS)
+68	Введите точную цену в сумах (например 250000)	Enter the exact price in UZS (e.g. 250000)
+69	Апрель	April
+70	Архив	Archive
+71	Основное	General
+72	Основной тип	Main type
+73	Здравствуйте! Ваше обращение принято, скоро ответим.	Hello! We have received your request and will reply shortly.
+74	Здравствуйте! Ваше обращение принято.	Hello! We have received your request.
+76	Август	August
+77	Автоматически	Automatic
+78	Оборот	Turnover
+79	Оборот (UZS)	Turnover (UZS)
+80	Отчёты по обороту	Turnover reports
+81	Оценка	Rating
+82	Оценки	Ratings
+83	Количество оценок	Number of ratings
+84	Выполнил	Completed
+85	Выполненные работы	Completed jobs
+86	Выполненные работы ↓	Completed jobs ↓
+87	Выполнен	Completed
+88	Отметить выполненным	Mark as completed
+89	Выполнено	Completed
+90	Выполненные заказы	Completed orders
+91	За выполненные заказы клиентам начисляются баллы, которые они обменивают на награды в мобильном приложении.	Customers earn points for completed orders and redeem them for rewards in the mobile app.
+92	Отчёт о выполненных работах	Completed work report
+93	Клиенту отправляется уведомление о выполненном визите.	The customer is notified about the completed visit.
+94	Выполнение %	Completion %
+95	Не выполнен	Not completed
+96	Отмечено как невыполненное	Marked as not completed
+97	Выполняется...	Working...
+98	Баллы	Points
+99	Баллы начисляются автоматически от согласованной цены, когда заказ переходит в статус «Выполнен» (один раз за заказ).	Points are calculated automatically from the agreed price when an order becomes "Completed" (once per order).
+100	Правила баллов сохранены	Points rules saved
+101	Правила начисления баллов	Points earning rules
+102	Срок действия баллов	Points validity period
+103	Занято	Busy
+104	Занято ·	Busy ·
+105	График занятости	Availability schedule
+106	Выберите фирму, чтобы увидеть занятость.	Select a firm to see availability.
+107	При нажатии на баннер откроется эта услуга	Tapping the banner opens this service
+108	Баннер удалён	Banner deleted
+109	Баннер добавлен	Banner added
+110	Добавить баннер	Add banner
+111	Изображение баннера *	Banner image *
+112	Баннер обновлён	Banner updated
+113	Баннеры	Banners
+114	Баннеров пока нет	No banners yet
+115	Удалить баннер	Delete banner
+116	Редактировать баннер	Edit banner
+117	Все фирмы	All firms
+118	Специалисты всех фирм, их статус и загрузка	Specialists across all firms, their status and workload
+119	Все статусы	All statuses
+120	Все размещения	All placements
+121	Все типы каталога	All catalog types
+122	Все должности	All positions
+123	Все типы клиентов	All customer types
+124	Все клиенты	All customers
+125	Все специализации	All specialties
+126	Все категории	All categories
+127	Все приоритеты	All priorities
+128	Все полномочия	All permissions
+129	Все полномочия включены	All permissions enabled
+130	За всё время	All time
+131	Все сотрудники	All employees
+132	Все	All
+133	Смотреть все	View all
+134	Подробнее	Details
+135	Подробная информация	Detailed information
+136	Отмена	Cancelled
+137	Отменён	Cancelled
+138	Отменённые	Cancelled
+139	При отмене деньги возвращаются клиенту	If cancelled, the money is returned to the customer
+140	Отмена	Cancel
+141	Причина отмены	Cancellation reason
+142	Значок (иконка)	Icon
+143	Установить	Set
+144	Начислено баллов	Points awarded
+145	Начислено − потрачено ± корректировка	Awarded − spent ± adjustment
+146	Уведомления	Notifications
+147	Цена одного визита	Price per visit
+148	Цена одного визита (UZS)	Price per visit (UZS)
+149	Введите цену одного визита	Enter the price per visit
+150	Один и тот же заказ отправлен многократно	The same order was submitted repeatedly
+151	Не назначен	Unassigned
+152	Назначить	Assign
+153	Добавьте первого администратора.	Add the first administrator.
+154	Для первого обмена нужно всего ~	The first redemption needs about ~
+155	Добавьте первый баннер — он появится на главной странице клиентского приложения.	Add the first banner — it will appear on the customer app home screen.
+156	Первый заказ	First order
+157	Добавьте первого инвестора.	Add the first investor.
+158	Добавьте первый тип каталога — фирмы будут предлагать цены на этот тип.	Add the first catalog type — firms will offer their prices for it.
+159	Добавьте первого сотрудника.	Add the first employee.
+160	Введите один эмодзи.	Enter a single emoji.
+161	Блок	Blocked
+162	Причина блокировки / расторжения	Reason for blocking / termination
+163	Разблокировать	Unblock
+164	Заблокированные	Blocked
+165	Заблокировать	Block
+166	Свободно	Free
+167	Если пусто — сегодняшняя дата	If empty — today's date
+168	Если пусто — частный инвестор	If empty — private investor
+169	Поставить на свободное время	Place in a free slot
+170	Свободно ·	Free ·
+171	Пусто — сразу	Empty — immediately
+172	Пусто — бессрочно	Empty — no end date
+173	Уволен	Left
+174	Уход за садом	Garden care
+175	Садовник	Gardener
+176	Связанный заказ: #	Linked order: #
+177	Связанная услуга	Linked service
+178	Привязан — получает сообщения о визитах	Linked — receives visit notifications
+179	Связались	Contacted
+180	Не привязан	Not linked
+181	Главная	Home
+182	Карусель главной страницы	Home carousel
+183	Вернуться на главную	Back to home
+184	Начальный долг (UZS)	Initial debt (UZS)
+185	Начало	Start
+186	Дата начала	Start date
+187	Появится, когда наступит время начала	Appears when the start time comes
+188	Выберите другой статус или размещение.	Choose another status or placement.
+189	Управление	Manage
+190	Этап	Stage
+191	Цены на рынке (	Market prices (
+192	Браузер не предоставляет местоположение	The browser does not provide location
+194	Наша бригада выехала, скоро будет на месте.	Our crew is on the way and will arrive soon.
+195	Бригадир	Foreman
+196	Бригадир, садовник, водитель...	Foreman, gardener, driver...
+197	Для этого действия недостаточно прав администратора.	Admin permissions are not sufficient for this action.
+198	Нет разрешения на это действие.	You do not have permission for this action.
+199	Это действие нельзя отменить — чтобы временно скрыть, используйте «Приостановить».	This cannot be undone — to hide temporarily, use "Pause".
+200	В этом разделе нет визитов.	No visits in this section.
+201	Этот заказ отмечен как фиктивная заявка и отправлен суперадмину E-MAKON. Решение о блокировке клиента принимает суперадмин.	This order was flagged as a fake request and sent to the E-MAKON superadmin, who decides whether to block the customer.
+202	В этом фильтре нет наград	No rewards in this filter
+203	Нет договоров в этом статусе.	No contracts in this status.
+204	Нет сотрудников в этом статусе.	No employees in this status.
+205	В этот день свободных часов не осталось	No free hours left on this day
+206	Эта панель только для администрации системы. Админы фирм входят через панель администратора.	This panel is for system administration only. Firm admins sign in through the Admin panel.
+207	Эта панель для админов фирм. Администрация системы использует панель SuperAdmin.	This panel is for firm admins. System administration uses the SuperAdmin panel.
+208	В этом сегменте пока нет клиентов. Клиенты появятся, когда оформят заказ в приложении E-MAKON.	No customers in this segment yet. They appear once they order through the E-MAKON app.
+209	Черновик этого договора будет удалён полностью. Действие нельзя отменить.	This contract draft will be deleted permanently. This cannot be undone.
+210	Сегодня	Today
+211	Заказы за сегодня	Today's orders
+212	Согласованная цена за сегодня	Today's agreed price
+213	Визиты сегодня	Today's visits
+214	Целое число, минимум 1 балл	An integer, at least 1 point
+215	Бухгалтер	Accountant
+216	Заказ	Order
+217	Заказ #	Order #
+218	Заказ будет отменён и	The order will be cancelled and
+219	Заказ отменён	Order cancelled
+220	Количество и сумма заказов	Order count and amount
+221	Количество заказов ↓	Order count ↓
+222	Сумма заказа:	Order amount:
+223	Заказ не найден	Order not found
+224	Заказы	Orders
+225	Платежи по заказам	Payments by order
+226	Динамика заказов	Order dynamics
+227	По статусам заказов	By order status
+228	Контроль заказов	Order control
+229	Заказы не найдены	No orders found
+230	Начислено за заказы	Calculated for orders
+231	Заказов нет	No orders
+232	Управление заказами, клиентами и обращениями	Manage orders, customers and requests
+233	Заказы, сотрудники и объекты ухода. Обновляется каждые 30 секунд. Выберите точку в списке — карта перейдёт к ней.	Orders, employees and care sites. Refreshes every 30 seconds. Pick a point in the list and the map moves to it.
+234	Можно будет назначать на заказы	Can be assigned to orders
+235	Перейти к заказам	Go to orders
+236	Может быть назначен на заказы	Can be assigned to orders
+237	Создайте профиль специалиста, выполняющего заказы на месте	Create a profile for a specialist who carries out orders on site
+238	Давайте согласуем точное время по вашему заказу.	Let's agree on the exact time for your order.
+239	Отменить заказ?	Cancel the order?
+240	Без заказов	No orders
+241	Чт	Thu
+242	Частота	Frequency
+243	Причина ухода	Reason for leaving
+244	Среда	Wednesday
+246	С	From
+247	Спил деревьев, газон, полив	Tree cutting, lawn, irrigation
+248	Показывается сразу (в пределах срока)	Shown immediately (within the period)
+249	Доход (оборот)	Revenue (turnover)
+250	Дашборд не загрузился	Dashboard failed to load
+251	Просмотр дашборда, финансов и отчётов	View dashboard, finance and reports
+252	Возобновлено	Resumed
+253	Возобновить	Resume
+254	Длительность	Duration
+255	Длительность	Duration
+256	Длительность (мин)	Duration (min)
+257	Период	Period
+258	Оборот за период	Period turnover
+259	Оборот за период (UZS)	Period turnover (UZS)
+260	Оборот за период, доля фирм и статистика услуг	Turnover by period, firm share and service statistics
+261	Заказы за период	Orders in period
+262	Деактив.	Deactivate
+263	Деактивировать	Deactivate
+264	Дебет	Debit
+265	Декабрь	December
+266	Динамика	Dynamics
+267	Диспетчер	Dispatcher
+268	Постоянный	Permanent
+269	Обработка	Spraying
+270	Обработчик	Sprayer
+271	Пн	Mon
+272	Понедельник	Monday
+273	Пн–Сб 08:00–19:00	Mon–Sat 08:00–19:00
+275	E-MAKON Панель фирмы	E-MAKON Firm panel
+277	Панель E-MAKON SuperAdmin — управление потоками клиентов и партнёров	E-MAKON SuperAdmin panel — manage customer and partner flows
+278	Панель админа фирмы E-MAKON — управление своими заказами, услугами и сотрудниками	E-MAKON firm admin panel — manage your orders, services and employees
+279	Комментарий E-MAKON:	E-MAKON comment:
+280	Администрация E-MAKON рассматривает договор. После одобрения график визитов составится автоматически, а клиент в приложении получит уведомление. Пока условия можно редактировать.	E-MAKON administration is reviewing it. Once approved, the visit schedule is generated automatically and the customer is notified in the app. You can still edit the terms.
+281	Проверяет администрация E-MAKON	Reviewed by E-MAKON administration
+282	Сообщение администрации E-MAKON	Message from E-MAKON administration
+283	Комментарий или вопрос администрации E-MAKON...	Comment or question for E-MAKON administration...
+284	E-MAKON отклонил	Rejected by E-MAKON
+285	E-MAKON отклонил. Прочитайте причину ниже, исправьте условия и отправьте снова.	Rejected by E-MAKON. Read the reason below, fix the terms and resubmit.
+286	суперадмину E-MAKON	to the E-MAKON superadmin
+287	На утверждении E-MAKON	Awaiting E-MAKON approval
+288	Отправить на утверждение E-MAKON	Submit for E-MAKON approval
+289	E-MAKON одобрил	Approved by E-MAKON
+291	Написать от имени E-Makon — увидят и клиент, и фирма...	Write on behalf of E-Makon — both the customer and the firm will see it...
+292	Удерживается в E-Makon	Held by E-Makon
+293	ETA (мин)	ETA (min)
+294	Экспорт не удался	Export failed
+296	Неверный формат email	Invalid email format
+297	Эмодзи	Emoji
+298	Самые активные	Most active
+299	Меньше всего	Least
+300	Наименее используемые	Least used
+301	Наименее используемые	Least used
+302	Больше всего	Most
+303	Самые заказываемые	Most ordered
+304	Наиболее используемые	Most used
+305	Наиболее используемые (1 мес.)	Most used (1 month)
+306	Сначала новые	Newest first
+307	Добавляйте через Enter или запятую (до 20)	Add with Enter or a comma (up to 20)
+308	Enter — отправить, Shift+Enter — новая строка. То, что прочитали вы, не отмечается как «прочитано» для фирмы.	Enter to send, Shift+Enter for a new line. What you read is not marked as "read" for the firm.
+309	Эскроу / расчёты	Escrow / settlement
+310	Эскроу ещё не открыт.	Escrow has not been opened yet.
+311	Открыть эскроу	Open escrow
+312	В эскроу	In escrow
+313	В эскроу (UZS)	In escrow (UZS)
+314	Напоминание отправлено	Reminder sent
+316	Не удалось подготовить файл Excel	Could not prepare the Excel file
+317	Ф.И.О.	Full name
+318	Введите Ф.И.О.	Enter the full name
+320	Фамилия	Last name
+321	Фамилия Имя	Last name First name
+322	Активен	Active
+323	Активна (показывать в приложении после одобрения)	Active (show in the app once approved)
+324	Активный заказ	Active order
+325	Активные заказы	Active orders
+326	Активные заказы ↓	Active orders ↓
+327	Сотрудники без активных заказов	Employees with no active orders
+328	Активные фирмы	Active firms
+329	Активные партнёры	Active partners
+330	Активные инвестиции	Active investment
+331	Активные инвесторы	Active investors
+332	По активным инвесторам	Across active investors
+333	Всего по активным инвесторам	Total across active investors
+334	Активные соглашения	Active agreements
+335	Активные клиенты	Active customers
+336	Активные награды	Active rewards
+337	Активные договоры	Active contracts
+338	Стоимость активных договоров	Value of active contracts
+339	Нет активных сотрудников	No active employees
+340	Активировать	Activate
+341	Только строчные латинские буквы, цифры и знак «-».	Only lowercase Latin letters, digits and "-".
+342	Загрузите только изображение	Upload an image file only
+343	Загрузите только изображение (JPG, PNG, WEBP).	Upload an image file only (JPG, PNG, WEBP).
+344	Экстренный контакт	Emergency contact
+345	Телефон для экстренной связи	Emergency contact phone
+346	Экстр. тел.	Emergency tel.
+347	Если загружен файл, приоритет у файла	If a file is uploaded, the file takes priority
+348	Февраль	February
+349	По фильтру баннеры не найдены	No banners match the filter
+350	По фильтру предложения не найдены	No offers match the filter
+351	По фильтру ничего не найдено	Nothing matches the filter
+352	По фильтру типы не найдены	No types match the filter
+353	Попробуйте изменить фильтры.	Try changing the filters.
+354	Название группы для фильтрации	Group name for filtering
+355	Фирма	Firm
+356	Фирма (организация)	Firm (organization)
+357	Фирма не отвечает больше 1 часа	The firm has not replied for over 1 hour
+358	Админ фирмы	Firm admin
+359	Обороты фирм	Firm turnover
+360	Обороты фирм и доля компании	Firm turnover and company share
+361	Обороты фирм и доля	Firm turnover and share
+362	Нет оборота фирм	No firm turnover
+363	Занятость фирмы:	Firm availability:
+364	База фирмы	Firm database
+365	Мы связались с фирмой, вопрос рассматривается.	We contacted the firm; the issue is being reviewed.
+366	Фирма не назначена	No firm assigned
+367	Фирма отметила эту заявку как фиктивную	The firm flagged this request as fake
+368	О фирме	About the firm
+369	Фирма отметила работу как завершённую. Подтвердите у клиента и нажмите «Перевести фирме» — только после этого деньги поступят на счёт фирмы.	The firm marked the job as finished. Confirm with the customer and press "Transfer to firm" — only then is the money credited to the firm.
+370	Наказание фирмы (возврат)	Firm penalty (refund)
+371	Фирма не указана	Firm not specified
+372	Данные фирмы не загрузились	Firm data failed to load
+373	Данные фирмы сохранены	Firm details saved
+374	Фирма не прочитала	Unread by firm
+375	Сообщения клиентов, не прочитанные фирмой	Customer messages unread by the firm
+376	Профиль фирмы	Firm profile
+377	Руководитель фирмы	Firm director
+378	Фирма увидит причину и сможет исправить договор и отправить снова.	The firm will see the reason and can fix and resubmit the contract.
+379	Предложения фирм	Firm offers
+380	Нет предложений фирм	No firm offers
+381	Телефон фирмы	Firm phone
+382	Доля фирмы перейдёт на её счёт. Это действие нельзя отменить.	The firm's share will be credited to its account. This cannot be undone.
+383	Наблюдайте за перепиской фирмы и клиента в реальном времени, при необходимости вмешайтесь от имени E-Makon.	Monitor the firm–customer conversation in real time and step in on behalf of E-Makon if needed.
+384	Фирме	To the firm
+385	Комментарий фирме (необязательно)	Comment for the firm (optional)
+386	Напишите комментарий фирме (попадёт и в сообщения фирмы)...	Write a comment for the firm (it also goes to the firm's messages)...
+387	Переведено фирме	Transferred to firm
+388	Перевести фирме	Transfer to firm
+389	Выплачено фирме	Paid to firm
+390	Выплачено фирме (UZS)	Paid to firm (UZS)
+391	Фирмы	Firms
+392	Фирмы (всего)	Firms (total)
+393	Фирмы добавляют свои услуги с	Firms add their services with
+394	Долгосрочные договоры ухода, заключённые фирмами с домохозяйствами и организациями. Утверждайте, следите за выполнением визитов и оставляйте комментарии фирме.	Long-term care contracts between firms and households or organizations. Approve them, track visit completion and leave comments for the firm.
+395	Когда фирмы добавят услуги, они появятся здесь.	Services added by firms will appear here.
+396	Фирм нет	No firms
+397	Услуги, которые оказывает ваша фирма, и	The services your firm provides and their
+398	База клиентов вашей фирмы: новые и постоянные клиенты, самые активные и давно не приходившие. В карточке клиента — история заказов и кнопка чата.	Your firm's customer base: new and returning customers, the most active and the long-absent. The customer card has order history and a chat button.
+399	Заказы в вашей фирме	Orders with your firm

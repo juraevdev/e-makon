@@ -33,7 +33,7 @@ mixin LiveRefresh<T extends StatefulWidget> on State<T> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final enabled = TickerMode.of(context);
+    final enabled = TickerMode.valuesOf(context).enabled;
     if (enabled != _tickerEnabled) {
       _tickerEnabled = enabled;
       if (enabled) liveTick();

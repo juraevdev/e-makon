@@ -9,7 +9,7 @@ type PageHeaderProps = {
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="relative">
+      <div className="page-header-text relative">
         <div
           className="pointer-events-none absolute -left-3 -top-2 h-16 w-16 rounded-full bg-primary/10 blur-2xl"
           aria-hidden

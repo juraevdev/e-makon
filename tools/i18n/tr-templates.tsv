@@ -1,0 +1,151 @@
+"{}" administrator sifatida qo'shildi	«{}» добавлен как администратор	"{}" added as an administrator
+"{}" bilan kelishuv tugatildi	Соглашение с «{}» расторгнуто	Agreement with "{}" ended
+"{}" faollashtirildi	«{}» активирован	"{}" activated
+"{}" ilovada ko'rinadi	«{}» показывается в приложении	"{}" is shown in the app
+"{}" ilovadan olindi	«{}» убран из приложения	"{}" removed from the app
+"{}" ilovadan yashirildi	«{}» скрыт из приложения	"{}" hidden from the app
+"{}" investor sifatida qo'shildi	«{}» добавлен как инвестор	"{}" added as an investor
+"{}" katalogda bor — takrorlanmasligi uchun xizmatingiz shu turga qo'shiladi.	«{}» уже есть в каталоге — чтобы не дублировать, ваша услуга будет добавлена к этому типу.	"{}" is already in the catalog — to avoid duplicates your service will be added to this type.
+"{}" katalogdan o'chirildi	«{}» удалён из каталога	"{}" removed from the catalog
+"{}" ma'lumotlari yangilandi	Данные «{}» обновлены	"{}" details updated
+"{}" o'chirib qo'yildi	«{}» отключён	"{}" disabled
+"{}" tasdiqlandi — ilovada "{}" ichida ko'rinadi	«{}» одобрен — в приложении показывается внутри «{}»	"{}" approved — shown in the app inside "{}"
+"{}" xodimlar ro'yxatiga qo'shildi	«{}» добавлен в список сотрудников	"{}" added to the employee list
+#{n} bo'yicha {} E-Makon hisobiga tushganini bank/provayderda tekshirdingizmi? Buyurtma firmaga yuboriladi.	Вы проверили в банке/у провайдера, что {} по заказу #{n} поступило на счёт E-Makon? Заказ будет отправлен фирме.	Have you verified with the bank/provider that {} for #{n} reached the E-Makon account? The order will be sent to the firm.
+(jami {n})	(всего {n})	(total {n})
+(yuklangan {n})	(загружено {n})	(loaded {n})
+({} gacha)	(до {})	(until {})
+Bir vaqtda {n} ta buyurtma (faol xodimlar soni).	Одновременно {n} заказ(ов) (число активных сотрудников).	{n} order(s) at a time (number of active employees).
+Bo'sh qolsa: {}	Если пусто: {}	If left empty: {}
+Buyurtma #{n}	Заказ #{n}	Order #{n}
+Faol kapital ({})	Активный капитал ({})	Active capital ({})
+Firma #{n}	Фирма #{n}	Firm #{n}
+Ha, {}	Да, {}	Yes, {}
+Holat: {}	Статус: {}	Status: {}
+Hozir: {} · {}	Сейчас: {} · {}	Now: {} · {}
+Mas'ul xodim: {}	Ответственный сотрудник: {}	Assigned employee: {}
+Mas'ul: {} ·	Ответственный: {} ·	Assigned: {} ·
+Masofa: {} km	Расстояние: {} км	Distance: {} km
+Masofa: {} km ·	Расстояние: {} км ·	Distance: {} km ·
+Muddati o'tgan: {}	Просрочено: {}	Overdue: {}
+O'rtacha reyting ★ {}	Средний рейтинг ★ {}	Average rating ★ {}
+Parvarish · {}	Уход · {}	Care · {}
+Qarz: {}	Долг: {}	Debt: {}
+Rad sababi: {}	Причина отказа: {}	Rejection reason: {}
+Rasm hajmi {n} MB dan oshmasin.	Размер изображения не больше {n} МБ.	The image must not exceed {n} MB.
+Shartnoma #{n}	Договор #{n}	Contract #{n}
+Shartnomani tahrirlash #{n}	Редактировать договор #{n}	Edit contract #{n}
+Tashrif: {}	Визит: {}	Visit: {}
+Tizim hisobi: firma manzilidan ~{} km, taxminan {} daqiqa. Kerak bo'lsa o'zgartiring.	Расчёт системы: ~{} км от адреса фирмы, примерно {} минут. При необходимости измените.	System estimate: ~{} km from the firm's address, about {} minutes. Change it if needed.
+Tugagan: {}	Завершено: {}	Ended: {}
+Unga bog'langan {n} ta firma taklifi turdan ajraladi.	Связанные с ним предложения фирм ({n}) будут отделены от типа.	The {n} firm offers linked to it will be detached from the type.
+Xatolik ({})	Ошибка ({})	Error ({})
+Xizmat #{n}	Услуга #{n}	Service #{n}
+Yangi buyurtma #{n}: {}	Новый заказ #{n}: {}	New order #{n}: {}
+Yangi buyurtmalar · {n}	Новые заказы · {n}	New orders · {n}
+Yetib borish: ~{n} daq	Прибытие: ~{n} мин	Arrival: ~{n} min
+Yuborildi. Tasdiqlangach ilovada "{}" bo'limida firmangiz chiqadi.	Отправлено. После одобрения ваша фирма появится в приложении в разделе «{}».	Submitted. Once approved, your firm appears in the app under "{}".
+{n} bajarilgan	{n} выполнено	{n} completed
+{} blokdan chiqarildi	{} разблокирован	{} unblocked
+{} bloklandi — endi ilovaga kira olmaydi va buyurtma bera olmaydi	{} заблокирован — больше не может входить в приложение и оформлять заказы	{} blocked — can no longer sign in to the app or place orders
+{n} bugun	{n} сегодня	{n} today
+{n} buyurtma	{n} заказов	{n} orders
+{n} daq	{n} мин	{n} min
+{n} daqiqa oldin	{n} мин назад	{n} min ago
+{n} faol	{n} активных	{n} active
+{} ilovada ko'rinmay qoladi va yangi buyurtma qabul qilinmaydi.	{} перестанет показываться в приложении, новые заказы приниматься не будут.	{} will no longer be shown in the app and new orders will not be accepted.
+{n} jami	{n} всего	{n} total
+{} katalogdan butunlay o'chadi.	{} будет полностью удалён из каталога.	{} will be removed from the catalog permanently.
+{n} km	{n} км	{n} km
+{n} kun oldin	{n} дн. назад	{n} days ago
+{n} kundan keyin	через {n} дн.	in {n} days
+{n} kutilmoqda	{n} ожидается	{n} pending
+{n} marta almashtirilgan	обменяно {n} раз	redeemed {n} times
+{} ni o'chirish	Удалить: {}	Delete {}
+{n} oy	{n} мес.	{n} mo
+{n} soat	{n} ч	{n} h
+{n} soat oldin	{n} ч назад	{n} h ago
+{n} ta	{n} шт.	{n}
+{n} ta baho	{n} оценок	{n} ratings
+{n} ta buyurtmadan {}–{}	из {n} заказов {}–{}	{}–{} of {n} orders
+{n} ta firmada	в {n} фирмах	in {n} firms
+{n} ta o'qilmagan mijoz xabari	{n} непрочитанных сообщений клиентов	{n} unread customer messages
+{n} ta yangi buyurtma keldi	Поступило новых заказов: {n}	{n} new orders arrived
+{n} tasida xodim yo'q	у {n} нет сотрудника	{n} have no employee
+{n} tugagan	{n} завершено	{n} ended
+{n} uy · {n} tashkilot	домов: {n} · организаций: {n}	{n} homes · {n} organizations
+{n} yil	{n} г.	{n} yr
+{} · hisobot mijozga ilovada ko'rinadi	{} · отчёт виден клиенту в приложении	{} · the report is visible to the customer in the app
+{} · ilovada {} dan beri	{} · в приложении с {}	{} · in the app since {}
+{} — parvarish	{} — уход	{} — care
+{n}% berilganidan	{n}% от начисленных	{n}% of awarded
+{n}% jami adminlardan	{n}% от всех админов	{n}% of all admins
+{}: bajarildi	{}: выполнено	{}: completed
+{}: shartnoma #{n}	{}: договор #{n}	{}: contract #{n}
+~{n} daq.	~{n} мин.	~{n} min
+· Buyurtma #{n}	· Заказ #{n}	· Order #{n}
+· Mas'ul: {}	· Ответственный: {}	· Assigned: {}
+· Reja: {} {}	· План: {} {}	· Plan: {} {}
+· Yetib borish: ~{n} daqiqa	· Прибытие: ~{n} минут	· Arrival: ~{n} minutes
+· min {n} ball balans	· мин. баланс {n} баллов	· min balance {n} points
+· o'rtacha chek {}	· средний чек {}	· avg order value {}
+· {n} soat	· {n} ч	· {n} h
+· {n} ta faol	· активных: {n}	· {n} active
+· {n} ta firma	· фирм: {n}	· {n} firms
+· ~{n} daq	· ~{n} мин	· ~{n} min
+— {n} ta firma	— фирм: {n}	— {n} firms
+★ {} ({n} baho)	★ {} (оценок: {n})	★ {} ({n} ratings)
+oylik	ежемесячно	monthly
+yillik	ежегодно	yearly
+Investor qo'shish	Добавить инвестора	Add investor
+bajarilgan	выполнено	completed
+faol	активных	active
+yangi	новых	new
+Sinov to'lovi	Тестовый платёж	Test payment
+oladi.	получит.	earns.
+ball	баллов	points
+soat	ч	h
+sahifa	стр.	page
+buyurtma	заказов	orders
+Birinchi mukofotni qo'shish	Добавить первую награду	Add the first reward
+Direktor	Директор	Director
+Hudud	Регион	Region
+Tavsif	Описание	Description
+Shartnoma tuzish	Составить договор	Create contract
+Ushlab turilgan	Удерживается	Held
+Mijoz naqd/karta	Клиент: наличные/карта	Customer cash/card
+E-Makon escrow	Эскроу E-Makon	E-Makon escrow
+Firmaga to'lov	Выплата фирме	Payout to firm
+E-Makon daromad	Доход E-Makon	E-Makon revenue
+Escrow ushlash	Удержание в эскроу	Escrow hold
+Escrow chiqarish	Выплата из эскроу	Escrow release
+Ish yakunlandi — pul firmaga o'tkazildi	Работа завершена — деньги переведены фирме	Work finished — money transferred to the firm
+Sinov to'lovi — Click/Payme vaqtincha ulanmagan	Тестовый платёж — Click/Payme временно не подключены	Test payment — Click/Payme temporarily not connected
+Buyurtma #{n} bajarildi	Заказ #{n} выполнен	Order #{n} completed
+Yangi to'langan buyurtma #{n}	Новый оплаченный заказ #{n}	New paid order #{n}
+Oylik · {n} o'rin · ${n}	Помесячно · мест: {n} · ${n}	Monthly · {n} seat(s) · ${n}
+Yillik · {n} o'rin · ${n}	Годовая · мест: {n} · ${n}	Yearly · {n} seat(s) · ${n}
+Oylik · ${n}	Помесячно · ${n}	Monthly · ${n}
+Yillik · ${n}	Годовая · ${n}	Yearly · ${n}
+O'rtacha vaqt: {}	Среднее время: {}	Average time: {}
+{n} - {n} kun	{n} - {n} дн.	{n} - {n} days
+{n} - {n} soat	{n} - {n} ч	{n} - {n} h
+{n} daqiqa	{n} минут	{n} minutes
+Dizayn	Дизайн	Design
+Infratuzilma	Инфраструктура	Infrastructure
+Kafolat	Гарантия	Warranty
+Maslahat	Консультация	Consultation
+@kanal_nomi yoki https://t.me/...	@имя_канала или https://t.me/...	@channel_name or https://t.me/...
+@kanal yoki https://youtube.com/...	@канал или https://youtube.com/...	@channel or https://youtube.com/...
+bilan qo'shadi. Har bir yangi xizmat yoki narx o'zgarishi shu yerda tekshiriladi; tasdiqlangach mijoz ilovasida firma narxlari yonma-yon chiqadi.	. Каждая новая услуга или изменение цены проверяется здесь; после одобрения цены фирм показываются в клиентском приложении рядом друг с другом.	. Every new service or price change is reviewed here; once approved, firm prices are shown side by side in the customer app.
+ta	шт.	pcs
+Yangi buyurtma #{n}: {} · {}	Новый заказ #{n}: {} · {}	New order #{n}: {} · {}
+#{n} joylandi: {}, {} – {}. Mijozga xabar yuborildi.	#{n} поставлен: {}, {} – {}. Клиенту отправлено сообщение.	#{n} placed: {}, {} – {}. The customer has been notified.
+{} gacha	до {}	until {}
+{}: {n} ta · {}	{}: {n} шт. · {}	{}: {n} · {}
+{} ({n} tashrif)	{} (визитов: {n})	{} ({n} visits)
+{n} yil {}	{n} г. {}	{n} yr {}
+Suhbat {}	Диалог {}	Conversation {}
+(oylik bo‘lsa ${n})	(при помесячной ${n})	(${n} if monthly)
+(oylik bo‘lsa $	(при помесячной $	(if monthly $
+Slug (URL)	Slug (URL)	Slug (URL)
