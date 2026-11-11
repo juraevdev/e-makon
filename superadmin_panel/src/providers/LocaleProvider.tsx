@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   createContext,
   useCallback,
   useContext,
@@ -13,6 +14,7 @@ import {
   type Locale,
   translate,
 } from "@/lib/i18n/messages";
+import { setAutoLocale } from "@/lib/i18n/auto/translate";
 
 type LocaleContextValue = {
   locale: Locale;
@@ -37,12 +39,14 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
     if (stored && LOCALES.some((l) => l.code === stored)) {
+      setAutoLocale(stored);
       setLocaleState(stored);
       document.documentElement.lang = HTML_LANG[stored];
     }
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
+    setAutoLocale(next);
     setLocaleState(next);
     localStorage.setItem(STORAGE_KEY, next);
     document.documentElement.lang = HTML_LANG[next];
@@ -67,7 +71,10 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+    <LocaleContext.Provider value={value}>
+      {/* Til almashganda butun daraxt qayta chiziladi — avtomatik tarjima yangi tilni oladi. */}
+      <Fragment key={locale}>{children}</Fragment>
+    </LocaleContext.Provider>
   );
 }
 

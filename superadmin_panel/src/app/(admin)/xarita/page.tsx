@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { YandexMap, type MapPoint } from "@/components/map/YandexMap";
 import { ExcelButton, FilterChip, LiveBadge, LoadingBlock } from "@/components/ui";
 import { api } from "@/lib/api/client";
 import type { MapPayload } from "@/lib/api/types";
@@ -9,21 +10,12 @@ import { downloadExcel, type ExcelSheet } from "@/lib/excel";
 import { formatPhone } from "@/lib/format";
 import { useAsync } from "@/hooks/useAsync";
 
-function project(lat: number, lng: number) {
-  const minLat = 39.4;
-  const maxLat = 41.7;
-  const minLng = 66.5;
-  const maxLng = 72.2;
-  const top = ((maxLat - lat) / (maxLat - minLat)) * 100;
-  const left = ((lng - minLng) / (maxLng - minLng)) * 100;
-  return {
-    top: `${Math.min(92, Math.max(8, top))}%`,
-    left: `${Math.min(92, Math.max(8, left))}%`,
-  };
-}
+/** Toshkent — nuqta bo'lmaganda xarita markazi. */
+const DEFAULT_CENTER = { lat: 41.2995, lng: 69.2401 };
 
 export default function XaritaPage() {
   const [filter, setFilter] = useState<"all" | "workers" | "orders">("all");
+  const [focus, setFocus] = useState<string | null>(null);
   const { data, loading, error, updatedAt } = useAsync(() => api<MapPayload>("/admin/map/"), []);
 
   function exportExcel() {
@@ -69,17 +61,28 @@ export default function XaritaPage() {
     downloadExcel("xarita", sheets);
   }
 
-  const pins = useMemo(() => {
+  const points = useMemo<MapPoint[]>(() => {
     if (!data) return [];
-    const workerPins = data.workers
-      .filter((w) => w.lat != null && w.lng != null)
-      .map((w) => ({ kind: "worker" as const, ...w }));
-    const orderPins = data.orders
-      .filter((o) => o.lat != null && o.lng != null)
-      .map((o) => ({ kind: "order" as const, ...o }));
-    if (filter === "workers") return workerPins;
-    if (filter === "orders") return orderPins;
-    return [...workerPins, ...orderPins];
+    const list: MapPoint[] = [];
+    if (filter === "all") {
+      (data.firms ?? []).forEach((f) => {
+        if (f.lat == null || f.lng == null) return;
+        list.push({ key: `f-${f.id}`, kind: "firm", lat: f.lat, lng: f.lng, title: f.name, subtitle: f.address });
+      });
+    }
+    if (filter !== "orders") {
+      data.workers.forEach((w) => {
+        if (w.lat == null || w.lng == null) return;
+        list.push({ key: `w-${w.id}`, kind: "worker", lat: w.lat, lng: w.lng, title: w.name, subtitle: formatPhone(w.phone) });
+      });
+    }
+    if (filter !== "workers") {
+      data.orders.forEach((o) => {
+        if (o.lat == null || o.lng == null) return;
+        list.push({ key: `o-${o.id}`, kind: "order", lat: o.lat, lng: o.lng, title: `#${o.id} · ${o.service}`, subtitle: o.address });
+      });
+    }
+    return list;
   }, [data, filter]);
 
   if (loading) return <LoadingBlock />;
@@ -87,29 +90,9 @@ export default function XaritaPage() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
-      <div className="relative z-0 h-[512px] flex-1 border-b border-surface-variant bg-surface-container-low lg:h-auto lg:border-r lg:border-b-0">
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, #1b3824 0, transparent 40%), radial-gradient(circle at 80% 70%, #163024 0, transparent 35%)",
-          }}
-        />
-        {pins.map((pin) => {
-          const pos = project(pin.lat as number, pin.lng as number);
-          return (
-            <div key={`${pin.kind}-${pin.id}`} className="absolute z-10 -translate-x-1/2 -translate-y-full" style={pos}>
-              <span
-                className={`material-symbols-outlined text-3xl drop-shadow-lg ${pin.kind === "order" ? "text-amber-300" : "text-primary"}`}
-                style={{ fontVariationSettings: "'FILL' 1" }}
-                title={pin.kind === "worker" ? pin.name : `#${pin.id}`}
-              >
-                location_on
-              </span>
-            </div>
-          );
-        })}
-        <div className="absolute bottom-4 left-4 z-10 min-w-[220px] rounded-2xl border border-card-border bg-card/90 p-4">
+      <div className="relative z-0 h-[460px] shrink-0 border-b border-surface-variant bg-surface-container-low lg:h-[calc(100dvh-5rem)] lg:flex-1 lg:border-r lg:border-b-0">
+        <YandexMap points={points} focusKey={focus} onSelect={setFocus} fallbackCenter={DEFAULT_CENTER} />
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 min-w-[220px] rounded-2xl border border-card-border bg-card/90 p-4">
           <h3 className="mb-3 text-[11px] font-bold tracking-wider text-primary uppercase">Holat belgisi</h3>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">

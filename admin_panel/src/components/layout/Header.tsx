@@ -14,6 +14,9 @@ type HeaderProps = {
   onMenuClick?: () => void;
 };
 
+/** Sarlavhadagi qidiruv faqat shu sahifalarda ro'yxatni filtrlaydi. */
+const SEARCH_PAGES = new Set(["/aloqa", "/buyurtmalar", "/mijozlar", "/parvarish", "/xizmatlar", "/xodimlar"]);
+
 const WEATHER_ICON: Record<string, string> = {
   sunny: "sunny",
   dry: "wb_sunny",
@@ -38,10 +41,15 @@ export function Header({ onMenuClick }: HeaderProps) {
   const placeKey =
     live?.place === "you" ? "weather.placeYou" : "weather.placeTashkent";
   const season = currentSeason();
+  const searchable = SEARCH_PAGES.has(pathname.replace(/\/+$/, "") || "/");
+  // Tunda ochiq osmon "Quyoshli" deb chiqmasin.
+  const clearNight = Boolean(live && !live.isDay && mood === "sunny");
+  const weatherLabelKey = clearNight ? "weather.clearNight" : getWeatherLabelKey(mood);
+  const weatherIcon = clearNight ? "bedtime" : WEATHER_ICON[mood];
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between border-b border-card-border/60 bg-card/85 px-4 py-2 text-ink backdrop-blur-md md:px-8">
-      <div className="flex min-w-0 items-center gap-4">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
         <button
           type="button"
           onClick={onMenuClick}
@@ -51,14 +59,14 @@ export function Header({ onMenuClick }: HeaderProps) {
           <span className="material-symbols-outlined">menu</span>
         </button>
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-ink md:text-[32px] md:leading-10">
+          <h1 className="line-clamp-2 text-base leading-tight font-bold tracking-tight text-ink sm:line-clamp-none sm:truncate sm:text-2xl md:text-[32px] md:leading-10">
             {title}
           </h1>
           <p className="mt-0.5 hidden items-center gap-1.5 text-xs text-ink-muted sm:flex">
             <span className="material-symbols-outlined text-[14px] text-accent">
-              {weatherLoading ? "progress_activity" : WEATHER_ICON[mood]}
+              {weatherLoading ? "progress_activity" : weatherIcon}
             </span>
-            <span>{t(getWeatherLabelKey(mood))}</span>
+            <span>{t(weatherLabelKey)}</span>
             {live ? (
               <>
                 <span className="text-ink-muted/50">·</span>
@@ -72,8 +80,8 @@ export function Header({ onMenuClick }: HeaderProps) {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="relative hidden sm:block">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+        <div className={searchable ? "relative hidden sm:block" : "hidden"}>
           <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-sm text-ink-muted">
             search
           </span>
@@ -118,7 +126,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </button>
 
         <div className="flex items-center gap-2 rounded-full border border-card-border bg-card py-1 pr-2 pl-2">
-          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary">
+          <div className="hidden h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary sm:flex">
             {initials(name)}
           </div>
           <div className="hidden text-left sm:block">

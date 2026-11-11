@@ -153,7 +153,7 @@ async function downloadPdfReport(query: Record<string, string>) {
     <tr><th>Davr buyurtmalari</th><td>${e(s.orders_in_period)}</td></tr>
     <tr><th>Umumiy aylanma</th><td>${e(s.revenue_done)} UZS</td></tr>
     <tr><th>Davr aylanmasi</th><td>${e(s.revenue_period)} UZS</td></tr>
-    <tr><th>Kampaniya ulushi</th><td>${e(s.platform_share_total)} UZS</td></tr>
+    <tr><th>Kompaniya ulushi</th><td>${e(s.platform_share_total)} UZS</td></tr>
   </table>
   <h2>Firma aylanmalari</h2>
   <table><tr><th>Firma</th><th>Buyurtma</th><th>Aylanma</th><th>Stavka</th><th>Ulush</th></tr>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
           ["Davr buyurtmalari", overview.orders_in_period],
           ["Umumiy aylanma (UZS)", Number(overview.revenue_done) || 0],
           ["Davr aylanmasi (UZS)", Number(overview.revenue_period) || 0],
-          ["Kampaniya ulushi (UZS)", Number(overview.platform_share_total) || 0],
+          ["Kompaniya ulushi (UZS)", Number(overview.platform_share_total) || 0],
           ["O'rtacha chek (UZS)", Number(overview.avg_check) || 0],
         ],
       },
@@ -332,7 +332,7 @@ export default function DashboardPage() {
           </h3>
           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-primary/15 pt-3 text-xs">
             <div>
-              <p className="text-on-surface-variant">Kampaniya ulushi</p>
+              <p className="text-on-surface-variant">Kompaniya ulushi</p>
               <p className="font-semibold text-primary">{formatMoney(overview.platform_share_total)}</p>
             </div>
             <div>

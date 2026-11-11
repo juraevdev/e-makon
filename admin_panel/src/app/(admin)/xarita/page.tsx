@@ -92,7 +92,7 @@ export default function XaritaPage() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden text-ink lg:flex-row">
-      <div className="relative h-[460px] shrink-0 border-b border-card-border bg-surface-container-low lg:h-auto lg:flex-1 lg:border-r lg:border-b-0">
+      <div className="relative h-[460px] shrink-0 border-b border-card-border bg-surface-container-low lg:h-[calc(100dvh-5rem)] lg:flex-1 lg:border-r lg:border-b-0">
         <YandexMap points={points} focusKey={focus} onSelect={setFocus} fallbackCenter={center} />
         <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-2xl border border-card-border bg-card/95 p-3 text-xs text-ink shadow-sm backdrop-blur-sm">
           {[
