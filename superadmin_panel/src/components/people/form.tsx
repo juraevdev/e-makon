@@ -192,7 +192,7 @@ export function SearchBox({ placeholder = "Qidirish...", className = "" }: { pla
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className={`${inputClass} pl-10`}
+        className={`${inputClass} h-10 py-0 pl-10 leading-none`}
       />
       {query ? (
         <button
@@ -227,11 +227,15 @@ export function SelectFilter({
     <label className={`relative block min-w-0 ${className}`}>
       <span className="sr-only">{label}</span>
       {icon ? (
-        <span className="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-on-surface-variant">
+        <span className="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-[1] -translate-y-1/2 text-[18px] text-on-surface-variant">
           {icon}
         </span>
       ) : null}
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} ${icon ? "pl-10" : ""}`}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} ${icon ? "pl-10" : ""}`}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

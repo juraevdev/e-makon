@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TabBar, inputClass } from "@/components/ui";
+import { PageHeader, TabBar, inputClass } from "@/components/ui";
 import { ChatHub } from "@/components/chat/ChatHub";
 import { TicketsHub } from "@/components/chat/TicketsHub";
 import { api, asPage } from "@/lib/api/client";
@@ -34,36 +34,40 @@ export default function AloqaPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] flex-1 space-y-4 px-4 py-6 md:px-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-on-surface-variant md:text-base">
-            Mijoz ↔ firma yozishmalarini real vaqtda kuzating, E-Makon nomidan aralashing va yordam murojaatlariga javob bering.
-          </p>
-        </div>
-        <div className="relative w-full lg:w-80">
-          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">
-            search
-          </span>
-          <input
-            className={`${inputClass} pl-10`}
-            placeholder={tab === "chats" ? "Mijoz, firma yoki xabar..." : "Mavzu, mijoz yoki telefon..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
+    <div className="mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden px-4 py-4 md:px-8 md:py-5">
+      <PageHeader
+        className="mb-3 shrink-0 md:mb-4"
+        title="Aloqa markazi"
+        description="Mijoz ↔ firma yozishmalarini kuzating, E-Makon nomidan aralashing va murojaatlarga javob bering."
+        actions={
+          <div className="relative w-full sm:w-80">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-ink-muted">
+              search
+            </span>
+            <input
+              className={`${inputClass} h-10 pl-10`}
+              placeholder={tab === "chats" ? "Mijoz, firma yoki xabar..." : "Mavzu, mijoz yoki telefon..."}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Qidiruv"
+            />
+          </div>
+        }
+      />
 
       <TabBar<Tab>
+        className="mb-3 shrink-0 md:mb-4"
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "chats", label: "Mijoz ↔ Firma chatlari", icon: "forum", count: badges?.chats || undefined },
+          { id: "chats", label: "Mijoz ↔ Firma", icon: "forum", count: badges?.chats || undefined },
           { id: "tickets", label: "Murojaatlar", icon: "support_agent", count: badges?.tickets || undefined },
         ]}
       />
 
-      {tab === "chats" ? <ChatHub search={term} /> : <TicketsHub search={term} />}
+      <div className="min-h-0 flex-1">
+        {tab === "chats" ? <ChatHub search={term} /> : <TicketsHub search={term} />}
+      </div>
     </div>
   );
 }

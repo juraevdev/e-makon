@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useLocale } from "@/providers/LocaleProvider";
 
 const SIZES = {
@@ -47,10 +48,10 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
   const width = SIZES[size ?? (wide ? "lg" : "md")];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 backdrop-blur-[2px] sm:items-center sm:p-6 dark:bg-black/70">
       <button
         type="button"
@@ -85,6 +86,7 @@ export function Modal({
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

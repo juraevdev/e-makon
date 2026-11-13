@@ -207,8 +207,12 @@ export function BannerFormModal({
           <textarea rows={3} className={inputClass} value={form.description} onChange={(e) => set("description", e.target.value)} />
         </Field>
 
-        <Field label="Joylashuv" required>
-          <select className={inputClass} value={form.placement} onChange={(e) => set("placement", e.target.value as Banner["placement"])}>
+        <Field label="Joylashuv" required className="min-w-0">
+          <select
+            className={`${inputClass} min-w-0`}
+            value={form.placement}
+            onChange={(e) => set("placement", e.target.value as Banner["placement"])}
+          >
             {Object.entries(PLACEMENT_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -216,8 +220,12 @@ export function BannerFormModal({
             ))}
           </select>
         </Field>
-        <Field label="Bog'langan xizmat" hint="Banner bosilganda shu xizmat ochiladi">
-          <select className={inputClass} value={form.link_service} onChange={(e) => set("link_service", e.target.value)}>
+        <Field label="Bog'langan xizmat" className="min-w-0" hint="Banner bosilganda shu xizmat ochiladi">
+          <select
+            className={`${inputClass} min-w-0`}
+            value={form.link_service}
+            onChange={(e) => set("link_service", e.target.value)}
+          >
             <option value="">— Bog&apos;lanmagan —</option>
             {linkedMissing ? <option value={linkedMissing.id}>{linkedMissing.name}</option> : null}
             {services.map((s) => (

@@ -94,12 +94,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           />
         </div>
 
-        <label className="relative inline-flex">
+        <label className="relative inline-flex h-9 items-center">
           <span className="sr-only">{t("common.language")}</span>
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as typeof locale)}
-            className="appearance-none rounded-full border border-card-border bg-card py-2 pl-3 pr-8 text-xs font-semibold text-ink focus:border-primary focus:outline-none"
+            className="h-9 appearance-none rounded-full border border-card-border bg-card pl-3 pr-8 text-xs font-semibold leading-none text-ink focus:border-primary focus:outline-none"
             title={t("common.language")}
           >
             {locales.map((l) => (
@@ -116,30 +116,30 @@ export function Header({ onMenuClick }: HeaderProps) {
         <button
           type="button"
           onClick={toggleTheme}
-          className="rounded-full border border-card-border bg-card p-2 text-ink-muted transition-colors hover:bg-surface-container-high hover:text-primary"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-card-border bg-card text-ink-muted transition-colors hover:bg-surface-container-high hover:text-primary"
           title={theme === "dark" ? t("common.themeLight") : t("common.themeDark")}
           aria-label={theme === "dark" ? t("common.themeLight") : t("common.themeDark")}
         >
-          <span className="material-symbols-outlined text-[20px]">
+          <span className="material-symbols-outlined text-[18px]">
             {theme === "dark" ? "light_mode" : "dark_mode"}
           </span>
         </button>
 
-        <div className="flex items-center gap-2 rounded-full border border-card-border bg-card py-1 pr-2 pl-2">
-          <div className="hidden h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary sm:flex">
+        <div className="flex h-9 items-center gap-1.5 rounded-full border border-card-border bg-card py-0 pl-1.5 pr-1">
+          <div className="hidden h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-[10px] font-bold text-primary sm:flex">
             {initials(name)}
           </div>
-          <div className="hidden text-left sm:block">
-            <p className="text-xs leading-tight font-medium text-ink">{name}</p>
-            <p className="text-xs leading-tight text-ink-muted">{t(roleKey)}</p>
+          <div className="hidden min-w-0 text-left sm:block">
+            <p className="truncate text-[11px] leading-none font-medium text-ink">{name}</p>
+            <p className="mt-0.5 truncate text-[10px] leading-none text-ink-muted">{t(roleKey)}</p>
           </div>
           <button
             type="button"
             onClick={logout}
-            className="rounded-full p-2 text-ink-muted hover:bg-surface-container-high hover:text-error"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-muted hover:bg-surface-container-high hover:text-error"
             title={t("common.logout")}
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <span className="material-symbols-outlined text-[16px]">logout</span>
           </button>
         </div>
       </div>

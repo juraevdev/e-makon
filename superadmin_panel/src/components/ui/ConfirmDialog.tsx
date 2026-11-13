@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/providers/LocaleProvider";
 
@@ -28,7 +29,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const { t } = useLocale();
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const confirmBtnStyles = {
     danger: "bg-error text-on-error hover:opacity-90",
@@ -36,7 +37,7 @@ export function ConfirmDialog({
     warning: "bg-amber-500 text-ink hover:bg-amber-600",
   }[variant];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 p-4 backdrop-blur-xs sm:items-center dark:bg-black/70">
       <button
         type="button"
@@ -93,6 +94,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

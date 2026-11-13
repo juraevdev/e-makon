@@ -41,6 +41,7 @@ export function FilterChip({
   active = false,
   icon,
   dot,
+  size = "md",
   onClick,
 }: {
   label: string;
@@ -48,26 +49,30 @@ export function FilterChip({
   active?: boolean;
   icon?: string;
   dot?: string;
+  size?: "sm" | "md";
   onClick?: () => void;
 }) {
+  const compact = size === "sm";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border font-medium transition-all ${
+        compact ? "h-8 gap-1.5 px-3 text-xs" : "h-10 gap-2 px-4 text-sm"
+      } ${
         active
           ? "border-accent/40 bg-accent-soft font-semibold text-accent"
           : "border-card-border bg-card text-ink-muted hover:border-primary/30 hover:text-ink"
       }`}
     >
       {icon ? (
-        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+        <span className={`material-symbols-outlined ${compact ? "text-[16px]" : "text-[18px]"}`}>{icon}</span>
       ) : null}
       {dot ? <span className={`h-2 w-2 rounded-full ${dot}`} /> : null}
       <span>{label}</span>
       {count !== undefined ? (
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+          className={`rounded-full font-semibold ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs"} ${
             active
               ? "bg-primary/20 text-primary-fixed"
               : "bg-surface-container-highest text-on-surface-variant"
@@ -203,7 +208,7 @@ export function PrimaryButton({
       type={type}
       disabled={disabled || busy}
       onClick={onClick}
-      className={`btn-accent inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed ${className}`}
+      className={`btn-accent inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-semibold leading-none disabled:cursor-not-allowed ${className}`}
     >
       {busy ? (
         <Spinner size="sm" className="border-white/25 border-t-white" />
@@ -241,7 +246,7 @@ export function SecondaryButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border border-card-border bg-card px-4 py-2.5 text-sm font-medium text-ink transition-all hover:border-primary/30 hover:bg-surface-container-low disabled:opacity-50 ${className}`}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border border-card-border bg-card px-4 text-sm font-medium leading-none text-ink transition-all hover:border-primary/30 hover:bg-surface-container-low disabled:opacity-50 ${className}`}
     >
       {icon ? (
         <span className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -328,8 +333,11 @@ export function TabBar<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] ${className}`}>
-      <div role="tablist" className="emakon-tab-track inline-flex min-w-full gap-1 rounded-2xl border p-1 sm:min-w-0">
+    <div className={`-mx-1 overflow-x-auto px-1 [scrollbar-width:thin] ${className}`}>
+      <div
+        role="tablist"
+        className="emakon-tab-track inline-flex h-10 min-w-full items-center gap-1 rounded-2xl border p-1 sm:min-w-0"
+      >
         {tabs.map((tab) => {
           const active = tab.id === value;
           return (
@@ -339,7 +347,7 @@ export function TabBar<T extends string>({
               role="tab"
               aria-selected={active}
               onClick={() => onChange(tab.id)}
-              className={`inline-flex flex-1 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:flex-none ${
+              className={`inline-flex h-8 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 text-sm font-semibold leading-none transition-colors sm:flex-none ${
                 active
                   ? "emakon-tab-active"
                   : "text-ink-muted hover:bg-surface-container-low hover:text-ink"
@@ -349,7 +357,7 @@ export function TabBar<T extends string>({
               <span>{tab.label}</span>
               {tab.count !== undefined ? (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
+                  className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-none ${
                     active ? "bg-primary/20 text-primary" : "bg-surface-container-highest text-ink-muted"
                   }`}
                 >
@@ -382,7 +390,7 @@ export function ExcelButton({
       onClick={onClick}
       disabled={disabled}
       title={t("common.excelHint")}
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40 ${className}`}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold leading-none transition-all disabled:opacity-40 ${className}`}
       style={{
         color: "var(--excel-fg)",
         background: "var(--excel-bg)",
@@ -395,30 +403,9 @@ export function ExcelButton({
   );
 }
 
-/** "Jonli" ko'rsatkichi: ma'lumot fon rejimida avtomatik yangilanayotganini bildiradi. */
-export function LiveBadge({ updatedAt, className = "" }: { updatedAt?: number; className?: string }) {
-  const t = useUiT();
-  const time = updatedAt
-    ? new Date(updatedAt).toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hourCycle: "h23",
-      })
-    : null;
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ${className}`}
-      title={t("common.liveHint")}
-    >
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-      </span>
-      {t("common.live")}
-      {time ? ` · ${time}` : ""}
-    </span>
-  );
+/** "Jonli" badge olib tashlangan — eski chaqiriqlar buzilmasligi uchun stub. */
+export function LiveBadge(_props?: { updatedAt?: number; className?: string }) {
+  return null;
 }
 
 export const inputClass = "emakon-input";

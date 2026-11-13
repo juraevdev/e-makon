@@ -242,21 +242,26 @@ export function InvestorFormModal({
           <div className="space-y-4">
             <FormSection icon="payments" title="Kapital va ulush">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Investitsiya summasi" required hint={<FieldError message={errors.investment_amount} />}>
-                  <div className="flex gap-2">
+                <Field
+                  className="min-w-0"
+                  label="Investitsiya summasi"
+                  required
+                  hint={<FieldError message={errors.investment_amount} />}
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2">
                     <input
                       type="number"
                       inputMode="decimal"
                       min="0"
                       step="any"
-                      className={`${inputClass} min-w-0 flex-1${errorRing(errors.investment_amount)}`}
+                      className={`${inputClass} min-w-0${errorRing(errors.investment_amount)}`}
                       placeholder="0"
                       value={form.investment_amount}
                       onChange={(e) => setForm({ investment_amount: e.target.value })}
                     />
                     <select
                       aria-label="Valyuta"
-                      className={`${inputClass} w-24 shrink-0`}
+                      className={`${inputClass} min-w-0`}
                       value={form.currency}
                       onChange={(e) => setForm({ currency: e.target.value as FormState["currency"] })}
                     >
@@ -268,14 +273,18 @@ export function InvestorFormModal({
                     </select>
                   </div>
                 </Field>
-                <Field label="Ulush (%)" hint={errors.share_percent ? <FieldError message={errors.share_percent} /> : "0–100% oralig'ida"}>
+                <Field
+                  className="min-w-0"
+                  label="Ulush (%)"
+                  hint={errors.share_percent ? <FieldError message={errors.share_percent} /> : "0–100% oralig'ida"}
+                >
                   <input
                     type="number"
                     inputMode="decimal"
                     min="0"
                     max="100"
                     step="0.01"
-                    className={inputClass + errorRing(errors.share_percent)}
+                    className={`${inputClass} min-w-0${errorRing(errors.share_percent)}`}
                     placeholder="0"
                     value={form.share_percent}
                     onChange={(e) => setForm({ share_percent: e.target.value })}

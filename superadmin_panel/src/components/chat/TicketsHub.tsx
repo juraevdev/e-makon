@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState, ExcelButton, FilterChip, LiveBadge, LoadingBlock, Spinner, StatusPill, inputClass } from "@/components/ui";
+import { EmptyState, ExcelButton, FilterChip, LoadingBlock, Spinner, StatusPill, inputClass } from "@/components/ui";
 import { fetchAllPages } from "@/components/care/fetchAllPages";
 import { api } from "@/lib/api/client";
 import type { SupportMessage, SupportTicket, TicketPriority, TicketStatus } from "@/lib/api/types";
@@ -23,8 +23,8 @@ const STATUS_TONE: Record<TicketStatus, "warning" | "info" | "success" | "neutra
 
 const PRIORITY_LABEL: Record<TicketPriority, string> = { low: "Past", normal: "Oddiy", high: "Yuqori" };
 const PRIORITY_STYLE: Record<TicketPriority, string> = {
-  low: "bg-surface-container-high text-on-surface-variant",
-  normal: "bg-sky-500/15 text-sky-300",
+  low: "bg-surface-container-high text-ink-muted",
+  normal: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
   high: "bg-error/15 text-error",
 };
 
@@ -52,7 +52,7 @@ export function TicketsHub({ search }: { search: string }) {
   const [priority, setPriority] = useState<"" | TicketPriority>("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const { data, loading, error, updatedAt, reload } = useAsync(
+  const { data, loading, error, reload } = useAsync(
     () => fetchAllPages<SupportTicket>("/admin/support/", { search: search.trim() || undefined }, 5),
     [search],
     { keepPrevious: true },
@@ -144,46 +144,59 @@ export function TicketsHub({ search }: { search: string }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-lg shadow-ink/10">
+    <div className="flex h-full min-h-[420px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm shadow-ink/5">
       <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-card-border md:flex md:w-[340px] xl:w-[380px] ${selected ? "hidden" : "flex"}`}>
         <div className="space-y-2.5 border-b border-card-border p-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">
-              Murojaatlar <span className="text-on-surface-variant">({data?.count ?? 0})</span>
+            <p className="min-w-0 truncate text-sm font-semibold text-ink">
+              Murojaatlar <span className="font-normal text-ink-muted">({data?.count ?? 0})</span>
             </p>
-            <div className="flex items-center gap-2">
-              <LiveBadge updatedAt={updatedAt} className="hidden sm:inline-flex" />
-              <ExcelButton onClick={exportTickets} disabled={!rows.length} label="" className="px-2.5! py-1.5!" />
-            </div>
+            <ExcelButton onClick={exportTickets} disabled={!rows.length} label="" className="!w-10 !shrink-0 !justify-center !gap-0 !px-0" />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-0.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
             {(
               [
                 ["all", "Barchasi"],
-                ["waiting", "Javob kutmoqda"],
+                ["waiting", "Kutmoqda"],
                 ["open", TICKET_STATUS_LABEL.open],
                 ["in_progress", TICKET_STATUS_LABEL.in_progress],
                 ["resolved", TICKET_STATUS_LABEL.resolved],
                 ["closed", TICKET_STATUS_LABEL.closed],
               ] as [Filter, string][]
             ).map(([id, label]) => (
-              <FilterChip key={id} label={label} count={counts[id] ?? 0} active={filter === id} onClick={() => setFilter(id)} />
+              <FilterChip key={id} size="sm" label={label} count={counts[id] ?? 0} active={filter === id} onClick={() => setFilter(id)} />
             ))}
           </div>
-          <select className={`${inputClass} py-2`} value={priority} onChange={(e) => setPriority(e.target.value as "" | TicketPriority)}>
-            <option value="">Barcha ustuvorliklar</option>
-            {(Object.keys(PRIORITY_LABEL) as TicketPriority[]).map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABEL[p]}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-0">
+            <select
+              className={inputClass}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as "" | TicketPriority)}
+              aria-label="Ustuvorlik filtri"
+            >
+              <option value="">Barcha ustuvorliklar</option>
+              {(Object.keys(PRIORITY_LABEL) as TicketPriority[]).map((p) => (
+                <option key={p} value={p}>
+                  {PRIORITY_LABEL[p]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <LoadingBlock />
           ) : error && !data ? (
-            <EmptyState icon="error" title="Yuklanmadi" description={error} />
+            <EmptyState
+              icon="error"
+              title="Yuklanmadi"
+              description={error}
+              action={
+                <button type="button" onClick={() => void reload()} className="text-sm font-semibold text-primary">
+                  Qayta urinish
+                </button>
+              }
+            />
           ) : !rows.length ? (
             <EmptyState icon="support_agent" title="Murojaat yo'q" description="Mijoz ilovadan murojaat yuborsa, shu yerda ko'rinadi." />
           ) : (
@@ -208,18 +221,18 @@ export function TicketsHub({ search }: { search: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className={`truncate text-sm ${waiting ? "font-bold" : "font-semibold"}`}>{t.subject}</span>
-                      <span className="shrink-0 text-[11px] text-on-surface-variant">{listTime(lastActivity(t))}</span>
+                      <span className="shrink-0 text-[11px] text-ink-muted">{listTime(lastActivity(t))}</span>
                     </div>
-                    <p className="truncate text-xs text-on-surface-variant">
+                    <p className="truncate text-xs text-ink-muted">
                       #{t.id} · {t.customer_name || formatPhone(t.customer_phone)}
                     </p>
                     <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs text-on-surface-variant">{last ? `${last.is_internal ? "[ichki] " : ""}${last.body}` : ""}</span>
+                      <span className="truncate text-xs text-ink-muted">{last ? `${last.is_internal ? "[ichki] " : ""}${last.body}` : ""}</span>
                       <span className="flex shrink-0 items-center gap-1">
                         {t.priority === "high" ? (
                           <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${PRIORITY_STYLE.high}`}>Yuqori</span>
                         ) : null}
-                        <StatusPill variant={STATUS_TONE[t.status]} className="px-2! py-0.5! text-[10px]!">
+                        <StatusPill variant={STATUS_TONE[t.status]} className="!gap-1 !px-2 !py-0.5 !text-[10px]">
                           {TICKET_STATUS_LABEL[t.status]}
                         </StatusPill>
                       </span>
@@ -242,7 +255,7 @@ export function TicketsHub({ search }: { search: string }) {
             onReply={reply}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-1 items-center justify-center px-4">
             <div className="w-full max-w-md">
               <EmptyState icon="support_agent" title="Murojaatni tanlang" description="Mijoz murojaatiga javob bering, holat va ustuvorlikni boshqaring." />
             </div>
@@ -287,24 +300,24 @@ function TicketPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="space-y-2 border-b border-card-border px-3 py-3 sm:px-4">
-        <div className="flex items-start gap-3">
+      <header className="shrink-0 space-y-2.5 border-b border-card-border px-3 py-3 sm:px-4">
+        <div className="flex items-start gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface md:hidden"
+            className="mt-0.5 rounded-full p-1.5 text-ink-muted hover:bg-surface-container-high/40 hover:text-ink md:hidden"
             aria-label="Ortga"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">
-              <span className="mr-1.5 text-xs text-on-surface-variant">#{t.id}</span>
+            <p className="truncate font-semibold text-ink">
+              <span className="mr-1.5 text-xs font-normal text-ink-muted">#{t.id}</span>
               {t.subject}
             </p>
-            <p className="truncate text-xs text-on-surface-variant">
+            <p className="mt-0.5 truncate text-xs text-ink-muted">
               {t.customer_name || "Mijoz"} ·{" "}
-              <a href={`tel:${t.customer_phone}`} className="hover:text-on-surface">
+              <a href={`tel:${t.customer_phone}`} className="hover:text-ink">
                 {formatPhone(t.customer_phone)}
               </a>
               {t.order ? ` · Buyurtma #${t.order}` : ""} · {formatDateTime(t.created_at)}
@@ -313,35 +326,39 @@ function TicketPane({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            className={`${inputClass} w-auto py-1.5 text-xs`}
-            value={t.status}
-            onChange={(e) => onPatch({ status: e.target.value as TicketStatus })}
-            aria-label="Holat"
-          >
-            {(Object.keys(TICKET_STATUS_LABEL) as TicketStatus[]).map((s) => (
-              <option key={s} value={s}>
-                {TICKET_STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <select
-            className={`${inputClass} w-auto py-1.5 text-xs`}
-            value={t.priority}
-            onChange={(e) => onPatch({ priority: e.target.value as TicketPriority })}
-            aria-label="Ustuvorlik"
-          >
-            {(Object.keys(PRIORITY_LABEL) as TicketPriority[]).map((p) => (
-              <option key={p} value={p}>
-                Ustuvorlik: {PRIORITY_LABEL[p]}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-0">
+            <select
+              className={`${inputClass} !w-auto min-w-[8.5rem] !py-1.5 !text-xs`}
+              value={t.status}
+              onChange={(e) => onPatch({ status: e.target.value as TicketStatus })}
+              aria-label="Holat"
+            >
+              {(Object.keys(TICKET_STATUS_LABEL) as TicketStatus[]).map((s) => (
+                <option key={s} value={s}>
+                  {TICKET_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <select
+              className={`${inputClass} !w-auto min-w-[9rem] !py-1.5 !text-xs`}
+              value={t.priority}
+              onChange={(e) => onPatch({ priority: e.target.value as TicketPriority })}
+              aria-label="Ustuvorlik"
+            >
+              {(Object.keys(PRIORITY_LABEL) as TicketPriority[]).map((p) => (
+                <option key={p} value={p}>
+                  Ustuvorlik: {PRIORITY_LABEL[p]}
+                </option>
+              ))}
+            </select>
+          </div>
           {t.status !== "resolved" && t.status !== "closed" ? (
             <button
               type="button"
               onClick={() => onPatch({ status: "resolved" })}
-              className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20"
+              className="inline-flex h-8 items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20"
             >
               <span className="material-symbols-outlined text-[16px]">task_alt</span>
               Yechildi
@@ -358,7 +375,7 @@ function TicketPane({
             <div key={m.id}>
               {newDay ? (
                 <div className="flex justify-center py-2">
-                  <span className="rounded-full border border-card-border bg-card px-3 py-0.5 text-[11px] text-on-surface-variant">
+                  <span className="rounded-full border border-card-border bg-card px-3 py-0.5 text-[11px] text-ink-muted">
                     {dayLabel(m.created_at)}
                   </span>
                 </div>
@@ -374,9 +391,9 @@ function TicketPane({
                   }`}
                 >
                   <p className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold opacity-75">
-                    {m.is_internal ? <span className="material-symbols-outlined text-[14px] text-amber-300">lock</span> : null}
+                    {m.is_internal ? <span className="material-symbols-outlined text-[14px] text-amber-600 dark:text-amber-300">lock</span> : null}
                     {m.sender_name || (fromCustomer ? t.customer_name || "Mijoz" : "Admin")}
-                    {m.is_internal ? <span className="font-normal text-amber-300">· ichki eslatma</span> : null}
+                    {m.is_internal ? <span className="font-normal text-amber-700 dark:text-amber-300">· ichki eslatma</span> : null}
                   </p>
                   {m.body}
                   <p className="mt-0.5 text-right text-[10px] opacity-60">{clockTime(m.created_at)}</p>
@@ -385,17 +402,17 @@ function TicketPane({
             </div>
           );
         })}
-        {!t.messages.length ? <p className="py-10 text-center text-sm text-on-surface-variant">Xabarlar yo&apos;q</p> : null}
+        {!t.messages.length ? <p className="py-10 text-center text-sm text-ink-muted">Xabarlar yo&apos;q</p> : null}
       </div>
 
-      <div className="space-y-2 border-t border-card-border p-3">
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div className="shrink-0 space-y-2 border-t border-card-border p-3">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
           {TEMPLATES.map((tpl) => (
             <button
               key={tpl}
               type="button"
               onClick={() => setText(tpl)}
-              className="shrink-0 truncate rounded-full border border-card-border px-3 py-1 text-[11px] text-on-surface-variant hover:border-primary/40 hover:text-on-surface sm:max-w-[240px]"
+              className="h-8 shrink-0 truncate rounded-full border border-card-border px-3 text-[11px] text-ink-muted hover:border-primary/40 hover:text-ink sm:max-w-[240px]"
               title={tpl}
             >
               {tpl}
@@ -414,25 +431,25 @@ function TicketPane({
               }
             }}
             placeholder={internal ? "Ichki eslatma — mijozga ko'rinmaydi..." : "Mijozga javob yozing..."}
-            className={`${inputClass} max-h-40 resize-none ${internal ? "border-amber-500/50!" : ""}`}
+            className={`${inputClass} max-h-40 min-w-0 flex-1 resize-none ${internal ? "!border-amber-500/50" : ""}`}
           />
           <button
             type="button"
             onClick={() => void send()}
             disabled={sending || !text.trim()}
             aria-label="Yuborish"
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${
               internal ? "bg-amber-400 text-black" : "bg-primary-container text-on-primary hover:brightness-110"
             }`}
           >
             {sending ? (
               <Spinner size="sm" className="border-current/25 border-t-current" />
             ) : (
-              <span className="material-symbols-outlined">send</span>
+              <span className="material-symbols-outlined text-[20px]">send</span>
             )}
           </button>
         </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-on-surface-variant">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-ink-muted">
           <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="accent-amber-400" />
           Ichki eslatma (faqat adminlar ko&apos;radi)
         </label>

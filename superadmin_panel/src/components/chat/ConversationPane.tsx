@@ -163,11 +163,11 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-card-border px-3 py-3 sm:px-4">
+      <header className="flex shrink-0 items-center gap-3 border-b border-card-border px-3 py-3 sm:px-4">
         <button
           type="button"
           onClick={onBack}
-          className="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high/40 hover:text-on-surface md:hidden"
+          className="rounded-full p-1.5 text-ink-muted hover:bg-surface-container-high/40 hover:text-ink md:hidden"
           aria-label="Ortga"
         >
           <span className="material-symbols-outlined">arrow_back</span>
@@ -176,22 +176,22 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
           {initials(room.customer_name || room.customer_phone)}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-center gap-1.5 font-semibold">
+          <p className="flex min-w-0 items-center gap-1.5 font-semibold text-ink">
             <span className="truncate">{room.customer_name}</span>
-            <span className="material-symbols-outlined shrink-0 text-[16px] text-on-surface-variant">sync_alt</span>
+            <span className="material-symbols-outlined shrink-0 text-[16px] text-ink-muted">sync_alt</span>
             <Link href={`/firmalar/${room.firm_id}`} className="truncate text-primary hover:underline">
               {room.firm_name}
             </Link>
           </p>
-          <p className="truncate text-xs text-on-surface-variant">
+          <p className="truncate text-xs text-ink-muted">
             Mijoz:{" "}
-            <a href={`tel:${room.customer_phone}`} className="hover:text-on-surface">
+            <a href={`tel:${room.customer_phone}`} className="hover:text-ink">
               {formatPhone(room.customer_phone)}
             </a>
             {room.firm_phone ? (
               <>
                 {" · "}Firma:{" "}
-                <a href={`tel:${room.firm_phone}`} className="hover:text-on-surface">
+                <a href={`tel:${room.firm_phone}`} className="hover:text-ink">
                   {formatPhone(room.firm_phone)}
                 </a>
               </>
@@ -203,7 +203,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
           onClick={exportThread}
           disabled={!items?.length}
           title="Suhbatni Excelga yuklab olish"
-          className="rounded-full p-2 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-card-border text-ink-muted transition hover:border-primary/30 hover:text-primary disabled:opacity-40"
         >
           <span className="material-symbols-outlined text-[20px]">table_view</span>
         </button>
@@ -223,7 +223,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
               <LoadingBlock label="Xabarlar yuklanmoqda..." />
             )
           ) : !items.length && !outgoing.length ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-on-surface-variant">
+            <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-ink-muted">
               <span className="material-symbols-outlined text-[36px] text-primary/60">forum</span>
               Hali xabar yo&apos;q
             </div>
@@ -284,7 +284,7 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
       </div>
 
       <form
-        className="border-t border-card-border p-3"
+        className="shrink-0 border-t border-card-border p-3"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -303,20 +303,20 @@ export function ConversationPane({ room, onBack }: { room: ChatRoom; onBack: () 
               }
             }}
             placeholder="E-Makon nomidan yozish — mijoz ham, firma ham ko'radi..."
-            className={`${inputClass} max-h-32 min-h-[44px] resize-none`}
+            className={`${inputClass} max-h-32 min-h-10 min-w-0 flex-1 resize-none`}
           />
           <button
             type="submit"
             disabled={!text.trim()}
             aria-label="Yuborish"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-400 text-black transition hover:bg-amber-300 disabled:opacity-40"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400 text-black transition hover:bg-amber-300 disabled:opacity-40"
           >
-            <span className="material-symbols-outlined">send</span>
+            <span className="material-symbols-outlined text-[20px]">send</span>
           </button>
         </div>
-        <p className="mt-1.5 flex justify-between gap-2 text-[11px] text-on-surface-variant">
-          <span>Enter — yuborish, Shift+Enter — yangi qator. Siz o&apos;qiganingiz firma uchun &quot;o&apos;qildi&quot; deb belgilanmaydi.</span>
-          {text.length > MAX_BODY * 0.8 ? <span>{text.length}/{MAX_BODY}</span> : null}
+        <p className="mt-1.5 flex justify-between gap-2 text-[11px] text-ink-muted">
+          <span>Enter — yuborish · Shift+Enter — yangi qator. O&apos;qishingiz firma uchun &quot;o&apos;qildi&quot; bo&apos;lmaydi.</span>
+          {text.length > MAX_BODY * 0.8 ? <span className="shrink-0">{text.length}/{MAX_BODY}</span> : null}
         </p>
       </form>
     </div>

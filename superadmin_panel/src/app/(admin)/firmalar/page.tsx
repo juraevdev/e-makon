@@ -333,9 +333,9 @@ export default function FirmalarPage() {
         }
       />
 
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-card-border bg-card/90 p-3 sm:p-4 xl:flex-row xl:items-center">
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-card-border bg-card/90 p-3 sm:p-4 xl:flex-row xl:items-center xl:gap-3">
         <TabBar
-          className="xl:shrink-0"
+          className="min-w-0 xl:shrink-0"
           value={filter}
           onChange={setFilter}
           tabs={[
@@ -346,7 +346,7 @@ export default function FirmalarPage() {
             { id: "ended", label: STATUS_I18N.ended, count: all.filter((f) => f.status === "ended").length },
           ]}
         />
-        <SearchBox placeholder={t("common.search")} className="xl:flex-1" />
+        <SearchBox placeholder={t("common.search")} className="xl:min-w-0 xl:flex-1" />
       </div>
 
       {loading && !data ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EmptyState, ExcelButton, FilterChip, LiveBadge, LoadingBlock, inputClass } from "@/components/ui";
+import { EmptyState, ExcelButton, FilterChip, LoadingBlock, inputClass } from "@/components/ui";
 import { api, asPage } from "@/lib/api/client";
 import type { ChatRoom, PartnerFirm } from "@/lib/api/types";
 import { downloadExcel } from "@/lib/excel";
@@ -19,7 +19,7 @@ export function ChatHub({ search }: { search: string }) {
   const [onlyWaiting, setOnlyWaiting] = useState(false);
   const [firmId, setFirmId] = useState("");
 
-  const { data: rooms, loading, error, updatedAt, reload } = useAsync(
+  const { data: rooms, loading, error, reload } = useAsync(
     async () =>
       asPage<ChatRoom>(
         await api("/admin/chats/", {
@@ -75,21 +75,19 @@ export function ChatHub({ search }: { search: string }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-15rem)] min-h-[520px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-lg shadow-ink/10">
+    <div className="flex h-full min-h-[420px] overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm shadow-ink/5">
       <aside className={`min-h-0 w-full shrink-0 flex-col border-r border-card-border md:flex md:w-[340px] xl:w-[380px] ${active ? "hidden" : "flex"}`}>
         <div className="space-y-2.5 border-b border-card-border p-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">
-              Suhbatlar <span className="text-on-surface-variant">({rooms?.count ?? 0})</span>
+            <p className="min-w-0 truncate text-sm font-semibold text-ink">
+              Suhbatlar <span className="font-normal text-ink-muted">({rooms?.count ?? 0})</span>
             </p>
-            <div className="flex items-center gap-2">
-              <LiveBadge updatedAt={updatedAt} className="hidden sm:inline-flex" />
-              <ExcelButton onClick={exportRooms} disabled={!list.length} label="" className="px-2.5! py-1.5!" />
-            </div>
+            <ExcelButton onClick={exportRooms} disabled={!list.length} label="" className="!w-10 !shrink-0 !justify-center !gap-0 !px-0" />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-0.5">
-            <FilterChip label="Barchasi" active={!onlyWaiting} onClick={() => setOnlyWaiting(false)} />
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+            <FilterChip size="sm" label="Barchasi" active={!onlyWaiting} onClick={() => setOnlyWaiting(false)} />
             <FilterChip
+              size="sm"
               label="Javob kutmoqda"
               icon="mark_chat_unread"
               count={onlyWaiting ? rooms?.count : waiting || undefined}
@@ -97,14 +95,16 @@ export function ChatHub({ search }: { search: string }) {
               onClick={() => setOnlyWaiting(true)}
             />
           </div>
-          <select className={`${inputClass} py-2`} value={firmId} onChange={(e) => setFirmId(e.target.value)}>
-            <option value="">Barcha firmalar</option>
-            {(firms ?? []).map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-0">
+            <select className={inputClass} value={firmId} onChange={(e) => setFirmId(e.target.value)} aria-label="Firma filtri">
+              <option value="">Barcha firmalar</option>
+              {(firms ?? []).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
@@ -152,7 +152,7 @@ export function ChatHub({ search }: { search: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className={`truncate text-sm ${r.firm_unread ? "font-bold" : "font-semibold"}`}>{r.customer_name}</span>
-                      <span className={`shrink-0 text-[11px] ${r.firm_unread ? "text-amber-300" : "text-on-surface-variant"}`}>
+                      <span className={`shrink-0 text-[11px] ${r.firm_unread ? "text-amber-700 dark:text-amber-300" : "text-ink-muted"}`}>
                         {listTime(r.last_message_at || r.created_at)}
                       </span>
                     </div>
@@ -161,7 +161,7 @@ export function ChatHub({ search }: { search: string }) {
                       <span className="truncate">{r.firm_name}</span>
                     </p>
                     <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <span className={`truncate text-xs ${r.firm_unread ? "text-on-surface" : "text-on-surface-variant"}`}>
+                      <span className={`truncate text-xs ${r.firm_unread ? "text-ink" : "text-ink-muted"}`}>
                         {r.last_message_preview || "Yangi suhbat"}
                       </span>
                       <span className="flex shrink-0 items-center gap-1">
@@ -180,7 +180,7 @@ export function ChatHub({ search }: { search: string }) {
                         ) : null}
                         {r.customer_unread ? (
                           <span
-                            className="min-w-[20px] rounded-full bg-sky-500/20 px-1.5 py-0.5 text-center text-[10px] font-semibold text-sky-300"
+                            className="min-w-[20px] rounded-full bg-sky-500/20 px-1.5 py-0.5 text-center text-[10px] font-semibold text-sky-700 dark:text-sky-300"
                             title="Mijoz o'qimagan xabarlar"
                           >
                             {r.customer_unread}
@@ -194,7 +194,7 @@ export function ChatHub({ search }: { search: string }) {
             })
           )}
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-card-border px-3 py-2 text-[10px] text-on-surface-variant">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-card-border px-3 py-2 text-[10px] text-ink-muted">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-amber-400" /> Firma o&apos;qimagan
           </span>
@@ -208,8 +208,8 @@ export function ChatHub({ search }: { search: string }) {
         {active ? (
           <ConversationPane key={active.id} room={active} onBack={() => setActiveId(null)} />
         ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="w-full max-w-md">
+          <div className="flex flex-1 items-center justify-center px-4">
+            <div className="w-full max-w-md space-y-3">
               <EmptyState
                 icon="visibility"
                 title="Suhbatni tanlang"
@@ -229,7 +229,7 @@ function waitingHint(list: ChatRoom[]) {
   if (!waiting.length) return null;
   const oldest = [...waiting].sort((a, b) => (a.last_message_at ?? "").localeCompare(b.last_message_at ?? ""))[0];
   return (
-    <p className="mx-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-xs text-amber-200">
+    <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-xs text-amber-900 dark:text-amber-100">
       {waiting.length} ta suhbatda firma javobi kutilmoqda. Eng eskisi: <b>{oldest.firm_name}</b> ↔ {oldest.customer_name} (
       {formatPhone(oldest.customer_phone)}).
     </p>

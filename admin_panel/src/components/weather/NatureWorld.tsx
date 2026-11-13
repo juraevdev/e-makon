@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { WeatherMood } from "@/lib/nav";
 import { useLocale } from "@/providers/LocaleProvider";
-import { AUTUMN_LEAF_SPRITES, DROP_SINGLE, DROPS_GLASS } from "@/lib/weather/assets";
+import { AUTUMN_LEAF_SPRITES } from "@/lib/weather/assets";
 import { blendWithLiveMood, getDailyScene } from "@/lib/weather/dailyScene";
 import { getSkyBody } from "@/lib/weather/skyClock";
 
@@ -37,6 +37,7 @@ type Drop = {
   delay: number;
   dur: number;
   size: number;
+  drift: number;
 };
 
 const STORAGE_GROWTH = "emakon-nature-growth";
@@ -137,17 +138,18 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
       setDrops([]);
       return;
     }
-    const make = () =>
-      Array.from({ length: 22 }, () => ({
+    const makeDrops = (): Drop[] =>
+      Array.from({ length: 64 }, () => ({
         id: idSeq++,
         x: Math.random() * 100,
-        delay: Math.random() * 4,
-        dur: 2.8 + Math.random() * 2.8,
-        size: 12 + Math.random() * 16,
+        delay: Math.random() * 2.2,
+        dur: 0.45 + Math.random() * 0.7,
+        size: 14 + Math.random() * 28,
+        drift: -4 + Math.random() * 14,
       }));
-    setDrops(make());
-    const tmr = window.setInterval(() => setDrops(make()), 8000);
-    return () => clearInterval(tmr);
+    setDrops(makeDrops());
+    const dropTmr = window.setInterval(() => setDrops(makeDrops()), 5200);
+    return () => clearInterval(dropTmr);
   }, [scene.rain]);
 
   useEffect(() => {
@@ -158,14 +160,6 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
     }, 10_000);
     return () => clearInterval(tmr);
   }, [scene.rain, scene.dew]);
-
-  const mow = useCallback(() => {
-    setGrowth((g) => Math.max(0.08, g * 0.32));
-  }, []);
-
-  const grow = useCallback(() => {
-    setGrowth((g) => Math.min(1, g + 0.12));
-  }, []);
 
   const clearLeaves = useCallback(() => setGround([]), []);
 
@@ -191,57 +185,29 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
         aria-hidden
       />
 
-      {sky.sunVisible && !sky.isNight ? (
-        <div
-          className="nw-sun"
-          style={{ left: `${sky.sunX}%`, top: `${sky.sunY}%` }}
-          aria-hidden
-        >
-          <span className="nw-sun-core" />
-          <span className="nw-sun-halo" />
-        </div>
-      ) : null}
-
-      {sky.moonVisible ? (
-        <div
-          className="nw-moon"
-          style={{
-            left: `${sky.moonX}%`,
-            top: `${sky.moonY}%`,
-            opacity: sky.isNight ? 0.85 : 0.4,
-          }}
-          aria-hidden
-        >
-          <span className="nw-moon-core" />
-        </div>
-      ) : null}
-
       {scene.mist ? <div className="nw-mist" aria-hidden /> : null}
       {scene.snow ? <div className="nw-snow" aria-hidden /> : null}
       {scene.dew ? <div className="nw-dew-sparkle" aria-hidden /> : null}
 
       {scene.rain ? (
         <div className="nw-glass-rain" aria-hidden>
-          <div
-            className="nw-glass-condense"
-            style={{ backgroundImage: `url(${DROPS_GLASS})` }}
-          />
+          <div className="nw-rain-veil" />
+          <div className="nw-rain-mist" />
+          <div className="nw-glass-sheen" />
           {drops.map((d) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <span
               key={d.id}
-              src={DROP_SINGLE}
-              alt=""
-              className="nw-glass-drop-img"
+              className="nw-rain-streak"
               style={{
                 left: `${d.x}%`,
-                width: d.size,
-                height: d.size * 1.3,
+                height: `${d.size}px`,
                 animationDelay: `${d.delay}s`,
                 animationDuration: `${d.dur}s`,
+                ["--drift" as string]: `${d.drift}px`,
               }}
             />
           ))}
+          <div className="nw-rain-wet" />
         </div>
       ) : null}
 
@@ -306,28 +272,6 @@ export function NatureWorld({ mood, windKmh = 0, className = "" }: Props) {
           ) : null}
         </div>
       ) : null}
-
-      <div className="nw-controls">
-        <span className="nw-scene-label">
-          {t(scene.labelKey)}
-          {scene.leaves && ground.length
-            ? ` · ${ground.length}/${LEAF_COMPOST_AT}`
-            : ""}
-        </span>
-        <button type="button" className="nw-btn" onClick={grow} title={t("nature.grow")}>
-          <span className="material-symbols-outlined">spa</span>
-          {t("nature.grow")}
-        </button>
-        <button
-          type="button"
-          className="nw-btn nw-btn-mow"
-          onClick={mow}
-          title={t("nature.mow")}
-        >
-          <span className="material-symbols-outlined">content_cut</span>
-          {t("nature.mow")}
-        </button>
-      </div>
     </div>
   );
 }
