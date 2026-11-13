@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState, ExcelButton, FilterChip, LiveBadge, LoadingBlock, StatusPill, inputClass } from "@/components/ui";
+import { EmptyState, ExcelButton, FilterChip, LiveBadge, LoadingBlock, Spinner, StatusPill, inputClass } from "@/components/ui";
 import { fetchAllPages } from "@/components/care/fetchAllPages";
 import { api } from "@/lib/api/client";
 import type { SupportMessage, SupportTicket, TicketPriority, TicketStatus } from "@/lib/api/types";
@@ -425,7 +425,11 @@ function TicketPane({
               internal ? "bg-amber-400 text-black" : "bg-primary-container text-on-primary hover:brightness-110"
             }`}
           >
-            <span className={`material-symbols-outlined ${sending ? "animate-spin" : ""}`}>{sending ? "progress_activity" : "send"}</span>
+            {sending ? (
+              <Spinner size="sm" className="border-current/25 border-t-current" />
+            ) : (
+              <span className="material-symbols-outlined">send</span>
+            )}
           </button>
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-on-surface-variant">

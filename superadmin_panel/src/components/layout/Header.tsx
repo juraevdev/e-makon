@@ -55,7 +55,11 @@ export function Header({ onMenuClick }: HeaderProps) {
             {title}
           </h1>
           <p className="mt-0.5 hidden items-center gap-1.5 text-xs text-ink-muted sm:flex">
-            <span className="material-symbols-outlined text-[14px] text-accent">
+            <span
+              className={`material-symbols-outlined inline-block text-[14px] leading-none text-accent ${
+                weatherLoading ? "animate-spin" : ""
+              }`}
+            >
               {weatherLoading ? "progress_activity" : WEATHER_ICON[mood]}
             </span>
             <span>{t(getWeatherLabelKey(mood))}</span>

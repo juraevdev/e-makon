@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useTheme } from "@/providers/ThemeProvider";
-import { inputClass } from "@/components/ui";
+import { inputClass, LoadingScreen, Spinner } from "@/components/ui";
 
 export default function LoginPage() {
   const { login, loading, user } = useAuth();
@@ -16,13 +16,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   if (loading || user) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background text-ink-muted">
-        <span className="material-symbols-outlined animate-spin text-primary">
-          progress_activity
-        </span>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   async function onSubmit(e: FormEvent) {
@@ -104,9 +98,7 @@ export default function LoginPage() {
             className="btn-accent mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
           >
             {busy ? (
-              <span className="material-symbols-outlined animate-spin text-[18px]">
-                progress_activity
-              </span>
+              <Spinner size="sm" className="border-white/25 border-t-white" />
             ) : (
               <span className="material-symbols-outlined text-[18px]">login</span>
             )}

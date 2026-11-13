@@ -11,7 +11,9 @@ e-makon/
   config/ + apps/             REST API (DRF, JWT, OTP)
   bot/                        Telegram bot (HTTP adapter, Redis notifications)
   mobile/                     Flutter mijoz ilovasi
-  superadmin_panel/           Admin panel (Next.js)
+  superadmin_panel/           Superadmin panel (Next.js)
+  admin_panel/                Firma admin panel (Next.js)
+  website/                    Portfolio landing (e-makon.uz)
 ```
 
 ### API architecture (`apps/`)

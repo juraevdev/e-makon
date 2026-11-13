@@ -306,7 +306,10 @@ To‘g‘ri ishga tushirilsa, platforma bir vaqtda **daromad**, **ish o‘rinlar
 | Superadmin | `http://localhost:3000` |
 | Firma paneli | `http://localhost:3002` |
 | Mobil (web) | `http://localhost:5000` (ishga tushirilganda) |
+| Portfolio | `website/` → production `https://e-makon.uz` |
 | Production API | `https://api.e-makon.uz` |
+| Production Superadmin | `https://superadmin.e-makon.uz` |
+| Production Admin | `https://admin.e-makon.uz` |
 
 ---
 

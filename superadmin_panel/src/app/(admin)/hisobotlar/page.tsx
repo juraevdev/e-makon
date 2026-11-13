@@ -8,6 +8,7 @@ import {
   LoadingBlock,
   PageHeader,
   PrimaryButton,
+  Spinner,
   inputClass,
 } from "@/components/ui";
 import { api } from "@/lib/api/client";
@@ -139,6 +140,7 @@ export default function HisobotlarPage() {
   const topMax = Math.max(...topServices.map((s) => s.orders || 0), 1);
 
   function onExcel() {
+    if (!data) return;
     downloadExcel(`hisobot_${data.date_from}_${data.date_to}`, [
       {
         name: "Umumiy",
@@ -238,10 +240,8 @@ export default function HisobotlarPage() {
             </div>
           ) : null}
           {loading ? (
-            <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-muted">
-              <span className="material-symbols-outlined animate-spin text-[16px]">
-                progress_activity
-              </span>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-ink-muted">
+              <Spinner size="sm" />
               Yangilanmoqda…
             </span>
           ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/providers/LocaleProvider";
 
 type ConfirmDialogProps = {
@@ -85,8 +86,9 @@ export function ConfirmDialog({
             type="button"
             disabled={busy}
             onClick={() => void onConfirm()}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${confirmBtnStyles}`}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${confirmBtnStyles}`}
           >
+            {busy ? <Spinner size="sm" className="border-white/25 border-t-white" /> : null}
             {busy ? t("common.loading") : confirmText ?? t("common.confirm")}
           </button>
         </div>

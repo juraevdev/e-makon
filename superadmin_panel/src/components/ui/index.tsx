@@ -11,6 +11,7 @@ import { Skeleton, StatRowSkeleton, TableSkeleton } from "./Skeleton";
 import { ShelvedModule } from "./ShelvedModule";
 import { ScheduleBoard } from "./ScheduleBoard";
 import { Modal } from "./Modal";
+import { Spinner, LoadingScreen } from "./Spinner";
 import { UiText, useUiT } from "./UiText";
 
 export {
@@ -28,6 +29,8 @@ export {
   StatRowSkeleton,
   TableSkeleton,
   ShelvedModule,
+  Spinner,
+  LoadingScreen,
   UiText,
   useUiT,
 };
@@ -182,6 +185,7 @@ export function PrimaryButton({
   icon,
   type = "button",
   disabled,
+  busy,
   onClick,
   className = "",
 }: {
@@ -189,18 +193,28 @@ export function PrimaryButton({
   icon?: string;
   type?: "button" | "submit";
   disabled?: boolean;
+  busy?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
+  const spinning = busy || icon === "progress_activity";
   return (
     <button
       type={type}
-      disabled={disabled}
+      disabled={disabled || busy}
       onClick={onClick}
       className={`btn-accent inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed ${className}`}
     >
-      {icon ? (
-        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      {busy ? (
+        <Spinner size="sm" className="border-white/25 border-t-white" />
+      ) : icon ? (
+        <span
+          className={`material-symbols-outlined inline-block text-[18px] leading-none ${
+            spinning ? "animate-spin" : ""
+          }`}
+        >
+          {icon}
+        </span>
       ) : null}
       {children}
     </button>
@@ -263,8 +277,8 @@ export function EmptyState({
 export function LoadingBlock({ label }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 px-6 py-16 text-ink-muted">
-      <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
-      {label ?? <UiText k="common.loading" fallback="…" />}
+      <Spinner size="md" />
+      <span className="text-sm">{label ?? <UiText k="common.loading" fallback="…" />}</span>
     </div>
   );
 }

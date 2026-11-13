@@ -50,7 +50,8 @@ export function CareActionDialog({
             Ortga
           </SecondaryButton>
           <PrimaryButton
-            icon={busy ? "progress_activity" : conf.icon}
+            icon={conf.icon}
+            busy={busy}
             disabled={busy}
             onClick={submit}
             className={CONFIRM_STYLE[conf.variant]}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { StatusPill, TabBar, inputClass } from "@/components/ui";
+import { Spinner, StatusPill, TabBar, inputClass } from "@/components/ui";
 import type { CareContract, CareVisit } from "@/lib/api/types";
 import { CARE_CLIENT_TYPE_LABEL, CARE_FREQUENCY_LABEL, CARE_STATUS_LABEL, CARE_STATUS_TONE, ROLE_LABEL, WEEKDAY_SHORT } from "@/lib/domain";
 import { formatDate, formatDateTime, formatMoney, formatPhone, relativeTime } from "@/lib/format";
@@ -248,7 +248,11 @@ export function CareContractDetail({
               aria-label="Yuborish"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary transition hover:brightness-110 disabled:opacity-40"
             >
-              <span className={`material-symbols-outlined ${sending ? "animate-spin" : ""}`}>{sending ? "progress_activity" : "send"}</span>
+              {sending ? (
+                <Spinner size="sm" className="border-current/25 border-t-current" />
+              ) : (
+                <span className="material-symbols-outlined">send</span>
+              )}
             </button>
           </div>
         </div>
