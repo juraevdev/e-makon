@@ -235,7 +235,7 @@ export function OrderDetailModal({
             )}
           </p>
           <p><span className="text-on-surface-variant">Narx: </span>{formatMoney(selected.quoted_price, selected.currency)}</p>
-          <p><span className="text-on-surface-variant">Kampaniya ulushi: </span>{formatMoney(selected.platform_share)}</p>
+          <p><span className="text-on-surface-variant">Kompaniya ulushi: </span>{formatMoney(selected.platform_share)}</p>
           <p><span className="text-on-surface-variant">Stavka: </span>{selected.commission_rate_applied ? `${selected.commission_rate_applied}%` : "—"}</p>
           <p className="sm:col-span-2"><span className="text-on-surface-variant">Manzil: </span>{selected.address || "—"}</p>
           {selected.notes ? <p className="sm:col-span-2"><span className="text-on-surface-variant">Izoh: </span>{selected.notes}</p> : null}

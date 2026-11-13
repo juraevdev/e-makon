@@ -28,8 +28,12 @@ def _auth_client(user: User) -> APIClient:
 
 class ProductionPaymentSettingsTests(SimpleTestCase):
     MODULES = ("config.settings.base", "config.settings.production")
-    REQUIRED = {"DJANGO_SECRET_KEY": "x" * 50, "DJANGO_ALLOWED_HOSTS": "api.example.uz"}
-    CONTROLLED = ("PAYMENTS_TEST_MODE", "DJANGO_SECRET_KEY", "DJANGO_ALLOWED_HOSTS")
+    REQUIRED = {
+        "DJANGO_SECRET_KEY": "x" * 50,
+        "DJANGO_ALLOWED_HOSTS": "api.example.uz",
+        "DJANGO_ADMIN_ALLOWED_IPS": "10.0.0.0/8",
+    }
+    CONTROLLED = ("PAYMENTS_TEST_MODE", "DJANGO_SECRET_KEY", "DJANGO_ALLOWED_HOSTS", "DJANGO_ADMIN_ALLOWED_IPS")
 
     def _load_production(self, **env_vars):
         import config.settings as package

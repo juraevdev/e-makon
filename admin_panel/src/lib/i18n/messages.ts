@@ -83,6 +83,16 @@ const uz: Dict = {
   "login.busy": "Kirilmoqda...",
   "login.failed": "Kirish muvaffaqiyatsiz",
   "login.apiDown": "API ishlamayapti. Backendni ishga tushiring.",
+  "access.inactiveTitle": "Panelga kirish to‘xtatilgan",
+  "access.inactiveBody":
+    "Admin profilingiz faol emas yoki firmaga biriktirilmagansiz. Tizim ma’muri bilan bog‘laning yoki chiqib, boshqa hisob bilan kiring.",
+  "access.deniedTitle": "Bu bo‘limga ruxsat yo‘q",
+  "access.deniedBody":
+    "Sizda «{area}» bo‘yicha huquq yo‘q. SuperAdmin sizga boshqa vazifalar berishi mumkin.",
+  "access.goFirm": "Firma profiliga",
+  "access.capabilityStaff": "xodimlarni boshqarish",
+  "access.capabilityOrders": "buyurtmalar va xizmatlar",
+  "access.capabilityAnalytics": "hisobotlar va tahlil",
   "nature.tagline": "Bog‘ va maydon — tabiat bilan",
   "weather.sunny": "Quyoshli — ochiq osmon",
   "weather.dry": "Quruq — issiq shamol",
@@ -93,6 +103,19 @@ const uz: Dict = {
   "weather.forest": "O‘rmon — soyali tinchlik",
   "weather.placeYou": "Sizning joylashuvingiz",
   "weather.placeTashkent": "Toshkent",
+  "nature.grow": "O‘stirish",
+  "nature.mow": "O‘rish",
+  "nature.composting": "Barglar yerga singmoqda… yam-yashil o‘t o‘sadi",
+  "nature.clearHint": "Barglarga bosing — tozalanadi",
+  "scene.meadowWind": "Yam-yashil dala · shamol",
+  "scene.dewField": "Shudringli tong",
+  "scene.mistValley": "Tumanli vodiy",
+  "scene.rainGlass": "Yomg‘ir · oyna yuzi",
+  "scene.sunnyGarden": "Quyoshli bog‘",
+  "scene.snowQuiet": "Tinch qor",
+  "scene.forestShade": "O‘rmon soyasi",
+  "scene.goldenDusk": "Oltin shafaq",
+  "weather.clearNight": "Ochiq osmon — tun",
 };
 
 const uzCyrl: Dict = {
@@ -169,6 +192,16 @@ const uzCyrl: Dict = {
   "login.busy": "Кирилмоқда...",
   "login.failed": "Кириш муваффақиятсиз",
   "login.apiDown": "API ишламаяпти. Backendни ишга туширинг.",
+  "access.inactiveTitle": "Панелга кириш тўхтатилган",
+  "access.inactiveBody":
+    "Админ профилингиз фаол эмас ёки фирмага бириктирилмагансиз. Тизим маъмури билан боғланинг ёки чиқиб, бошқа ҳисоб билан киринг.",
+  "access.deniedTitle": "Бу бўлимга рухсат йўқ",
+  "access.deniedBody":
+    "Сизда «{area}» бўйича ҳуқуқ йўқ. SuperAdmin сизга бошқа вазифалар бериши мумкин.",
+  "access.goFirm": "Фирма профилига",
+  "access.capabilityStaff": "ходимларни бошқариш",
+  "access.capabilityOrders": "буюртмалар ва хизматлар",
+  "access.capabilityAnalytics": "ҳисоботлар ва таҳлил",
   "nature.tagline": "Боғ ва майдон — табиат билан",
   "weather.sunny": "Қуёшли — очиқ осмон",
   "weather.dry": "Қуруқ — иссиқ шамол",
@@ -179,6 +212,19 @@ const uzCyrl: Dict = {
   "weather.forest": "Ўрмон — сояли тинчлик",
   "weather.placeYou": "Сизнинг жойлашувингиз",
   "weather.placeTashkent": "Тошкент",
+  "nature.grow": "Ўстириш",
+  "nature.mow": "Ўриш",
+  "nature.composting": "Барглар ерга сингмоқда… ям-яшил ўт ўсади",
+  "nature.clearHint": "Баргларга босинг — тозаланади",
+  "scene.meadowWind": "Ям-яшил дала · шамол",
+  "scene.dewField": "Шудрингли тонг",
+  "scene.mistValley": "Туманли водий",
+  "scene.rainGlass": "Ёмғир · ойна юзи",
+  "scene.sunnyGarden": "Қуёшли боғ",
+  "scene.snowQuiet": "Тинч қор",
+  "scene.forestShade": "Ўрмон сояси",
+  "scene.goldenDusk": "Олтин шафақ",
+  "weather.clearNight": "Очиқ осмон — тун",
 };
 
 const ru: Dict = {
@@ -255,6 +301,16 @@ const ru: Dict = {
   "login.busy": "Вход...",
   "login.failed": "Не удалось войти",
   "login.apiDown": "API недоступен. Запустите backend.",
+  "access.inactiveTitle": "Доступ к панели ограничен",
+  "access.inactiveBody":
+    "Ваш профиль администратора неактивен или фирма не назначена. Свяжитесь с системным администратором или войдите под другой учётной записью.",
+  "access.deniedTitle": "Нет доступа к разделу",
+  "access.deniedBody":
+    "У вас нет права «{area}». SuperAdmin может назначить другие задачи.",
+  "access.goFirm": "Профиль фирмы",
+  "access.capabilityStaff": "управление сотрудниками",
+  "access.capabilityOrders": "заказы и услуги",
+  "access.capabilityAnalytics": "отчёты и аналитика",
   "nature.tagline": "Сад и участок — вместе с природой",
   "weather.sunny": "Солнечно — ясное небо",
   "weather.dry": "Сухо — тёплый ветер",
@@ -265,6 +321,19 @@ const ru: Dict = {
   "weather.forest": "Лес — тенистый покой",
   "weather.placeYou": "Ваше местоположение",
   "weather.placeTashkent": "Ташкент",
+  "nature.grow": "Вырастить",
+  "nature.mow": "Скосить",
+  "nature.composting": "Листья уходят в землю… растёт зелёная трава",
+  "nature.clearHint": "Нажмите на листья — очистится",
+  "scene.meadowWind": "Зелёное поле · ветер",
+  "scene.dewField": "Утренняя роса",
+  "scene.mistValley": "Туманная долина",
+  "scene.rainGlass": "Дождь · по стеклу",
+  "scene.sunnyGarden": "Солнечный сад",
+  "scene.snowQuiet": "Тихий снег",
+  "scene.forestShade": "Тень леса",
+  "scene.goldenDusk": "Золотые сумерки",
+  "weather.clearNight": "Ясная ночь",
 };
 
 const en: Dict = {
@@ -341,6 +410,16 @@ const en: Dict = {
   "login.busy": "Signing in...",
   "login.failed": "Sign-in failed",
   "login.apiDown": "API is down. Start the backend.",
+  "access.inactiveTitle": "Panel access suspended",
+  "access.inactiveBody":
+    "Your admin profile is inactive or no firm is assigned. Contact the system administrator or sign in with another account.",
+  "access.deniedTitle": "No access to this section",
+  "access.deniedBody":
+    "You do not have permission for «{area}». A SuperAdmin can assign other responsibilities.",
+  "access.goFirm": "Firm profile",
+  "access.capabilityStaff": "staff management",
+  "access.capabilityOrders": "orders and services",
+  "access.capabilityAnalytics": "reports and analytics",
   "nature.tagline": "Garden & grounds — with nature",
   "nature.grow": "Grow",
   "nature.mow": "Mow",
@@ -363,6 +442,7 @@ const en: Dict = {
   "weather.forest": "Forest — shaded calm",
   "weather.placeYou": "Your location",
   "weather.placeTashkent": "Tashkent",
+  "weather.clearNight": "Clear night",
 };
 
 export const messages: Record<Locale, Dict> = { uz, uzCyrl, ru, en };

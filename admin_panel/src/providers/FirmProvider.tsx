@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
+import { userFacingError } from "@/lib/api/errors";
 import type { PartnerFirm } from "@/lib/api/types";
 
 type FirmContextValue = {
@@ -21,7 +22,7 @@ export function FirmProvider({ children }: { children: React.ReactNode }) {
       setFirm(await api<PartnerFirm>("/admin/firms/me/"));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Firma ma'lumoti yuklanmadi");
+      setError(userFacingError(err, "Firma ma'lumoti yuklanmadi"));
     }
   }, []);
 

@@ -51,7 +51,7 @@ async function downloadPdfReport(query: Record<string, string>) {
     <tr><th>Davr buyurtmalari</th><td>${s.orders_in_period}</td></tr>
     <tr><th>Umumiy aylanma</th><td>${s.revenue_done} UZS</td></tr>
     <tr><th>Davr aylanmasi</th><td>${s.revenue_period} UZS</td></tr>
-    <tr><th>Kampaniya ulushi</th><td>${s.platform_share_total} UZS</td></tr>
+    <tr><th>Kompaniya ulushi</th><td>${s.platform_share_total} UZS</td></tr>
   </table>
   <h2>Firma aylanmalari</h2>
   <table><tr><th>Firma</th><th>Buyurtma</th><th>Aylanma</th><th>Stavka</th><th>Ulush</th></tr>
@@ -119,7 +119,7 @@ export default function HisobotlarPage() {
       meta: `${data.date_from} — ${data.date_to}`,
     },
     {
-      label: "Kampaniya ulushi",
+      label: "Kompaniya ulushi",
       value: formatMoney(data.platform_share_total),
       icon: "account_balance",
       meta: "Barcha firmalar",
@@ -154,7 +154,7 @@ export default function HisobotlarPage() {
           ["Bajarilgan buyurtmalar", data.completed_orders],
           ["Jami aylanma (UZS)", Number(data.revenue_done) || 0],
           ["Davr aylanmasi (UZS)", Number(data.revenue_period) || 0],
-          ["Kampaniya ulushi (UZS)", Number(data.platform_share_total) || 0],
+          ["Kompaniya ulushi (UZS)", Number(data.platform_share_total) || 0],
           ["O'rtacha chek (UZS)", Number(data.avg_check) || 0],
         ],
       },
@@ -270,7 +270,7 @@ export default function HisobotlarPage() {
       <div className="emakon-panel-card mb-6 overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-card-border bg-surface-container-low px-5 py-4">
           <h3 className="text-base font-semibold text-ink md:text-lg">
-            Firma aylanmalari va kampaniya ulushi
+            Firma aylanmalari va kompaniya ulushi
           </h3>
           <Link
             href="/firmalar"

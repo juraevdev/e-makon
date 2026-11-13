@@ -37,6 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         : window.matchMedia("(prefers-color-scheme: dark)").matches
           ? "dark"
           : "light";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     setThemeState(initial);
     applyTheme(initial);
   }, []);

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAsync } from "@/hooks/useAsync";
 import { api, asPage } from "@/lib/api/client";
+import { capabilityForPath } from "@/lib/permissions";
 import { navItems } from "@/lib/nav";
+import { useAdminAccess } from "@/providers/AdminAccessProvider";
 import { FIRM_STATUS_LABEL } from "@/lib/domain";
 import { useFirm } from "@/providers/FirmProvider";
 import { useLocale } from "@/providers/LocaleProvider";
@@ -21,26 +23,39 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { firm } = useFirm();
   const { t } = useLocale();
+  const { can, capabilities } = useAdminAccess();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const orderAccess = can("can_manage_orders");
   const { data: chat } = useAsync(
-    () => api<{ unread: number }>("/admin/chats/unread/").catch(() => ({ unread: 0 })),
-    [],
-    { live: 5000 },
+    () =>
+      orderAccess
+        ? api<{ unread: number }>("/admin/chats/unread/").catch(() => ({ unread: 0 }))
+        : Promise.resolve({ unread: 0 }),
+    [orderAccess],
+    { live: orderAccess ? 5000 : false },
   );
   const { data: newOrders } = useAsync(
     async () =>
-      asPage(
-        await api("/admin/orders/", { query: { status: "new", page_size: 1 } }).catch(() => []),
-      ).count,
-    [],
-    { live: 5000 },
+      orderAccess
+        ? asPage(
+            await api("/admin/orders/", { query: { status: "new", page_size: 1 } }).catch(() => []),
+          ).count
+        : 0,
+    [orderAccess],
+    { live: orderAccess ? 5000 : false },
   );
+  const visibleNav = navItems.filter((item) => {
+    if (!capabilities?.profileActive) return item.href === "/firma" || item.href === "/sozlamalar";
+    const need = capabilityForPath(item.href);
+    return !need || can(need);
+  });
   const badges: Record<string, number> = {
     "/aloqa": chat?.unread ?? 0,
     "/buyurtmalar": newOrders ?? 0,
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mountdan keyin brauzer holatini sinxronlash (SSR hydration uchun ataylab)
     setIsCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
   }, []);
 
@@ -145,7 +160,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
 
         <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto px-2">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const active =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const badge = badges[item.href] ?? 0;

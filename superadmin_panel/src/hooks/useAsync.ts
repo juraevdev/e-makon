@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { subscribeDataChanged } from "@/lib/api/client";
+import { userFacingError } from "@/lib/api/errors";
 
 type UseAsyncOptions = {
   /** Keep previous data visible while deps change (no full-page flash). */
@@ -52,7 +53,7 @@ export function useAsync<T>(
       .current()
       .then(
         (data) => ({ data, error: null }),
-        (err: unknown) => ({ data: undefined, error: err instanceof Error ? err.message : "Xatolik" }),
+        (err: unknown) => ({ data: undefined, error: userFacingError(err) }),
       )
       .then((res) => {
         if (cancelled) return;

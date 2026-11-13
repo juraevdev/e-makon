@@ -403,6 +403,7 @@ export function LiveBadge({ updatedAt, className = "" }: { updatedAt?: number; c
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
+        hourCycle: "h23",
       })
     : null;
   return (

@@ -1,0 +1,7 @@
+# api.e-makon.uz — /django-admin/ uchun (haqiqiy IP larni qo'shing):
+#   cp deploy/host-nginx/django-admin-allow.conf.example /etc/nginx/snippets/e-makon-django-admin-allow.conf
+#   nginx -t && systemctl reload nginx
+#
+# allow 203.0.113.50;
+# allow 198.51.100.0/24;
+deny all;

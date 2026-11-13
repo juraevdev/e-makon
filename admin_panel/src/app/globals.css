@@ -843,6 +843,18 @@ html.dark {
     color: var(--color-ink-muted);
     text-shadow: 0 1px 0 color-mix(in srgb, var(--color-card) 80%, transparent);
   }
+  /* Yorug' rejimda fon rasmi ustida sarlavha o'qilishi uchun yumshoq taglik. */
+  html:not(.dark) .page-header-text {
+    border-radius: 1rem;
+    padding: 0.5rem 0.875rem;
+    background: color-mix(in srgb, var(--color-card) 78%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  @media (max-width: 639px) {
+    .nw-controls {
+      display: none;
+    }
+  }
   .nw-btn {
     display: inline-flex;
     align-items: center;
@@ -1241,11 +1253,13 @@ html.dark {
     border: 1px solid var(--control-border);
     background: var(--control-bg);
     color: var(--color-ink);
-    padding: 0.625rem 0.875rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+  :where(.emakon-input) {
+    padding: 0.625rem 0.875rem;
   }
   .emakon-input:focus {
     border-color: var(--color-primary);
